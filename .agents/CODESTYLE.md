@@ -25,7 +25,7 @@
 
 ## Imports
 
-- Import from source: `from '@hexagonal-ts-template/task-management/infrastructure'`
+- Import from source: `from '@hex/core'`, `from '@hex/aws-lambda'`, or `from '@hex/nestjs'`
 - Don't create convenience re-exports in intermediate index files
 - Type imports must use `import type` for type-only exports
 - Keep imports grouped and sorted alphabetically within groups
@@ -47,6 +47,22 @@ const x = 42; // x is 42
 
 // Do this instead:
 const maxRetries = 42; // Clear intent from name
+```
+
+## Bun Usage
+
+This template uses bun for all package management. Always prefer bun over npm:
+
+```bash
+# ✅ Preferred
+bun install
+bun run build
+bun publish
+
+# ❌ Avoid
+npm install
+npm run build
+npm publish
 ```
 
 ## Naming Conventions
@@ -72,12 +88,68 @@ const maxRetries = 42; // Clear intent from name
 - Place related code together in the same file or package
 - Export only what's needed - no barrel files that export everything
 
-## Dependencies
+## Hexagonal Template Guidelines
 
-- Common package: Generic, reusable code (no app-specific logic)
-- Domain package: Pure domain models and business rules
-- Application package: Use cases, orchestration logic
-- Infrastructure package: Implementation of ports (db, logging, etc.)
+### Package Structure
+
+This template uses three core packages:
+
+- **`@hex/core`** - Domain primitives, use case base class, repository patterns
+- **`@hex/aws-lambda`** - AWS Lambda adapters and handlers
+- **`@hex/nestjs`** - NestJS decorators, modules, and exception filters
+
+### Use Case Implementation
+
+Always extend the `Usecase` base class (preferred) or implement the `UseCase` interface:
+
+```typescript
+// ✅ Preferred: Use the base class
+import { Usecase, UsecaseExecutionDependencies, Logger } from '@hex/core';
+
+class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
+  constructor(dependencies: UsecaseExecutionDependencies) {
+    super(dependencies);
+  }
+
+  protected async executeInternal(input: CreateUserInput, logger: Logger) {
+    // Your business logic
+  }
+}
+
+// ✅ Alternative: Use the interface
+import { UseCase } from '@hex/core';
+
+class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
+  async execute(input: CreateUserInput): Promise<UserCreated> {
+    // Your business logic
+  }
+}
+```
+
+### Logger Usage
+
+Always use the injected `Logger` in use cases - never use `console.log`:
+
+```typescript
+protected async executeInternal(input, logger: Logger) {
+  logger.debug('Starting operation', { input });
+  logger.info('Operation completed', { result });
+}
+```
+
+### Error Hierarchy
+
+Use the domain-specific error types:
+
+```typescript
+import { DomainError, UseCaseError } from '@hex/core';
+
+// Business rule violations
+throw new DomainError('User already exists');
+
+// Use case execution errors
+throw new UseCaseError('Invalid email format');
+```
 
 ## Module Exports
 

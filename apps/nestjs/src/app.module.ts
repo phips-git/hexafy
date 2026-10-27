@@ -1,16 +1,43 @@
+import {
+  createUsecaseProvider,
+  DomainExceptionFilter,
+  DomainModule,
+  UseCaseFilter
+} from '@hex/nestjs';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ConfigDatabaseModule } from './infrastructure/config-database.module';
-import appConfig from './infrastructure/config/app.config';
-import { ProjectsModule } from './projects/projects.module';
-import { TasksModule } from './tasks/tasks.module';
+import { HelloController } from './controllers/hello.controller';
+import { UsersController } from './controllers/users.controller';
+import {
+  CreateUserUseCase,
+  InMemoryUserRepository
+} from './domain/usecases/create-user.usecase';
+import { SayHelloUseCase } from './domain/usecases/say-hello.usecase';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [appConfig] }),
-    ConfigDatabaseModule,
-    ProjectsModule,
-    TasksModule
+  imports: [DomainModule],
+  controllers: [HelloController, UsersController],
+  providers: [
+    // Use cases
+    createUsecaseProvider(
+      new SayHelloUseCase({
+        generateId: () => `hello_${Date.now()}`,
+        loggerFactory: () => console
+      })
+    ),
+    createUsecaseProvider(new CreateUserUseCase(new InMemoryUserRepository())),
+
+    // Infrastructure
+    InMemoryUserRepository,
+
+    // Exception filters - automatically handle domain errors
+    {
+      provide: 'APP_FILTER',
+      useClass: DomainExceptionFilter
+    },
+    {
+      provide: 'APP_FILTER',
+      useClass: UseCaseFilter
+    }
   ]
 })
 export class AppModule {}

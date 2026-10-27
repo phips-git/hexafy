@@ -1,80 +1,191 @@
-# AWS Lambda - Task Management
+# AWS Lambda Example App
 
-A minimal AWS Lambda implementation of task-management usecases following hexagonal architecture. This app exposes CRUD operations for projects and tasks via API Gateway.
+This example demonstrates how to use `@hex/core` and `@hex/aws-lambda` to build hexagonal architecture applications with AWS Lambda.
 
 ## Architecture
 
 ```
-API Gateway → Lambda Functions → Use Cases → SQLite
+┌─────────────────────────────────────┐
+│          Lambda Handlers            │
+│  (src/lambda/*.ts)                  │
+│  • createLambdaHandler              │
+│  • Input transformation             │
+│  • Error formatting                 │
+└────────────────┬────────────────────┘
+                 │
+┌────────────────▼────────────────────┐
+│         Domain Layer                │
+│  (src/domain/usecases/*.ts)         │
+│  • UseCase implementations          │
+│  • Business logic                   │
+└────────────────┬────────────────────┘
+                 │
+┌────────────────▼────────────────────┐
+│      Infrastructure Layer           │
+│  • InMemoryUserRepository           │
+│  • Database adapters (future)       │
+└─────────────────────────────────────┘
 ```
 
-## Project Structure
+## Example Handlers
 
+### Say Hello
+
+A simple use case that returns a greeting.
+
+**Handler**: `src/lambda/say-hello.ts`
+
+**Input**:
+
+```json
+{
+  "name": "World"
+}
 ```
-src/
-└── lambda/                    # Individual Lambda functions
-    ├── create-project.ts
-    ├── create-task.ts
-    ├── list-tasks.ts
-    ├── update-project.ts
-    ├── update-task.ts
-    ├── delete-project.ts
-    └── delete-task.ts
 
-package.json                   # Dependencies & scripts
-README.md
+**Output**:
+
+```json
+{
+  "message": "Hello, World! Welcome to hexagonal architecture."
+}
 ```
 
-## Quick Start
+### Create User
+
+A more complex use case with validation and persistence.
+
+**Handler**: `src/lambda/create-user.ts`
+
+**Input**:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+**Output**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "user_1234567890",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+## Usage
+
+### Local Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Initialize the database (required before running dev)
-npm run db:init
-
-# Typecheck
+# Type check
 npm run typecheck
 
-# Build for deployment
+# Build
 npm run build
 ```
 
-## Deployment
+### Deploy
 
-Build the Lambda functions:
+The handlers are built to the `dist` folder:
 
-```bash
-npm run build
+```
+dist/
+├── say-hello.js
+└── create-user.js
 ```
 
-This bundles all Lambda functions into a single `dist/` directory. Each function is bundled as CommonJS (CJS) compatible with Node.js 22.x runtime.
+Use your preferred deployment method (AWS CDK, Serverless Framework, SAM, etc.) to deploy these functions.
 
-> **Note**: Use AWS SAM, CDK, or Serverless Framework for proper infrastructure provisioning (API Gateway, Lambda functions, IAM roles, and database connectivity).
+## Key Concepts
 
-## API Endpoints
+### 1. UseCase Implementation
 
-| Method | Endpoint                               | Function       |
-| ------ | -------------------------------------- | -------------- |
-| POST   | `/projects`                            | create-project |
-| POST   | `/projects/{id}/tasks`                 | create-task    |
-| GET    | `/projects/{id}/tasks`                 | list-tasks     |
-| PUT    | `/projects/{id}`                       | update-project |
-| PUT    | `/projects/{projectId}/tasks/{taskId}` | update-task    |
-| DELETE | `/projects/{id}`                       | delete-project |
-| DELETE | `/projects/{projectId}/tasks/{taskId}` | delete-task    |
+Use cases implement the `UseCase` interface from `@hex/core`:
 
-## Scripts
+```typescript
+import { UseCase, UseCaseError } from '@hex/core';
 
-| Command             | Description                           |
-| ------------------- | ------------------------------------- |
-| `npm run build`     | Build Lambda functions                |
-| `npm run db:init`   | Initialize the database schema        |
-| `npm run typecheck` | TypeScript check                      |
-| `npm run dev`       | Start LocalStack (runs db:init first) |
-| `npm run dev:stop`  | Stop LocalStack                       |
+class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
+  async execute(input: CreateUserInput): Promise<UserCreated> {
+    // Business logic here
+    // Throw UseCaseError for validation failures
+    // Return pure data on success
+  }
+}
+```
 
-## License
+### 2. Lambda Handler Creation
 
-MIT
+Handlers use `createLambdaHandler` from `@hex/aws-lambda`:
+
+```typescript
+import { createLambdaHandler, parseJsonBody } from '@hex/aws-lambda';
+import { CreateUserUseCase } from './usecases/create-user';
+
+export const handler = createLambdaHandler({
+  useCase: new CreateUserUseCase(),
+  inputTransformer: parseJsonBody,
+  responseFormatter: (output) => ({
+    statusCode: 201,
+    body: JSON.stringify({ success: true, data: output })
+  }),
+  errorFormatter: (error) => ({
+    statusCode: 400,
+    body: JSON.stringify({ success: false, error: error.message })
+  })
+});
+```
+
+### 3. Repository Pattern
+
+Repositories implement the `Repository` interface:
+
+```typescript
+import { Repository, User } from '@hex/core';
+
+class InMemoryUserRepository extends Repository<User, string> {
+  async findById(id: string): Promise<User | null> {
+    // Find by ID
+  }
+
+  async findAll(): Promise<User[]> {
+    // Find all
+  }
+
+  async save(entity: User): Promise<User> {
+    // Save or update
+  }
+
+  async delete(id: string): Promise<void> {
+    // Delete
+  }
+}
+```
+
+## Package Dependencies
+
+- `@hex/core` - Hexagonal architecture constructs
+- `@hex/aws-lambda` - AWS Lambda adapters and helpers
+
+## Next Steps
+
+1. **Add a real database** - Replace `InMemoryUserRepository` with a database-backed implementation
+2. **Add authentication** - Implement user authentication in the handler
+3. **Add more use cases** - Create additional use cases for your application
+4. **Deploy** - Deploy to AWS Lambda with your preferred IaC tool
+
+## See Also
+
+- [`@hex/core` README](../../packages/core/README.md)
+- [`@hex/aws-lambda` README](../../packages/aws-lambda/README.md)

@@ -1,17 +1,22 @@
 {
-  "name": "hexagonal-ts-template",
+  "name": "hexagonal-architecture-typescript-template",
   "private": true,
-  "author": "Philipp Teßner-Müller",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "typescript": "^7"
+    }
+  },
   "scripts": {
     "clean": "git clean -xdf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" && sort-package-json \"**/package.json\"",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "lint": "bun lint --workspaces --if-present",
+    "test": "bun test --workspaces --if-present",
+    "typecheck": "bun typecheck --workspaces --if-present",
+    "publish": "bun publish --recursive"
   },
   "devDependencies": {
     "eslint": "10.11.0",
@@ -20,5 +25,8 @@
     "sort-package-json": "4.0.0",
     "tsx": "4.23.15",
     "typescript": "^7"
+  },
+  "engines": {
+    "bun": ">=1.4.2"
   }
 }

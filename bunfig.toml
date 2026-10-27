@@ -1,0 +1,3 @@
+[bun]
+global-cache = true
+workspaces = true

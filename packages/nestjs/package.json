@@ -1,0 +1,45 @@
+{
+  "name": "@hex/nestjs",
+  "version": "1.0.0",
+  "description": "NestJS adapters and helpers for hexagonal architecture",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepare": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "hexagonal-architecture",
+    "nestjs",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/philippos/hexagonal-architecture-typescript-template"
+  },
+  "dependencies": {
+    "@hex/core": "1.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

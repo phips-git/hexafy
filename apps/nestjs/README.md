@@ -1,130 +1,242 @@
-# NestJS API Gateway
+# NestJS Example App
 
-NestJS-based API implementation for task and project management following hexagonal architecture.
+This example demonstrates how to use `@hex/core` and `@hex/nestjs` to build hexagonal architecture applications with NestJS.
 
 ## Architecture
 
 ```
-HTTP → NestJS Controllers → NestJS Services → Task Management Package → SQLite/TypeORM
+┌─────────────────────────────────────┐
+│         Controllers                 │
+│  (src/controllers/*.ts)             │
+│  • HTTP endpoints                   │
+│  • Request/response handling        │
+└────────────────┬────────────────────┘
+                 │
+┌────────────────▼────────────────────┐
+│         Domain Layer                │
+│  (src/domain/usecases/*.ts)         │
+│  • UseCase implementations          │
+│  • Business logic                   │
+│  • Entities                         │
+└────────────────┬────────────────────┘
+                 │
+┌────────────────▼────────────────────┐
+│      Infrastructure Layer           │
+│  • InMemoryUserRepository           │
+│  • Database adapters (future)       │
+└─────────────────────────────────────┘
+```
+
+## Example Endpoints
+
+### Say Hello
+
+Returns a greeting based on input.
+
+**Endpoint**: `POST /hello`
+
+**Request**:
+
+```json
+{
+  "name": "World"
+}
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "message": "Hello, World! Welcome to hexagonal architecture."
+}
+```
+
+### Create User
+
+Creates a new user with validation.
+
+**Endpoint**: `POST /users`
+
+**Request**:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+**Response** (201 Created):
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "user_1234567890",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "success": false,
+  "error": "Name is required",
+  "code": "USE_CASE_ERROR"
+}
+```
+
+## Usage
+
+### Start the Server
+
+```bash
+# Install dependencies
+npm install
+
+# Development mode
+npm run start:dev
+
+# Production mode
+npm run build
+npm run start:prod
+```
+
+### Test Endpoints
+
+```bash
+# Say Hello
+curl -X POST http://localhost:3000/hello \
+  -H "Content-Type: application/json" \
+  -d '{"name": "World"}'
+
+# Create User
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com"}'
+```
+
+## Key Concepts
+
+### 1. Domain Layer
+
+Use cases are pure business logic that implement `UseCase`:
+
+```typescript
+import { UseCase, UseCaseError } from '@hex/core';
+
+class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
+  async execute(input: CreateUserInput): Promise<UserCreated> {
+    // Business logic here
+    // Throw UseCaseError for validation failures
+    // Return pure data on success
+  }
+}
+```
+
+### 2. NestJS Integration
+
+Use `@hex/nestjs` to integrate with NestJS:
+
+```typescript
+import { Module } from '@nestjs/common';
+import {
+  createUsecaseProvider,
+  DomainExceptionFilter,
+  UseCaseFilter
+} from '@hex/nestjs';
+
+@Module({
+  providers: [
+    // Register use cases as providers
+    createUsecaseProvider(new CreateUserUseCase()),
+
+    // Add exception filters for automatic error handling
+    {
+      provide: 'APP_FILTER',
+      useClass: DomainExceptionFilter
+    },
+    {
+      provide: 'APP_FILTER',
+      useClass: UseCaseFilter
+    }
+  ]
+})
+export class AppModule {}
+```
+
+### 3. Controllers
+
+Controllers are thin wrappers that call use cases:
+
+```typescript
+import { Controller, Post, Body } from '@nestjs/common';
+import { CreateUserUseCase } from '../domain/usecases/create-user.usecase';
+
+@Controller('users')
+export class UsersController {
+  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
+
+  @Post()
+  async createUser(@Body() input: CreateUserInput) {
+    const result = await this.createUserUseCase.execute(input);
+    return { success: true, data: result };
+  }
+}
+```
+
+### 4. Exception Filters
+
+Domain errors are automatically caught and formatted:
+
+```typescript
+// DomainExceptionFilter handles:
+// - DomainError → 400 Bad Request
+// - UseCaseError → 400 Bad Request
+
+// Both return consistent error format:
+{
+  success: false,
+  error: "Error message",
+  code: "ERROR_CODE"
+}
 ```
 
 ## Project Structure
 
 ```
 src/
-├── main.ts                        # Application entry point
-├── app.module.ts                  # Root NestJS module
-├── infrastructure/                # Infrastructure concerns
-│   ├── config/
-│   │   └── app.config.ts          # Application configuration
-│   ├── config-database.module.ts  # Database module
-│   ├── database.service.ts        # Database connection service
-│   ├── exceptions/
-│   │   ├── all-exceptions.filter.ts
-│   │   └── validation.exception.filter.ts
-│   └── guards/
-│       └── jwt-auth.guard.ts      # JWT authentication guard
-├── projects/                      # Projects domain
-│   ├── projects.controller.ts     # REST endpoints
-│   ├── projects.service.ts        # Business logic
-│   ├── projects.module.ts         # NestJS module
-│   └── dtos/
-│       └── create-project.dto.ts  # Validation DTOs
-├── tasks/                         # Tasks domain
-│   ├── tasks.controller.ts        # REST endpoints
-│   ├── tasks.service.ts           # Business logic
-│   ├── tasks.module.ts            # NestJS module
-│   └── dtos/
-│       └── create-task.dto.ts     # Validation DTOs
-└── scripts/
-    └── init-db.ts                 # Database initialization script
+├── app.module.ts              # NestJS module configuration
+├── main.ts                    # Application entry point
+├── controllers/
+│   ├── hello.controller.ts    # Hello endpoint
+│   └── users.controller.ts    # User CRUD endpoints
+└── domain/
+    ├── usecases/
+    │   ├── say-hello.usecase.ts
+    │   └── create-user.usecase.ts
+    └── repositories/
+        └── in-memory-user.repository.ts
 ```
 
-## Features
+## Package Dependencies
 
-- **RESTful API**: Standard HTTP endpoints for CRUD operations
-- **JWT Authentication**: Token-based authentication and authorization
-- **Validation**: Class-validator decorators for request validation
-- **Error Handling**: Centralized exception filters
-- **Hexagonal Architecture**: Leverages `@hexagonal-ts-template/task-management` package
+- `@hex/core` - Hexagonal architecture constructs
+- `@hex/nestjs` - NestJS adapters and helpers
 
-## Quick Start
+## Next Steps
 
-```bash
-# Install dependencies
-npm install
+1. **Add a real database** - Replace `InMemoryUserRepository` with a TypeORM/Prisma repository
+2. **Add authentication** - Implement JWT or session-based auth
+3. **Add more use cases** - Create additional use cases for your application
+4. **Add validation** - Use class-validator for request validation
+5. **Add tests** - Write unit and integration tests
 
-# Copy environment variables
-cp .env.example .env
+## See Also
 
-# Initialize the database
-npm run db:init
-
-# Start development server
-npm run start:dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start:prod
-```
-
-## Environment Variables
-
-```env
-# Server
-PORT=3000
-NODE_ENV=development
-
-# Database
-DATABASE_URL=./database.sqlite
-
-# JWT
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=1h
-```
-
-## API Endpoints
-
-### Projects
-
-| Method | Endpoint        | Description         |
-| ------ | --------------- | ------------------- |
-| POST   | `/projects`     | Create a project    |
-| GET    | `/projects`     | List all projects   |
-| GET    | `/projects/:id` | Get project details |
-| PUT    | `/projects/:id` | Update a project    |
-| DELETE | `/projects/:id` | Delete a project    |
-
-### Tasks
-
-| Method | Endpoint                     | Description            |
-| ------ | ---------------------------- | ---------------------- |
-| POST   | `/projects/:projectId/tasks` | Create a task          |
-| GET    | `/projects/:projectId/tasks` | List tasks for project |
-| GET    | `/tasks/:id`                 | Get task details       |
-| PUT    | `/tasks/:id`                 | Update a task          |
-| DELETE | `/tasks/:id`                 | Delete a task          |
-
-## Scripts
-
-| Command             | Description                         |
-| ------------------- | ----------------------------------- |
-| `npm run start`     | Start production server             |
-| `npm run start:dev` | Start development server with watch |
-| `npm run build`     | Build the application               |
-| `npm run db:init`   | Initialize database schema          |
-| `npm test`          | Run tests                           |
-
-## Authentication
-
-Authentication is handled via JWT tokens. Include the token in the Authorization header:
-
-```
-Authorization: Bearer <your-jwt-token>
-```
-
-## License
-
-MIT
+- [`@hex/core` README](../../packages/core/README.md)
+- [`@hex/nestjs` README](../../packages/nestjs/README.md)
