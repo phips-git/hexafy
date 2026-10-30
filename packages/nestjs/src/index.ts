@@ -5,6 +5,10 @@ export {
   InfrastructureModule
 } from './module';
 
-export { DomainExceptionFilter, UseCaseFilter } from './filters';
+export {
+  ApplicationError,
+  DomainExceptionFilter,
+  UseCaseFilter
+} from './filters';
 
 export { createUsecaseProvider, UseCaseProviderConfig } from './providers';

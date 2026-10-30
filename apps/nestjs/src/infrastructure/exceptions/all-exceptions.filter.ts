@@ -1,4 +1,4 @@
-import { isDomainError } from '@hexagonal-ts-template/common/domain';
+import { isDomainError } from '@hexafy/core/domain';
 import {
   ArgumentsHost,
   Catch,

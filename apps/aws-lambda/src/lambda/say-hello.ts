@@ -1,5 +1,6 @@
-import { createLambdaHandler, parseJsonBody } from '@hex/aws-lambda';
-import { consoleLogger } from '@hex/core';
+import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
+import { consoleLogger } from '@hexafy/core';
+
 import { SayHelloUseCase } from '../domain/usecases/say-hello.usecase';
 
 const sayHelloUseCase = new SayHelloUseCase({

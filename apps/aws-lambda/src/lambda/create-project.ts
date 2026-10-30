@@ -1,12 +1,13 @@
 import type {
   ProjectCreationProperties,
   TaskManagementAuthorizationContext
-} from '@hexagonal-ts-template/task-management/domain';
+} from '@hexafy/task-management/domain';
 import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
 import { buildLambdaErrorResponse, getCreateProjectUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
 import { UnauthorizedError, ValidationApiError } from './shared/errors';

@@ -1,4 +1,4 @@
-import { GetAuthenticatedUserUsecase } from '@hexagonal-ts-template/auth/application';
+import { GetAuthenticatedUserUsecase } from '@hexafy/auth/application';
 import {
   AuthGuard,
   ExecutionContext,
@@ -22,21 +22,17 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new UnauthorizedException();
     }
 
-    try {
-      const user = await this.getAuthenticatedUserUsecase.execute({
-        headers: {
-          authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!user) {
-        throw new UnauthorizedException();
+    const result = await this.getAuthenticatedUserUsecase.execute({
+      headers: {
+        authorization: `Bearer ${token}`
       }
+    });
 
-      request['user'] = user;
-    } catch {
+    if (!result.success || !result.value) {
       throw new UnauthorizedException();
     }
+
+    request['user'] = result.value;
 
     return true;
   }

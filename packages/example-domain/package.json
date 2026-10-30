@@ -1,0 +1,22 @@
+{
+  "name": "@hexafy/example-domain",
+  "private": true,
+  "exports": {
+    "./application": "./src/application/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./infrastructure": "./src/infrastructure/index.ts"
+  },
+  "scripts": {
+    "example": "tsx src/main.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@hexafy/core": "*",
+    "better-sqlite3": "13.0.3",
+    "jose": "6.2.12"
+  },
+  "devDependencies": {
+    "@hexafy/nestjs": "*",
+    "@types/better-sqlite3": "9.6.0"
+  }
+}

@@ -1,6 +1,6 @@
 # NestJS Example App
 
-This example demonstrates how to use `@hex/core` and `@hex/nestjs` to build hexagonal architecture applications with NestJS.
+This example demonstrates how to use `@hexafy/core` and `@hexafy/nestjs` to build hexagonal architecture applications with NestJS.
 
 ## Architecture
 
@@ -124,31 +124,46 @@ curl -X POST http://localhost:3000/users \
 
 ### 1. Domain Layer
 
-Use cases are pure business logic that implement `UseCase`:
+Use cases are pure business logic that extend `Usecase`:
 
+````typescript
+import {
+  Usecase,
+  UsecaseExecutionDependencies,
+  LoggerPort
+} from '@hexafy/core';
 ```typescript
-import { UseCase, UseCaseError } from '@hex/core';
+import { Usecase, UsecaseExecutionDependencies, LoggerPort } from '@hexafy/core';
 
-class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
-  async execute(input: CreateUserInput): Promise<UserCreated> {
-    // Business logic here
-    // Throw UseCaseError for validation failures
-    // Return pure data on success
+class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
+  constructor(dependencies: UsecaseExecutionDependencies) {
+    super(dependencies);
+  }
+
+  protected async executeInternal(input: CreateUserInput, logger: LoggerPort): Promise<Result<UserCreated>> {
+    // Domain errors returned as failure()
+    if (!input.email) {
+      return failure(new UseCaseError('Email is required'));
+    }
+
+    // Business logic
+    logger.info('Creating user', { email: input.email });
+    return success({ userId: 'user_123' });
   }
 }
-```
+````
 
 ### 2. NestJS Integration
 
-Use `@hex/nestjs` to integrate with NestJS:
+Use `@hexafy/nestjs` to integrate with NestJS:
 
 ```typescript
-import { Module } from '@nestjs/common';
 import {
   createUsecaseProvider,
   DomainExceptionFilter,
   UseCaseFilter
-} from '@hex/nestjs';
+} from '@hexafy/nestjs';
+import { Module } from '@nestjs/common';
 
 @Module({
   providers: [
@@ -174,7 +189,8 @@ export class AppModule {}
 Controllers are thin wrappers that call use cases:
 
 ```typescript
-import { Controller, Post, Body } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
+
 import { CreateUserUseCase } from '../domain/usecases/create-user.usecase';
 
 @Controller('users')
@@ -225,8 +241,8 @@ src/
 
 ## Package Dependencies
 
-- `@hex/core` - Hexagonal architecture constructs
-- `@hex/nestjs` - NestJS adapters and helpers
+- `@hexafy/core` - Hexagonal architecture constructs
+- `@hexafy/nestjs` - NestJS adapters and helpers
 
 ## Next Steps
 
@@ -238,5 +254,5 @@ src/
 
 ## See Also
 
-- [`@hex/core` README](../../packages/core/README.md)
-- [`@hex/nestjs` README](../../packages/nestjs/README.md)
+- [`@hexafy/core` README](../../packages/core/README.md)
+- [`@hexafy/nestjs` README](../../packages/nestjs/README.md)

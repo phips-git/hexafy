@@ -1,6 +1,6 @@
 import db = require('better-sqlite3');
-import type { LoggerPort } from '@hexagonal-ts-template/common/application';
-import { createConsoleLogger } from '@hexagonal-ts-template/common/infrastructure';
+import type { LoggerPort } from '@hexafy/core/application';
+import { createConsoleLogger } from '@hexafy/core/infrastructure';
 
 type Database = any;
 

@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
+
 import type { Email } from '../../../domain/models';
 import { EmailNoopAdapter } from '../email.noop.adapter';
 

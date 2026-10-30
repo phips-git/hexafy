@@ -1,11 +1,10 @@
 {
-  "name": "@hex/nestjs-example",
+  "name": "@hexafy/nestjs-example",
   "private": true,
   "scripts": {
     "build": "bun --bun nest build",
+    "clean": "rm -rf dist && git clean -xdf node_modules",
     "db:init": "bun src/scripts/init-db.ts",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
     "start:dev": "nest start --watch",
@@ -15,26 +14,9 @@
     "test:debug": "bun test --inspect-brk",
     "test:watch": "bun test --watch"
   },
-  "jest": {
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testEnvironment": "node",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    }
-  },
   "dependencies": {
-    "@hex/core": "1.0.0",
-    "@hex/nestjs": "1.0.0",
+    "@hexafy/core": "1.0.0",
+    "@hexafy/nestjs": "1.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
@@ -57,6 +39,23 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^7"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testEnvironment": "node",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    }
   },
   "engines": {
     "bun": ">=1.4.2"

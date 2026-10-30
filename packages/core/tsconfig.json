@@ -1,4 +1,4 @@
 {
-  "extends": "@hexagonal-ts-template/typescript-config/publish",
+  "extends": "@hexafy/typescript-config/publish",
   "include": ["src", "./*.config.ts"]
 }

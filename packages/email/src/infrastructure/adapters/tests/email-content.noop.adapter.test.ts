@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
+
 import { EmailContentNoopAdapter } from '../email-content.noop.adapter';
 
 test('EmailContentNoopAdapter', async () => {

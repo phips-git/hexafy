@@ -17,6 +17,5 @@ export {
   formatNotFound,
   formatError as formatResponseError,
   formatSuccess,
-  formatUnauthorized,
-  parseJsonBody
+  formatUnauthorized
 } from './utils/response-formatting';

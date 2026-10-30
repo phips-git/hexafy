@@ -1,4 +1,5 @@
 {
-  "extends": "@hexagonal-ts-template/typescript-config/publish",
+  "extends": "@hexafy/typescript-config/publish",
+  "compilerOptions": { "types": ["node"] },
   "include": ["src", "./*.config.ts"]
 }

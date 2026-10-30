@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Tests
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Development
+.env
+.env.*
+*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Documentation (unless documented in package.json)
+*.md
+!README.md
+
+# Build artifacts (generated on publish)
+dist
+coverage
+*.log

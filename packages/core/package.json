@@ -1,41 +1,48 @@
 {
-  "name": "@hex/core",
+  "name": "@hexafy/core",
   "version": "1.0.0",
   "description": "Core hexagonal architecture constructs for TypeScript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist/**/*"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    }
-  },
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist",
-    "prepare": "bun run build",
-    "typecheck": "tsc --noEmit"
-  },
   "keywords": [
-    "hexagonal-architecture",
-    "ddd",
     "clean-architecture",
-    "use-case",
-    "typescript"
+    "ddd",
+    "hexagonal-architecture",
+    "typescript",
+    "use-case"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/philippos/hexagonal-architecture-typescript-template"
+    "url": "https://github.com/phips-git/hexafy"
   },
-  "publishConfig": {
-    "access": "public"
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./application": {
+      "types": "./dist/application/index.d.ts",
+      "import": "./dist/application/index.js",
+      "require": "./dist/application/index.js"
+    },
+    "./domain": {
+      "types": "./dist/domain/index.d.ts",
+      "import": "./dist/domain/index.js",
+      "require": "./dist/domain/index.js"
+    },
+    "./infrastructure": {
+      "types": "./dist/infrastructure/index.d.ts",
+      "import": "./dist/infrastructure/index.js",
+      "require": "./dist/infrastructure/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist && git clean -xdf node_modules",
+    "test": "bun test"
   },
   "devDependencies": {
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=22"
   }
 }

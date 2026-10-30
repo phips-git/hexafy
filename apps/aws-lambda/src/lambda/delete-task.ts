@@ -2,12 +2,13 @@ import type {
   ProjectId,
   TaskId,
   TaskManagementAuthorizationContext
-} from '@hexagonal-ts-template/task-management/domain';
+} from '@hexafy/task-management/domain';
 import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
 import { buildLambdaErrorResponse, getDeleteTaskUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
 

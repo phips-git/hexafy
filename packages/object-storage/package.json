@@ -1,22 +1,50 @@
 {
-  "name": "@hexagonal-ts-template/object-storage",
-  "private": true,
+  "name": "@hexafy/object-storage",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Object storage domain and infrastructure for hexafy applications",
+  "keywords": [
+    "aws",
+    "hexafy",
+    "hexagonal-architecture",
+    "s3",
+    "storage",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phips-git/hexafy"
+  },
+  "files": [
+    "src/**/*"
+  ],
   "exports": {
-    "./domain": "./src/domain.export.ts",
-    "./infrastructure": "./src/infrastructure.export.ts"
+    "./domain": {
+      "types": "./src/domain/index.d.ts",
+      "import": "./src/domain/index.js",
+      "require": "./src/domain/index.js"
+    },
+    "./infrastructure": {
+      "types": "./src/infrastructure/index.d.ts",
+      "import": "./src/infrastructure/index.js",
+      "require": "./src/infrastructure/index.js"
+    }
   },
   "scripts": {
-    "lint": "eslint --max-warnings 0 --fix",
-    "test": "tsx --test 'src/**/*.test.ts'",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1146.0",
-    "@aws-sdk/s3-request-presigner": "3.1146.0",
-    "@hexagonal-ts-template/common": "*"
+    "@hexafy/core": "1.0.0"
   },
   "devDependencies": {
-    "@hexagonal-ts-template/eslint-config": "*",
-    "@hexagonal-ts-template/typescript-config": "*"
+    "@hexafy/eslint-config": "*",
+    "@hexafy/typescript-config": "*",
+    "@types/node": "^22.15.0"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=22"
   }
 }

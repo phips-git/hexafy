@@ -3,8 +3,9 @@ import {
   DomainExceptionFilter,
   DomainModule,
   UseCaseFilter
-} from '@hex/nestjs';
+} from '@hexafy/nestjs';
 import { Module } from '@nestjs/common';
+
 import { HelloController } from './controllers/hello.controller';
 import { UsersController } from './controllers/users.controller';
 import {

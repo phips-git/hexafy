@@ -1,4 +1,5 @@
-import { NotFoundError } from '@hexagonal-ts-template/common/domain';
+import { NotFoundError } from '@hexafy/core/domain';
+
 import type { ObjectMetadata, StoredObject } from '../../domain/models';
 import type {
   CreateSignedUrlOptions,

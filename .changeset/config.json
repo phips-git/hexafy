@@ -1,0 +1,5 @@
+{
+  "access": "public",
+  "updateInternalDependencies": "patch",
+  "ignore": ["example-domain"]
+}

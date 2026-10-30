@@ -25,7 +25,7 @@
 
 ## Imports
 
-- Import from source: `from '@hex/core'`, `from '@hex/aws-lambda'`, or `from '@hex/nestjs'`
+- Import from source: `from '@hexafy/core'`, `from '@hexafy/aws-lambda'`, or `from '@hexafy/nestjs'`
 - Don't create convenience re-exports in intermediate index files
 - Type imports must use `import type` for type-only exports
 - Keep imports grouped and sorted alphabetically within groups
@@ -94,55 +94,48 @@ npm publish
 
 This template uses three core packages:
 
-- **`@hex/core`** - Domain primitives, use case base class, repository patterns
-- **`@hex/aws-lambda`** - AWS Lambda adapters and handlers
-- **`@hex/nestjs`** - NestJS decorators, modules, and exception filters
+- **`@hexafy/core`** - Domain primitives, use case base class, repository patterns
+- **`@hexafy/aws-lambda`** - AWS Lambda adapters and handlers
+- **`@hexafy/nestjs`** - NestJS decorators, modules, and exception filters
 
 ### Use Case Implementation
 
-Always extend the `Usecase` base class (preferred) or implement the `UseCase` interface:
+Always extend the `Usecase` base class:
 
+````typescript
+import {
+  Usecase,
+  UsecaseExecutionDependencies,
+  LoggerPort
+} from '@hexafy/core';
 ```typescript
-// ✅ Preferred: Use the base class
-import { Usecase, UsecaseExecutionDependencies, Logger } from '@hex/core';
+import { Usecase, UsecaseExecutionDependencies, LoggerPort, Result, success, failure } from '@hexafy/core';
 
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
   constructor(dependencies: UsecaseExecutionDependencies) {
     super(dependencies);
   }
 
-  protected async executeInternal(input: CreateUserInput, logger: Logger) {
-    // Your business logic
+  protected async executeInternal(input: CreateUserInput, logger: LoggerPort): Promise<Result<UserCreated>> {
+    // Domain errors returned as failure() - no throwing needed
+    if (!input.email) {
+      return failure(new UseCaseError('Email is required'));
+    }
+
+    logger.info('Processing', { input });  // Logger always available (NOOP if not configured)
+    return success({ userId: 'user_123' });
   }
 }
+````
 
-// ✅ Alternative: Use the interface
-import { UseCase } from '@hex/core';
-
-class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
-  async execute(input: CreateUserInput): Promise<UserCreated> {
-    // Your business logic
-  }
-}
-```
-
-### Logger Usage
-
-Always use the injected `Logger` in use cases - never use `console.log`:
-
-```typescript
-protected async executeInternal(input, logger: Logger) {
-  logger.debug('Starting operation', { input });
-  logger.info('Operation completed', { result });
-}
-```
+**Domain errors return via `Result`** - Throw only infrastructure errors. Domain errors are part of normal business flow.
 
 ### Error Hierarchy
 
 Use the domain-specific error types:
 
 ```typescript
-import { DomainError, UseCaseError } from '@hex/core';
+import { DomainError, UseCaseError } from '@hexafy/core';
 
 // Business rule violations
 throw new DomainError('User already exists');

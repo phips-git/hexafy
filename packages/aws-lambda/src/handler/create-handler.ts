@@ -1,52 +1,42 @@
 /**
  * Lambda handler factory - creates Lambda handlers from use cases
  *
- * This provides a clean way to compose use cases with Lambda-specific
- * concerns (input parsing, error handling, response formatting)
+ * This provides a clean way to compose use cases with Lambda-specific concerns
+ * (input parsing, error handling, response formatting)
  */
-import { HexagonalError, UseCase } from '@hex/core';
+import { HexagonalError, Result, unwrap, Usecase } from '@hexafy/core';
 import type { Context as LambdaContext } from 'aws-lambda';
 
-/**
- * Type aliases for AWS Lambda
- */
+/** Type aliases for AWS Lambda */
 export type Context = LambdaContext;
 
-/**
- * Configuration for Lambda handler
- */
+/** Configuration for Lambda handler */
 export interface HandlerConfig<Input, Output> {
-  /**
-   * The use case to execute
-   */
-  useCase: UseCase<Input, Output>;
+  /** The use case to execute */
+  useCase: Usecase<Input, Output>;
 
-  /**
-   * Transform Lambda event into use case input
-   */
+  /** Transform Lambda event into use case input */
   inputTransformer: (event: APIGatewayEvent, context: Context) => Input;
 
   /**
    * Transform use case output into API Gateway response
+   *
    * @default Standard JSON response formatter
    */
   responseFormatter?: (output: Output) => APIGatewayResponse;
 
   /**
    * Transform errors into API Gateway error response
+   *
    * @default Built-in error formatter
    */
   errorFormatter?: (error: Error) => APIGatewayErrorResponse;
 
-  /**
-   * Optional error handler for logging/monitoring
-   */
+  /** Optional error handler for logging/monitoring */
   onError?: (error: Error, context: Context) => void;
 }
 
-/**
- * API Gateway REST API event
- */
+/** API Gateway REST API event */
 export interface APIGatewayEvent {
   httpMethod: string;
   path: string;
@@ -57,9 +47,7 @@ export interface APIGatewayEvent {
   stageVariables: Record<string, string> | null;
 }
 
-/**
- * API Gateway response
- */
+/** API Gateway response */
 export interface APIGatewayResponse {
   statusCode: number;
   headers?: Record<string, string>;
@@ -67,9 +55,7 @@ export interface APIGatewayResponse {
   isBase64Encoded?: boolean;
 }
 
-/**
- * API Gateway error response
- */
+/** API Gateway error response */
 export interface APIGatewayErrorResponse {
   statusCode: number;
   headers?: Record<string, string>;
@@ -79,17 +65,17 @@ export interface APIGatewayErrorResponse {
 /**
  * Create a Lambda handler from a use case
  *
- * This is the primary entry point for using @hex/aws-lambda
+ * This is the primary entry point for using @hexafy/aws-lambda
  *
  * @example
- * ```typescript
- * export const handler = createLambdaHandler({
- *   useCase: new CreateUserUseCase(),
- *   inputTransformer: parseApiGatewayBody,
- *   responseFormatter: formatJsonResponse,
- *   errorFormatter: formatErrorResponse,
- * });
- * ```
+ *   ```typescript
+ *   export const handler = createLambdaHandler({
+ *     useCase: new CreateUserUseCase(),
+ *     inputTransformer: parseApiGatewayBody,
+ *     responseFormatter: formatJsonResponse,
+ *     errorFormatter: formatErrorResponse
+ *   });
+ *   ```;
  */
 export function createLambdaHandler<Input, Output>(
   config: HandlerConfig<Input, Output>
@@ -103,42 +89,43 @@ export function createLambdaHandler<Input, Output>(
   } = config;
 
   return async (event, context) => {
-    try {
-      // Transform event to use case input
-      const input = inputTransformer(event, context);
+    // Transform event to use case input
+    const input = inputTransformer(event, context);
 
-      // Execute use case
-      const output = await useCase.execute(input);
+    // Execute use case - returns Result
+    const result = await useCase.execute(input);
 
-      // Format success response
-      return responseFormatter(output);
-    } catch (error) {
-      // Log error if handler provided
-      if (onError) {
-        onError(error as Error, context);
-      }
-
-      // Format error response
-      const formattedError = errorFormatter(error as Error);
-
-      // For HexagonalError, include code in body
-      if (error instanceof HexagonalError) {
-        formattedError.body = JSON.stringify({
-          success: false,
-          error: (error as HexagonalError).message,
-          code: (error as HexagonalError).code,
-          timestamp: (error as HexagonalError).timestamp.toISOString()
-        });
-      }
-
-      return formattedError;
+    // Handle result
+    if (result.success) {
+      return responseFormatter(result.value);
     }
+
+    // Format error response
+    const error = result.error;
+
+    // Log error if handler provided
+    if (onError) {
+      onError(error, context);
+    }
+
+    // Format error response
+    const formattedError = errorFormatter(error);
+
+    // For HexagonalError, include code in body
+    if (error instanceof HexagonalError) {
+      formattedError.body = JSON.stringify({
+        success: false,
+        error: (error as HexagonalError).message,
+        code: (error as HexagonalError).code,
+        timestamp: (error as HexagonalError).timestamp.toISOString()
+      });
+    }
+
+    return formattedError;
   };
 }
 
-/**
- * Standard JSON response formatter
- */
+/** Standard JSON response formatter */
 export function formatJsonResponse<T>(output: T): APIGatewayResponse {
   return {
     statusCode: 200,
@@ -152,9 +139,7 @@ export function formatJsonResponse<T>(output: T): APIGatewayResponse {
   };
 }
 
-/**
- * Standard error response formatter
- */
+/** Standard error response formatter */
 export function formatError(error: Error): APIGatewayErrorResponse {
   // Handle specific error types
   if (error.message.includes('400')) {

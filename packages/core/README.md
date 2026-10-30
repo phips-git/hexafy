@@ -1,142 +1,71 @@
-# @hex/core
+# @hexafy/core
 
-Core hexagonal architecture constructs for TypeScript applications.
+> **Hexagonal architecture primitives for TypeScript** — Clean, explicit, and opinionated building blocks for building maintainable applications.
 
-## Installation
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)
+
+## 🎯 What is This?
+
+`@hexafy/core` provides the fundamental building blocks for implementing **hexagonal architecture** (also known as ports and adapters) in TypeScript applications. It gives you a consistent, battle-tested pattern for:
+
+- **Use Cases** — Pure business logic encapsulated in reusable operations
+- **Result Types** — Explicit error handling without exceptions for domain errors
+- **Repositories** — Clean data access abstraction
+- **Unit of Work** — Transactional boundary management
+- **Logger Ports** — Optional structured logging with no-op fallback
+
+## ✨ Why Use It?
+
+### Problems Solved
+
+| Problem                               | Solution                                                                                       |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Mixed exception/return error patterns | **Explicit `Result` type** — all domain errors handled consistently                            |
+| Logging setup complexity              | **Built-in NOOP logger** — works immediately, opt-in to structured logging                     |
+| Use case boilerplate                  | **`Usecase` base class** — handles logging, metrics, and error wrapping automatically          |
+| Unclear error boundaries              | **Domain vs Infrastructure separation** — domain errors returned, infrastructure errors thrown |
+
+### Key Benefits
+
+- ✅ **Type-safe error handling** — No more `any` exceptions for expected failures
+- ✅ **Zero-config logging** — Works out of the box, switches to NOOP when disabled
+- ✅ **Consistent patterns** — Same approach across your entire codebase
+- ✅ **Testing friendly** — Dependencies are optional and injectable
+- ✅ **Production ready** — Automatic execution metrics and structured logging
+
+## 📦 Installation
 
 ```bash
-npm install @hex/core
+bun add @hexafy/core
+# or
+npm install @hexafy/core
+# or
+yarn add @hexafy/core
 ```
 
-## What is this?
+## 🚀 Quick Start
 
-This package provides the building blocks for implementing **textbook hexagonal architecture** in TypeScript. It contains pure domain constructs that are independent of any framework or infrastructure.
-
-## Core Constructs
-
-### Using the Usecase Base Class (Recommended)
-
-The recommended approach is to extend the `Usecase` base class which handles all cross-cutting concerns automatically:
-
-```typescript
-import { Usecase, UsecaseExecutionDependencies, Logger } from '@hex/core';
-
-interface CreateUserInput {
-  name: string;
-  email: string;
-}
-
-interface UserCreated {
-  userId: string;
-}
-
-class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
-  constructor(dependencies: UsecaseExecutionDependencies) {
-    super(dependencies);
-  }
-
-  protected async executeInternal(
-    input: CreateUserInput,
-    logger: Logger
-  ): Promise<UserCreated> {
-    // Use the logger for custom logging if needed
-    logger.debug('Starting user creation', { email: input.email });
-
-    // Your business logic here
-    const userId = this.dependencies.generateId();
-
-    return { userId };
-  }
-}
-
-// Usage:
-const useCase = new CreateUserUseCase({
-  generateId: () => `user_${Date.now()}`,
-  loggerFactory: (name) => consoleLogger // or your custom logger
-});
-
-await useCase.execute({ name: 'John', email: 'john@example.com' });
-```
-
-**Base Class Benefits**:
-
-The `Usecase` base class provides built-in cross-cutting concerns:
-
-- ✅ **Automatic logging** - All executions are logged with execution context
-- ✅ **Unique execution IDs** - Trace requests across your system
-- ✅ **Duration tracking** - Monitor performance automatically
-- ✅ **Error handling** - Errors are logged before being re-thrown
-- ✅ **Clean implementation** - Focus on business logic only
-
-### Domain Types
+### Your First Use Case
 
 ```typescript
 import {
-  Entity,
-  ValueObject,
-  AggregateRoot,
-  UniqueIdentifier
-} from '@hex/core';
-
-// Entity - has identity
-class User extends Entity<string> {
-  constructor(
-    id: string,
-    private readonly name: string,
-    private readonly email: string
-  ) {
-    super(id);
-  }
-
-  getName(): string {
-    return this.name;
-  }
-
-  getEmail(): string {
-    return this.email;
-  }
-
-  toJSON(): Record<string, unknown> {
-    return {
-      id: this._id,
-      name: this.name,
-      email: this.email
-    };
-  }
-}
-
-// Value Object - no identity, defined by attributes
-class Email implements ValueObject {
-  constructor(private readonly value: string) {}
-
-  equals(other: Email): boolean {
-    return this.value === other.value;
-  }
-
-  toJSON(): Record<string, unknown> {
-    return { value: this.value };
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
-```
-
-### Base UseCase Class (Recommended)
-
-The recommended approach is to extend the `Usecase` base class which handles all cross-cutting concerns:
-
-```typescript
-import { Usecase, UsecaseExecutionDependencies, Logger } from '@hex/core';
+  failure,
+  Result,
+  success,
+  Usecase,
+  UsecaseExecutionDependencies,
+  ValidationError
+} from '@hexafy/core';
 
 interface CreateUserInput {
-  name: string;
   email: string;
+  name: string;
 }
 
 interface UserCreated {
   userId: string;
+  email: string;
 }
 
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
@@ -146,314 +75,601 @@ class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
 
   protected async executeInternal(
     input: CreateUserInput,
-    logger: Logger
-  ): Promise<UserCreated> {
-    // Use the logger for custom logging
-    logger.debug('Starting user creation', { email: input.email });
+    logger: LoggerPort
+  ): Promise<Result<UserCreated>> {
+    // Domain validation — return failures, don't throw
+    if (!input.email.includes('@')) {
+      return failure(new ValidationError('Invalid email format'));
+    }
 
-    // Your business logic here
-    const userId = this.dependencies.generateId();
+    if (input.name.length < 2) {
+      return failure(new ValidationError('Name too short'));
+    }
 
-    // Save user...
+    // Business logic
+    const userId = this.dependencies.generateId?.() ?? `user_${Date.now()}`;
 
-    return { userId };
+    logger.info('User created', { userId, email: input.email });
+
+    return success({ userId, email: input.email });
   }
 }
 
-// Usage:
-const useCase = new CreateUserUseCase({
-  generateId: () => `user_${Date.now()}`,
-  loggerFactory: (name) => consoleLogger // or your custom logger
+// Usage
+const useCase = new CreateUserUseCase({});
+const result = await useCase.execute({
+  email: 'john@example.com',
+  name: 'John'
 });
 
-await useCase.execute({ name: 'John', email: 'john@example.com' });
+if (result.success) {
+  console.log(`Created user ${result.value.userId}`);
+} else {
+  console.error(result.error.message); // ValidationError message
+}
 ```
 
-### Base UseCase Benefits
+## 📚 Core Concepts
 
-The `Usecase` base class provides:
+### 1. Result Type
 
-- ✅ **Automatic logging** - All executions are logged with context
-- ✅ **Unique execution IDs** - Trace requests across your system
-- ✅ **Duration tracking** - Monitor performance automatically
-- ✅ **Error handling** - Errors are logged before being re-thrown
-- ✅ **Clean implementation** - Focus on business logic only
-
-### UseCase Interface (Alternative)
-
-If you prefer a simpler approach without the base class:
+Explicit success/failure handling without exceptions for domain errors.
 
 ```typescript
-import { UseCase, UseCaseError } from '@hex/core';
+import { failure, Result, success } from '@hexafy/core';
 
-interface CreateUserInput {
-  name: string;
-  email: string;
+// Success path
+const result = success({ data: 'value' });
+if (result.success) {
+  console.log(result.value.data);
 }
 
-interface UserCreated {
-  userId: string;
+// Failure path
+const errorResult = failure(new Error('Something went wrong'));
+if (!errorResult.success) {
+  console.error(errorResult.error.message);
 }
 
-class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
-  constructor(private readonly userRepository: Repository<User, string>) {}
+// Type inference works automatically
+const typed: Result<User> = success(user);
+```
 
-  async execute(input: CreateUserInput): Promise<UserCreated> {
-    if (!input.email || !input.email.includes('@')) {
-      throw new UseCaseError('Invalid email format');
-    }
+### 2. Use Case Base Class
 
-    if (!input.name || input.name.length < 2) {
-      throw new UseCaseError('Name must be at least 2 characters');
-    }
+Extend `Usecase<Input, Output>` to implement business logic.
 
-    const userId = `user_${Date.now()}`;
-    const user = new User(userId, input.name, input.email);
-    await this.userRepository.save(user);
+#### Basic Pattern
 
-    return { userId };
+```typescript
+class UseCase extends Usecase<Input, Output> {
+  protected async executeInternal(
+    input: Input,
+    logger: LoggerPort
+  ): Promise<Result<Output>> {
+    // Your business logic here
+    return success(output);
   }
 }
 ```
 
-### Repositories
+#### With Dependencies
 
 ```typescript
-import { Repository } from '@hex/core';
+class UseCase extends Usecase<Input, Output> {
+  constructor(deps: UsecaseExecutionDependencies) {
+    super(deps);
+  }
 
+  protected async executeInternal(
+    input: Input,
+    logger: LoggerPort
+  ): Promise<Result<Output>> {
+    // Access dependencies if provided
+    const id = this.dependencies.generateId?.() ?? crypto.randomUUID();
+    return success({ id });
+  }
+}
+```
+
+#### Error Handling
+
+```typescript
+protected async executeInternal(
+  input: Input,
+  logger: LoggerPort
+): Promise<Result<Output>> {
+  // ✅ Domain errors — return via failure()
+  if (!input.valid) {
+    return failure(new ValidationError('Invalid input'));
+  }
+
+  // ✅ Infrastructure errors — throw for unexpected failures
+  try {
+    await this.repository.save(input);
+  } catch (e) {
+    throw new InfrastructureError('Save failed', e);
+  }
+
+  return success({ result: 'done' });
+}
+```
+
+#### Execution Flow
+
+```
+useCase.execute(input)
+  ↓
+Usecase.execute() — logs start, captures duration
+  ↓
+executeInternal(input, logger) — your business logic
+  ↓
+Result<Output> returned
+  ↓
+Usecase.execute() — logs completion or error
+```
+
+### 3. Error Types
+
+#### Error Hierarchy
+
+```
+HexagonalError (base)
+├── DomainError
+│   ├── ValidationError        — Invalid input data
+│   ├── NotFoundError          — Resource not found
+│   ├── ConflictError          — Resource conflict
+│   ├── ForbiddenError         — Access denied
+│   ├── UnauthorizedError      — Authentication required
+│   ├── InvariantError         — Business invariant violated
+│   ├── ExternalServiceError   — External dependency failure
+│   ├── InternalServerError    — Internal business error
+│   ├── TimeoutError           — Operation timed out
+│   ├── RateLimitError         — Rate limit exceeded
+│   └── ServiceUnavailableError — Service unavailable
+├── UseCaseError              — Use case specific errors
+└── InfrastructureError       — Infrastructure failures (DB, network, etc.)
+```
+
+#### When to Use Each
+
+| Error Type              | When to Throw/Return       | Example                       |
+| ----------------------- | -------------------------- | ----------------------------- |
+| **DomainError** (all)   | Return via `failure()`     | Invalid email, user not found |
+| **ValidationError**     | Return via `failure()`     | Input validation fails        |
+| **NotFoundError**       | Return via `failure()`     | Resource lookup returns null  |
+| **InfrastructureError** | Throw in try/catch         | Database connection failed    |
+| **Any other error**     | Throw (caught and wrapped) | Unexpected exceptions         |
+
+#### Logging Behavior
+
+| Scenario                         | Log Level | Handled By  | Purpose                  |
+| -------------------------------- | --------- | ----------- | ------------------------ |
+| `failure()` in `executeInternal` | DEBUG     | Automatic   | Expected domain failures |
+| `throw` infrastructure error     | ERROR     | Catch block | System issues            |
+| Unexpected exception             | ERROR     | Catch block | Investigate              |
+
+### 4. Logger Port
+
+Logger is always available — configured via `loggerFactory` or defaults to NOOP.
+
+```typescript
+import { consoleLogger, LoggerPort, NOOP_LOGGER } from '@hexafy/core';
+
+// Usage in use case
+class MyUseCase extends Usecase<Input, Output> {
+  protected async executeInternal(
+    input: Input,
+    logger: LoggerPort // Always available, never null
+  ): Promise<Result<Output>> {
+    logger.debug('Starting execution', { input });
+
+    // ... logic ...
+
+    logger.info('Success', { result: output });
+    return success(output);
+  }
+}
+
+// Configuration with logging
+const useCase = new MyUseCase({
+  loggerFactory: (name) => consoleLogger
+});
+
+// Without logging (NOOP by default)
+const silentUseCase = new MyUseCase({});
+```
+
+#### Logger Methods
+
+```typescript
+logger.debug(message: string, data?: Record<string, unknown>): void
+logger.info(message: string, data?: Record<string, unknown>): void
+logger.warn(message: string, data?: Record<string, unknown>): void
+logger.error(message: string, data?: Record<string, unknown>): void
+```
+
+### 5. Repositories
+
+Abstract data access with type-safe entity management.
+
+```typescript
+import { Entity, Repository } from '@hexafy/core';
+
+// Define entity
 class User extends Entity<string> {
-  // ... entity definition
+  constructor(
+    id: string,
+    public email: string,
+    public name: string
+  ) {
+    super(id);
+  }
 }
 
+// Define repository
 class UserRepository extends Repository<User, string> {
-  async findById(id: string): Promise<User | null> {
-    // Find by ID - database specific
-    const user = await this.db.users.findOne({ id });
-    return user ? new User(user.id, user.name, user.email) : null;
+  constructor(private db: Database) {
+    super();
   }
 
-  async findAll(): Promise<User[]> {
-    // Find all - basic CRUD only
-    const users = await this.db.users.find();
-    return users.map((u) => new User(u.id, u.name, u.email));
+  async findById(id: string): Promise<User | null> {
+    const row = await db.users.get(id);
+    return row ? new User(row.id, row.email, row.name) : null;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const row = await db.users.findFirst({ email });
+    return row ? new User(row.id, row.email, row.name) : null;
   }
 
   async save(entity: User): Promise<User> {
-    // Save or update - database specific
     const data = {
       id: entity.getId(),
-      name: entity.getName(),
-      email: entity.getEmail()
+      email: entity.email,
+      name: entity.name
     };
-
-    const saved = await this.db.users.save(data);
-    return new User(saved.id, saved.name, saved.email);
+    const saved = await db.users.upsert(data);
+    return new User(saved.id, saved.email, saved.name);
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.users.delete(id);
+    await db.users.delete(id);
   }
 }
 ```
 
-### Unit of Work
+### 6. Unit of Work
+
+Manage transactional boundaries across multiple repositories.
 
 ```typescript
-import { UnitOfWork, RepositoryError } from '@hex/core';
+import { InfrastructureError, UnitOfWorkBase } from '@hexafy/core';
 
-class DatabaseUnitOfWork implements UnitOfWork {
-  private committed: boolean = false;
-  private rolledBack: boolean = false;
-
-  constructor(private readonly database: Database) {}
+class DatabaseUnitOfWork extends UnitOfWorkBase {
+  constructor(private db: Database) {
+    super();
+  }
 
   async commit(): Promise<void> {
     if (this.committed) {
-      throw new RepositoryError('Already committed');
+      throw new InfrastructureError('Already committed');
     }
-    if (this.rolledBack) {
-      throw new RepositoryError('Cannot commit after rollback');
-    }
-
-    // Perform transaction commit
-    await this.database.commit();
+    await this.db.commit();
     this.committed = true;
   }
 
   async rollback(): Promise<void> {
-    // Perform transaction rollback
-    await this.database.rollback();
+    await this.db.rollback();
     this.rolledBack = true;
   }
 
-  async transaction<T>(fn: (uw: UnitOfWork) => Promise<T>): Promise<T> {
-    try {
-      const result = await fn(this);
-      await this.commit();
-      return result;
-    } catch (error) {
-      await this.rollback();
-      throw error;
-    }
-  }
+  // Override to add your own state
+  private committed = false;
+  private rolledBack = false;
+}
+
+// Usage
+const uow = new DatabaseUnitOfWork(db);
+try {
+  await uow.withTransaction(async () => {
+    await userRepo.save(user);
+    await orderRepo.save(order);
+  });
+  await uow.commit();
+} catch (e) {
+  await uow.rollback();
+  throw e;
 }
 ```
 
-**Usage with repositories:**
+## 🔧 Configuration
+
+### Logger Setup
+
+Provide a `loggerFactory` to enable structured logging:
 
 ```typescript
-class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
+import Pino from 'pino';
+
+const pinoLogger = Pino();
+
+const useCase = new CreateUserUseCase({
+  loggerFactory: (name) => ({
+    debug: (msg, data) => pinoLogger.debug({ msg, data }),
+    info: (msg, data) => pinoLogger.info({ msg, data }),
+    warn: (msg, data) => pinoLogger.warn({ msg, data }),
+    error: (msg, data) => pinoLogger.error({ msg, data })
+  })
+});
+```
+
+### Dependencies
+
+Configure execution dependencies as needed:
+
+```typescript
+const useCase = new CreateUserUseCase({
+  generateId: () => crypto.randomUUID()
+  // Add custom dependencies as needed
+});
+```
+
+## 🏗️ Complete Example
+
+```typescript
+import {
+  Entity,
+  failure,
+  LoggerPort,
+  NotFoundError,
+  Repository,
+  Result,
+  success,
+  Usecase,
+  UsecaseExecutionDependencies,
+  ValidationError
+} from '@hexafy/core';
+
+// 1. Define entity
+class Product extends Entity<string> {
+  constructor(
+    id: string,
+    public name: string,
+    public price: number,
+    public stock: number
+  ) {
+    super(id);
+  }
+}
+
+// 2. Define repository
+class ProductRepository extends Repository<Product, string> {
+  constructor(private db: Database) {
+    super();
+  }
+
+  async findById(id: string): Promise<Product | null> {
+    const row = await db.products.get(id);
+    return row ? new Product(row.id, row.name, row.price, row.stock) : null;
+  }
+
+  async save(product: Product): Promise<Product> {
+    const data = {
+      id: product.getId(),
+      name: product.name,
+      price: product.price,
+      stock: product.stock
+    };
+    const saved = await db.products.upsert(data);
+    return new Product(saved.id, saved.name, saved.price, saved.stock);
+  }
+}
+
+// 3. Define use case inputs/outputs
+interface CreateProductInput {
+  name: string;
+  price: number;
+  stock: number;
+}
+
+interface ProductCreated {
+  productId: string;
+  name: string;
+  price: number;
+}
+
+interface GetProductInput {
+  productId: string;
+}
+
+interface ProductFound {
+  product: Product;
+}
+
+// 4. Implement use cases
+class CreateProductUseCase extends Usecase<CreateProductInput, ProductCreated> {
   constructor(
     dependencies: UsecaseExecutionDependencies,
-    private readonly userRepository: Repository<User, string>,
-    private readonly unitOfWork: UnitOfWork
+    private repository: ProductRepository
   ) {
     super(dependencies);
   }
 
   protected async executeInternal(
-    input: CreateUserInput,
-    logger: Logger
-  ): Promise<UserCreated> {
-    return this.unitOfWork.transaction(async (uw) => {
-      const userId = `user_${Date.now()}`;
-      const user = new User(userId, input.name, input.email);
-      await this.userRepository.save(user);
-      await uw.commit();
+    input: CreateProductInput,
+    logger: LoggerPort
+  ): Promise<Result<ProductCreated>> {
+    // Validate input
+    if (input.name.length < 3) {
+      return failure(new ValidationError('Name too short'));
+    }
 
-      return { userId };
+    if (input.price < 0) {
+      return failure(new ValidationError('Price cannot be negative'));
+    }
+
+    // Create product
+    const productId = this.dependencies.generateId?.() ?? `prod_${Date.now()}`;
+    const product = new Product(
+      productId,
+      input.name,
+      input.price,
+      input.stock
+    );
+    const saved = await this.repository.save(product);
+
+    logger.info('Product created', { productId: saved.getId() });
+
+    return success({
+      productId: saved.getId(),
+      name: saved.name,
+      price: saved.price
     });
   }
 }
+
+class GetProductUseCase extends Usecase<GetProductInput, ProductFound> {
+  constructor(
+    dependencies: UsecaseExecutionDependencies,
+    private repository: ProductRepository
+  ) {
+    super(dependencies);
+  }
+
+  protected async executeInternal(
+    input: GetProductInput,
+    logger: LoggerPort
+  ): Promise<Result<ProductFound>> {
+    logger.debug('Fetching product', { productId: input.productId });
+
+    const product = await this.repository.findById(input.productId);
+
+    if (!product) {
+      return failure(new NotFoundError(`Product ${input.productId} not found`));
+    }
+
+    return success({ product });
+  }
+}
+
+// 5. Wire it up
+const repo = new ProductRepository(database);
+const createUseCase = new CreateProductUseCase({}, repo);
+const getUseCase = new GetProductUseCase({}, repo);
+
+// 6. Execute
+const result = await createUseCase.execute({
+  name: 'Widget',
+  price: 29.99,
+  stock: 100
+});
+
+if (result.success) {
+  console.log(`Created product ${result.value.productId}`);
+}
 ```
 
-### Errors
+## 📖 Exported API
 
 ```typescript
-import {
+// Result types
+export { Result, success, failure } from './result';
+
+// Use case base class
+export { Usecase, UsecaseExecutionDependencies } from './usecase';
+
+// Logger
+export { LoggerPort, consoleLogger, NOOP_LOGGER } from './logger';
+
+// Errors
+export {
   HexagonalError,
   DomainError,
   UseCaseError,
-  RepositoryError
-} from '@hex/core';
+  InfrastructureError,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+  ForbiddenError,
+  UnauthorizedError,
+  InvariantError,
+  ExternalServiceError,
+  InternalServerError,
+  TimeoutError,
+  RateLimitError,
+  ServiceUnavailableError
+} from './errors';
 
-// Domain error - business rule violation
-throw new DomainError('User already exists with this email');
-
-// Use case error - invalid input or execution failure
-throw new UseCaseError('Invalid email format');
-
-// Repository error - database operation failed
-throw new RepositoryError('Database connection failed', error);
+// Domain primitives
+export { Entity, Repository, UnitOfWorkBase } from './domain';
 ```
 
-**Error hierarchy:**
+## 🎓 Best Practices
 
-```
-HexagonalError (base)
-├── DomainError         (business logic errors)
-├── UseCaseError        (use case execution errors)
-└── RepositoryError     (infrastructure/database errors)
-```
-
-### Logging
-
-The `Logger` interface is defined in the core package:
+### 1. Always Return Domain Errors
 
 ```typescript
-interface Logger {
-  info(message: string, data?: unknown): void;
-  warn(message: string, data?: unknown): void;
-  error(message: string, data?: unknown): void;
-  debug(message: string, data?: unknown): void;
+// ✅ Good
+if (!input.valid) {
+  return failure(new ValidationError('Invalid'));
+}
+
+// ❌ Bad
+if (!input.valid) {
+  throw new ValidationError('Invalid');
 }
 ```
 
-**Built-in console logger:**
+### 2. Use Appropriate Error Types
 
 ```typescript
-import { consoleLogger } from '@hex/core';
+// ✅ Good - Resource not found
+if (!user) {
+  return failure(new NotFoundError('User not found'));
+}
 
-// Use directly or pass to loggerFactory
-const logger = consoleLogger;
-```
+// ✅ Good - Invalid input
+if (!email.includes('@')) {
+  return failure(new ValidationError('Invalid email'));
+}
 
-**Custom logger implementations:**
-
-```typescript
-import { Logger } from '@hex/core';
-
-class CustomLogger implements Logger {
-  info(message: string, data?: unknown): void {
-    // Your custom implementation
-  }
-  warn(message: string, data?: unknown): void {
-    /* ... */
-  }
-  error(message: string, data?: unknown): void {
-    /* ... */
-  }
-  debug(message: string, data?: unknown): void {
-    /* ... */
-  }
+// ✅ Good - Infrastructure failure
+try {
+  await db.save(data);
+} catch (e) {
+  throw new InfrastructureError('Save failed', e);
 }
 ```
 
-## Package Structure
+### 3. Keep Use Cases Focused
 
-```
-@hex/core
-├── types/           # Entity, ValueObject, AggregateRoot, IdGenerator
-├── usecase/         # UseCase interface, Usecase base class
-├── repository/      # Repository interface, Repository base class
-├── unit-of-work/    # UnitOfWork interface, UnitOfWork base class
-├── errors/          # Error hierarchy
-└── logger/          # Logger interface, consoleLogger
-```
-
-## Error Handling Best Practices
-
-### Use Case Level
-
-Use cases should:
-
-1. **Throw specific errors** for different failure types
-2. **Log with the provided logger** in `executeInternal`
-3. **Let the base class handle** execution logging and error handling
+Each use case should do one thing and do it well.
 
 ```typescript
-class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
-  protected async executeInternal(input, logger) {
-    // Log start
-    logger.info('Starting user creation', { email: input.email });
+// ✅ Good — Single responsibility
+class TransferFundsUseCase extends Usecase<...> { ... }
 
-    // Business logic
-    if (userExists) {
-      throw new DomainError('User already exists');
-    }
-
-    // Success
-    return { userId: id };
-  }
-}
+// ❌ Bad — Too many concerns
+class ManageEverythingUseCase extends Usecase<...> { ... }
 ```
 
-## Framework Packages
+### 4. Log at Appropriate Levels
 
-This package provides pure domain constructs only. Framework-specific implementations are in separate packages:
+```typescript
+// ✅ Good
+logger.debug('Domain error', { reason: 'Invalid email' });
+logger.info('Operation completed', { duration: '42ms' });
+logger.error('Infrastructure failure', { operation: 'save' });
 
-- **`@hex/aws-lambda`** - AWS Lambda adapters, error handlers, response formatters
-- **`@hex/nestjs`** - NestJS decorators, exception filters, DI providers
-- **`@hex/logger-pino`** - Pino logger adapter
-- **`@hex/logger-winston`** - Winston logger adapter
+// ❌ Bad
+logger.error('Invalid email'); // Expected behavior, not an error
+```
 
-## Examples
+## 🔗 Related Packages
 
-See the example applications in the `apps` folder:
+- `@hexafy/nestjs` — NestJS adapters for hexagonal architecture
+- `@hexafy/aws-lambda` — AWS Lambda adapters for serverless applications
 
-- `apps/aws-lambda-example` - Complete Lambda application
-- `apps/nestjs-example` - Complete NestJS application
-
-## License
+## 📄 License
 
 MIT

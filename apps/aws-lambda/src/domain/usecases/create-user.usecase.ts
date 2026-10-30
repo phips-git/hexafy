@@ -1,4 +1,10 @@
-import { RepositoryBase, UseCase, UseCaseError } from '@hex/core';
+import {
+  failure,
+  RepositoryBase,
+  Result,
+  success,
+  UseCaseError
+} from '@hexafy/core';
 
 export interface CreateUserInput {
   name: string;
@@ -42,26 +48,25 @@ export class InMemoryUserRepository extends RepositoryBase<User, string> {
   }
 }
 
-export class CreateUserUseCase implements UseCase<
-  CreateUserInput,
-  UserCreated
-> {
+export class CreateUserUseCase {
   constructor(private readonly userRepository: InMemoryUserRepository) {}
 
-  async execute(input: CreateUserInput): Promise<UserCreated> {
+  async execute(
+    input: CreateUserInput
+  ): Promise<Result<UserCreated, UseCaseError>> {
     // Validate
     if (!input.name || input.name.trim().length === 0) {
-      throw new UseCaseError('Name is required');
+      return failure(new UseCaseError('Name is required'));
     }
 
     if (!input.email || !this.isValidEmail(input.email)) {
-      throw new UseCaseError('Valid email is required');
+      return failure(new UseCaseError('Valid email is required'));
     }
 
     // Check if user already exists
     const existingUser = await this.userRepository.findById(input.email);
     if (existingUser) {
-      throw new UseCaseError('User with this email already exists');
+      return failure(new UseCaseError('User with this email already exists'));
     }
 
     // Create user
@@ -70,12 +75,12 @@ export class CreateUserUseCase implements UseCase<
 
     const created = await this.userRepository.save(user);
 
-    return {
+    return success({
       id: created.id,
       name: created.name,
       email: created.email,
       createdAt: created.createdAt
-    };
+    });
   }
 
   private isValidEmail(email: string): boolean {

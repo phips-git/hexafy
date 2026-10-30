@@ -1,8 +1,8 @@
 import {
-  GetAuthenticatedUserUsecase,
-  type GetAuthenticatedUserOutput
-} from '@hexagonal-ts-template/auth/application';
-import { NotFoundError } from '@hexagonal-ts-template/common/domain';
+  type GetAuthenticatedUserOutput,
+  GetAuthenticatedUserUsecase
+} from '@hexafy/auth/application';
+import { NotFoundError } from '@hexafy/core/domain';
 import {
   Body,
   Controller,
@@ -16,6 +16,7 @@ import {
   Put,
   UseGuards
 } from '@nestjs/common';
+
 import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
 import { CreateProjectDto, UpdateProjectDto } from './dtos/create-project.dto';
 import { ProjectsService } from './projects.service';

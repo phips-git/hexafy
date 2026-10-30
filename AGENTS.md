@@ -24,9 +24,9 @@ This template follows a hexagonal architecture pattern:
 
 ```
 packages/
-├── core/              # @hex/core - Domain primitives, Usecase base class
-├── aws-lambda/        # @hex/aws-lambda - Lambda adapters
-└── nestjs/            # @hex/nestjs - NestJS adapters
+├── core/              # @hexafy/core - Domain primitives, Usecase base class
+├── aws-lambda/        # @hexafy/aws-lambda - Lambda adapters
+└── nestjs/            # @hexafy/nestjs - NestJS adapters
 
 apps/
 ├── aws-lambda/        # AWS Lambda example application
@@ -35,53 +35,44 @@ apps/
 
 ### Use Case Pattern
 
-Use the `Usecase` base class for clean implementation with built-in cross-cutting concerns:
+Extend `Usecase` base class - dependencies are optional:
 
+````typescript
+import {
+  Usecase,
+  UsecaseExecutionDependencies,
+  LoggerPort
+} from '@hexafy/core';
 ```typescript
-import { Usecase, UsecaseExecutionDependencies, Logger } from '@hex/core';
+import { Usecase, UsecaseExecutionDependencies, LoggerPort, Result } from '@hexafy/core';
 
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
   constructor(dependencies: UsecaseExecutionDependencies) {
     super(dependencies);
   }
 
-  protected async executeInternal(input, logger: Logger) {
-    // Business logic only
-    logger.debug('Starting', { input });
-    return { userId: this.dependencies.generateId() };
+  protected async executeInternal(input, logger: LoggerPort): Promise<Result<UserCreated>> {
+    logger.debug('Starting', { input });  // Logger always available (NOOP if not configured)
+    return success({ userId: this.dependencies.generateId?.() ?? `user_${Date.now()}` });
   }
 }
-```
-
-### Import from Source
-
-Always import directly from the source package, not from re-exports:
-
-```typescript
-// ✅ Correct
-import { Usecase } from '@hex/core';
-
-// ❌ Wrong - don't import from subpaths
-import { Usecase } from '@hex/core/src';
-```
-
-### Logger Usage
-
-Use the `Logger` interface for logging - never use `console.log` directly in use cases:
-
-```typescript
-protected async executeInternal(input, logger: Logger) {
-  logger.info('User created', { userId: result.userId });
-}
-```
+````
 
 ### Error Handling
 
-Use the domain error hierarchy:
-
 ```typescript
-throw new UseCaseError('Invalid email format');
-throw new DomainError('User already exists');
+import {
+  InfrastructureError,
+  NotFoundError,
+  ValidationError
+} from '@hexafy/core';
+
+// Domain errors
+throw new ValidationError('Invalid email');
+throw new NotFoundError('User not found');
+
+// Infrastructure errors
+throw new InfrastructureError('DB failed', e);
 ```
 
 ## Available Skills
@@ -108,7 +99,7 @@ bun run <file.ts>
 
 # Publish packages
 bun publish --recursive
-bun publish -F '@hex/core'
+bun publish -F '@hexafy/core'
 ```
 
 Avoid using npm or pnpm commands - use bun instead.

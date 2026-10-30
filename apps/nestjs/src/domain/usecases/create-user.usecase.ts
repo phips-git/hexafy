@@ -1,4 +1,6 @@
-import { Entity, RepositoryBase, UseCase, UseCaseError } from '@hex/core';
+import { Entity, RepositoryBase } from '@hexafy/core';
+
+import { ApplicationError } from '../../packages/nestjs/src/domain/errors';
 
 export interface CreateUserInput {
   name: string;
@@ -65,16 +67,13 @@ export class InMemoryUserRepository extends RepositoryBase<User, string> {
   }
 }
 
-export class CreateUserUseCase implements UseCase<
-  CreateUserInput,
-  UserCreated
-> {
+export class CreateUserUseCase {
   constructor(private readonly userRepository: InMemoryUserRepository) {}
 
   async execute(input: CreateUserInput): Promise<UserCreated> {
     // Validate
     if (!input.name || input.name.trim().length === 0) {
-      throw new UseCaseError('Name is required');
+      throw new ApplicationError('Name is required');
     }
 
     if (!input.email || !this.isValidEmail(input.email)) {

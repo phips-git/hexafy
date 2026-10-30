@@ -1,12 +1,12 @@
 {
-  "name": "@hexagonal-ts-template/eslint-config",
+  "name": "@hexafy/eslint-config",
   "private": true,
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "clean": "git clean -xdf node_modules"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@hexagonal-ts-template/typescript-config": "*",
+    "@hexafy/typescript-config": "*",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.12.0",

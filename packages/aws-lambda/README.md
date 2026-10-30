@@ -1,11 +1,11 @@
-# @hex/aws-lambda
+# @hexafy/aws-lambda
 
 AWS Lambda adapters and helpers for hexagonal architecture.
 
 ## Installation
 
 ```bash
-npm install @hex/aws-lambda @hex/core
+npm install @hexafy/aws-lambda @hexafy/core
 ```
 
 ## What is this?
@@ -22,8 +22,9 @@ This package provides AWS Lambda-specific infrastructure for hexagonal architect
 ### Basic Handler
 
 ```typescript
-import { createLambdaHandler } from '@hex/aws-lambda';
-import { UseCaseError } from '@hex/core';
+import { createLambdaHandler } from '@hexafy/aws-lambda';
+import { UseCaseError } from '@hexafy/core';
+
 import { CreateUserUseCase } from './usecases/create-user';
 
 export const handler = createLambdaHandler({
@@ -54,9 +55,9 @@ export const handler = createLambdaHandler({
 ```typescript
 import {
   createLambdaHandler,
-  parseJsonBody,
-  formatJsonResponse
-} from '@hex/aws-lambda';
+  formatJsonResponse,
+  parseJsonBody
+} from '@hexafy/aws-lambda';
 
 export const handler = createLambdaHandler({
   useCase: new CreateUserUseCase(),
@@ -85,25 +86,25 @@ createLambdaHandler<Input, Output>({
 
 ```typescript
 import {
+  parseInput, // Parse all input parts
   parseJsonBody, // Parse request body as JSON
-  parseQueryParameters, // Parse query params
   parsePathParameters, // Parse path params
-  validateHttpMethod, // Validate HTTP method
-  parseInput // Parse all input parts
-} from '@hex/aws-lambda';
+  parseQueryParameters, // Parse query params
+  validateHttpMethod // Validate HTTP method
+} from '@hexafy/aws-lambda';
 ```
 
 ### Response Formatters
 
 ```typescript
 import {
-  formatSuccess, // Success response
-  formatError, // Error response
-  formatNotFound, // 404 response
   formatBadRequest, // 400 response
-  formatUnauthorized, // 401 response
-  formatForbidden // 403 response
-} from '@hex/aws-lambda';
+  formatError, // Error response
+  formatForbidden, // 403 response
+  formatNotFound, // 404 response
+  formatSuccess, // Success response
+  formatUnauthorized // 401 response
+} from '@hexafy/aws-lambda';
 ```
 
 ### Note
@@ -121,10 +122,10 @@ The middleware module (error handling, logging) is available but optional. For v
 ```typescript
 import {
   createLambdaHandler,
-  parseJsonBody,
-  formatError
-} from '@hex/aws-lambda';
-import { UseCaseError } from '@hex/core';
+  formatError,
+  parseJsonBody
+} from '@hexafy/aws-lambda';
+import { UseCaseError } from '@hexafy/core';
 
 export const createUserHandler = createLambdaHandler({
   useCase: new CreateUserUseCase(),
@@ -139,9 +140,10 @@ export const createUserHandler = createLambdaHandler({
 ```typescript
 import {
   createLambdaHandler,
-  parseJsonBody,
-  formatJsonResponse
-} from '@hex/aws-lambda';
+  formatJsonResponse,
+  parseJsonBody
+} from '@hexafy/aws-lambda';
+
 import { CreateUserUseCase } from './usecases/create-user';
 
 export const createUserHandler = createLambdaHandler({
@@ -163,7 +165,7 @@ export const createUserHandler = createLambdaHandler({
 ## Package Structure
 
 ```
-@hex/aws-lambda
+@hexafy/aws-lambda
 ├── handler/           # createLambdaHandler, HandlerConfig
 ├── middleware/        # error handling, logging
 └── utils/             # input parsing, response formatting
@@ -171,15 +173,15 @@ export const createUserHandler = createLambdaHandler({
 
 ## Error Handling
 
-The package uses the error hierarchy from `@hex/core`:
+The package uses the error hierarchy from `@hexafy/core`:
 
 ```typescript
 import {
-  HexagonalError,
   DomainError,
-  UseCaseError,
-  RepositoryError
-} from '@hex/core';
+  HexagonalError,
+  RepositoryError,
+  UseCaseError
+} from '@hexafy/core';
 
 // Handler automatically formats based on error type
 export const handler = createLambdaHandler({

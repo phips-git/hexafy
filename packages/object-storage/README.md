@@ -14,7 +14,7 @@ This package provides a domain-driven interface (`ObjectStoragePort`) with concr
 ### Domain Interface (Your App Depends On)
 
 ```typescript
-import type { ObjectStoragePort } from '@hexagonal-ts-template/object-storage/domain';
+import type { ObjectStoragePort } from '@hexafy/object-storage/domain';
 
 // Inject into services
 class UserService {
@@ -32,7 +32,7 @@ class UserService {
 
 ```typescript
 import { S3Client } from '@aws-sdk/client-s3';
-import { ObjectStorageAwsS3Adapter } from '@hexagonal-ts-template/object-storage/infrastructure';
+import { ObjectStorageAwsS3Adapter } from '@hexafy/object-storage/infrastructure';
 
 const storage = new ObjectStorageAwsS3Adapter({
   client: new S3Client({
@@ -49,7 +49,7 @@ const storage = new ObjectStorageAwsS3Adapter({
 ### Testing with Noop Adapter
 
 ```typescript
-import { ObjectStorageNoopAdapter } from '@hexagonal-ts-template/object-storage/infrastructure';
+import { ObjectStorageNoopAdapter } from '@hexafy/object-storage/infrastructure';
 
 const storage = new ObjectStorageNoopAdapter();
 ```

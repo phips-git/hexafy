@@ -1,7 +1,11 @@
 {
-  "name": "@hexagonal-ts-template/typescript-config",
+  "name": "@hexafy/typescript-config",
   "private": true,
+  "scripts": {
+    "clean": "git clean -xdf node_modules"
+  },
   "devDependencies": {
-    "@tsconfig/strictest": "2.0.8"
+    "@tsconfig/strictest": "2.0.8",
+    "@types/bun": "latest"
   }
 }

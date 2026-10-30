@@ -1,3 +1,3 @@
-import baseConfig from '@hexagonal-ts-template/eslint-config/base.config';
+import baseConfig from '@hexafy/eslint-config/base.config';
 
 export default [...baseConfig];

@@ -1,26 +1,26 @@
 import type {
   AuthenticationPort,
   UserPersistencePort
-} from '@hexagonal-ts-template/auth/domain';
+} from '@hexafy/auth/domain';
 import {
   JwtAuthenticationAdapter,
   NoOpUserPersistenceAdapter
-} from '@hexagonal-ts-template/auth/infrastructure';
+} from '@hexafy/auth/infrastructure';
 import {
   createConsoleLogger,
   NanoidGeneratorAdapter,
   SqliteUnitOfWorkAdapter
-} from '@hexagonal-ts-template/common/infrastructure';
+} from '@hexafy/core/infrastructure';
 import type {
   ProjectPersistencePort,
   ProjectStatsPersistencePort,
   TaskPersistencePort
-} from '@hexagonal-ts-template/task-management/domain';
+} from '@hexafy/task-management/domain';
 import {
   SqliteProjectPersistenceAdapter,
   SqliteProjectStatsPersistenceAdapter,
   SqliteTaskPersistenceAdapter
-} from '@hexagonal-ts-template/task-management/infrastructure';
+} from '@hexafy/task-management/infrastructure';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Database from 'better-sqlite3';

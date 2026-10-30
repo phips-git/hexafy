@@ -28,10 +28,10 @@ export function parseJsonBody<Input>(event: unknown): Input {
  * Parse query parameters from API Gateway event
  *
  * @example
- * ```typescript
- * const query = parseQueryParameters<{ page: string; limit: string }>(event);
- * const page = parseInt(query.page) || 1;
- * ```
+ *   ```typescript
+ *   const query = parseQueryParameters<{ page: string; limit: string }>(event);
+ *   const page = parseInt(query.page) || 1;
+ *   ```;
  */
 export function parseQueryParameters<
   T extends Record<string, string> = Record<string, string>
@@ -43,9 +43,9 @@ export function parseQueryParameters<
  * Parse path parameters from API Gateway event
  *
  * @example
- * ```typescript
- * const params = parsePathParameters<{ userId: string }>(event);
- * ```
+ *   ```typescript
+ *   const params = parsePathParameters<{ userId: string }>(event);
+ *   ```;
  */
 export function parsePathParameters<
   T extends Record<string, string> = Record<string, string>
@@ -53,19 +53,20 @@ export function parsePathParameters<
   return (event.pathParameters ?? {}) as T;
 }
 
-/**
- * Validate HTTP method
- */
-export function validateHttpMethod(event: Record<string, unknown>, allowedMethods: string[]): void {
+/** Validate HTTP method */
+export function validateHttpMethod(
+  event: Record<string, unknown>,
+  allowedMethods: string[]
+): void {
   const httpMethod = event.httpMethod as string;
   if (!httpMethod || !allowedMethods.includes(httpMethod.toUpperCase())) {
-    throw new Error(`Method not allowed. Allowed: ${allowedMethods.join(', ')}`);
+    throw new Error(
+      `Method not allowed. Allowed: ${allowedMethods.join(', ')}`
+    );
   }
 }
 
-/**
- * Validate required headers
- */
+/** Validate required headers */
 export function validateRequiredHeaders(
   event: Record<string, unknown>,
   requiredHeaders: string[]

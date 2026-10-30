@@ -1,6 +1,7 @@
 {
-  "name": "hexagonal-architecture-typescript-template",
+  "name": "hexafy",
   "private": true,
+  "author": "Philipp Teßner-Müller",
   "workspaces": {
     "packages": [
       "apps/*",
@@ -11,18 +12,19 @@
     }
   },
   "scripts": {
-    "clean": "git clean -xdf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" && sort-package-json \"**/package.json\"",
-    "lint": "bun lint --workspaces --if-present",
+    "changeset": "changeset",
+    "clean": "git clean -xdf node_modules && bun --filter '*' clean",
+    "format": "bun fmt",
+    "lint": "bun --filter '*' lint",
+    "publish": "bun publish --recursive",
+    "publish:ci": "changeset publish",
     "test": "bun test --workspaces --if-present",
-    "typecheck": "bun typecheck --workspaces --if-present",
-    "publish": "bun publish --recursive"
+    "typecheck": "bun --filter '*' typecheck",
+    "version": "changeset version"
   },
   "devDependencies": {
+    "@changesets/cli": "3.0.3",
     "eslint": "10.11.0",
-    "prettier": "3.9.8",
-    "prettier-plugin-tailwindcss": "0.8.1",
-    "sort-package-json": "4.0.0",
     "tsx": "4.23.15",
     "typescript": "^7"
   },

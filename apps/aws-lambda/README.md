@@ -1,6 +1,6 @@
 # AWS Lambda Example App
 
-This example demonstrates how to use `@hex/core` and `@hex/aws-lambda` to build hexagonal architecture applications with AWS Lambda.
+This example demonstrates how to use `@hexafy/core` and `@hexafy/aws-lambda` to build hexagonal architecture applications with AWS Lambda.
 
 ## Architecture
 
@@ -111,26 +111,42 @@ Use your preferred deployment method (AWS CDK, Serverless Framework, SAM, etc.) 
 
 ### 1. UseCase Implementation
 
-Use cases implement the `UseCase` interface from `@hex/core`:
+Use cases implement the `UseCase` interface from `@hexafy/core`:
 
+````typescript
+import {
+  Usecase,
+  UsecaseExecutionDependencies,
+  LoggerPort
+} from '@hexafy/core';
 ```typescript
-import { UseCase, UseCaseError } from '@hex/core';
+import { Usecase, UsecaseExecutionDependencies, LoggerPort, Result } from '@hexafy/core';
 
-class CreateUserUseCase implements UseCase<CreateUserInput, UserCreated> {
-  async execute(input: CreateUserInput): Promise<UserCreated> {
-    // Business logic here
-    // Throw UseCaseError for validation failures
-    // Return pure data on success
+class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
+  constructor(dependencies: UsecaseExecutionDependencies) {
+    super(dependencies);
+  }
+
+  protected async executeInternal(input: CreateUserInput, logger: LoggerPort): Promise<Result<UserCreated>> {
+    // Domain errors returned as failure()
+    if (!input.email) {
+      return failure(new UseCaseError('Email is required'));
+    }
+
+    // Business logic
+    logger.info('Creating user', { email: input.email });
+    return success({ userId: 'user_123' });
   }
 }
-```
+````
 
 ### 2. Lambda Handler Creation
 
-Handlers use `createLambdaHandler` from `@hex/aws-lambda`:
+Handlers use `createLambdaHandler` from `@hexafy/aws-lambda`:
 
 ```typescript
-import { createLambdaHandler, parseJsonBody } from '@hex/aws-lambda';
+import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
+
 import { CreateUserUseCase } from './usecases/create-user';
 
 export const handler = createLambdaHandler({
@@ -152,7 +168,7 @@ export const handler = createLambdaHandler({
 Repositories implement the `Repository` interface:
 
 ```typescript
-import { Repository, User } from '@hex/core';
+import { Repository, User } from '@hexafy/core';
 
 class InMemoryUserRepository extends Repository<User, string> {
   async findById(id: string): Promise<User | null> {
@@ -175,8 +191,8 @@ class InMemoryUserRepository extends Repository<User, string> {
 
 ## Package Dependencies
 
-- `@hex/core` - Hexagonal architecture constructs
-- `@hex/aws-lambda` - AWS Lambda adapters and helpers
+- `@hexafy/core` - Hexagonal architecture constructs
+- `@hexafy/aws-lambda` - AWS Lambda adapters and helpers
 
 ## Next Steps
 
@@ -187,5 +203,5 @@ class InMemoryUserRepository extends Repository<User, string> {
 
 ## See Also
 
-- [`@hex/core` README](../../packages/core/README.md)
-- [`@hex/aws-lambda` README](../../packages/aws-lambda/README.md)
+- [`@hexafy/core` README](../../packages/core/README.md)
+- [`@hexafy/aws-lambda` README](../../packages/aws-lambda/README.md)

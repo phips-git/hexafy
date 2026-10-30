@@ -4,103 +4,86 @@
  * Provides standard response formatting with content-type headers
  */
 
-/**
- * Format a success response
- */
+/** Format a success response */
 export function formatSuccess<T>(data: T, statusCode: number = 200): any {
   return {
     statusCode,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       success: true,
-      data,
-    }),
+      data
+    })
   };
 }
 
-/**
- * Format an error response
- */
-export function formatError(
-  error: Error,
-  statusCode: number = 500
-): any {
+/** Format an error response */
+export function formatError(error: Error, statusCode: number = 500): any {
   return {
     statusCode,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       success: false,
-      error: error.message,
-    }),
+      error: error.message
+    })
   };
 }
 
-/**
- * Format a not found response
- */
+/** Format a not found response */
 export function formatNotFound(resource?: string): any {
   return {
     statusCode: 404,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       success: false,
-      error: resource
-        ? `${resource} not found`
-        : 'Resource not found',
-    }),
+      error: resource ? `${resource} not found` : 'Resource not found'
+    })
   };
 }
 
-/**
- * Format a bad request response
- */
+/** Format a bad request response */
 export function formatBadRequest(message: string): any {
   return {
     statusCode: 400,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       success: false,
-      error: message,
-    }),
+      error: message
+    })
   };
 }
 
-/**
- * Format a unauthorized response
- */
+/** Format a unauthorized response */
 export function formatUnauthorized(message?: string): any {
   return {
     statusCode: 401,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       success: false,
-      error: message ?? 'Unauthorized',
-    }),
+      error: message ?? 'Unauthorized'
+    })
   };
 }
 
-/**
- * Format a forbidden response
- */
+/** Format a forbidden response */
 export function formatForbidden(message?: string): any {
   return {
     statusCode: 403,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       success: false,
-      error: message ?? 'Forbidden',
-    }),
+      error: message ?? 'Forbidden'
+    })
   };
 }
