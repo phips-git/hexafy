@@ -1,15 +1,15 @@
-import {
+import type {
   ClockPort,
   IdentifierPort,
   LoggingPort,
   MetricsPort
 } from '../domain/ports';
-import { UniqueIdentifier } from '../domain/types';
+import type { UniqueIdentifier } from '../domain/types';
 import { SystemClockAdapter } from '../infrastructure/adapters/clock';
 import { SystemIdentifierAdapter } from '../infrastructure/adapters/identifier';
 import { ConsoleLoggingAdapter } from '../infrastructure/adapters/logging';
 import { NoOpMetricsAdapter } from '../infrastructure/adapters/metrics';
-import { CancellationToken, UsecaseResult } from './types';
+import type { CancellationToken, UsecaseResult } from './types';
 import { failure, success } from './utils';
 
 /** Configuration for use case execution. */

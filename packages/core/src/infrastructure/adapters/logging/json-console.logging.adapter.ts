@@ -1,4 +1,4 @@
-import { LoggingPort } from '../../../domain/ports';
+import type { LoggingPort } from '../../../domain/ports';
 
 function createLogEntry(
   level: 'info' | 'debug' | 'warn' | 'error',

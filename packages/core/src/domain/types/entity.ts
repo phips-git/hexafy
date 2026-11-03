@@ -1,4 +1,4 @@
-import { UniqueIdentifier } from './unique-identifier.type';
+import type { UniqueIdentifier } from './unique-identifier.type';
 
 /** Entity base class Represents a domain object with a unique identity */
 export abstract class Entity<Id extends UniqueIdentifier = UniqueIdentifier> {

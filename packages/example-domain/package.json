@@ -7,6 +7,7 @@
     "./infrastructure": "./src/infrastructure/index.ts"
   },
   "scripts": {
+    "clean": "git clean -xdf node_modules",
     "test": "bun test",
     "typecheck": "bun check"
   },
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@hexafy/nestjs": "*",
+    "@hexafy/typescript-config": "*",
     "@types/better-sqlite3": "9.6.0"
   }
 }

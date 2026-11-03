@@ -1,4 +1,9 @@
 {
   "extends": "@hexafy/typescript-config/publish",
-  "include": ["src", "./*.config.ts"]
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts"]
 }

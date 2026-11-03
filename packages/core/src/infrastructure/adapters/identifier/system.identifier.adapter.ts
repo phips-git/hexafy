@@ -1,4 +1,4 @@
-import { ClockPort, IdentifierPort } from '../../../domain/ports';
+import type { ClockPort, IdentifierPort } from '../../../domain/ports';
 
 export const SystemIdentifierAdapter: IdentifierPort = {
   generate: (clock: ClockPort) => {

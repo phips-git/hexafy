@@ -13,7 +13,7 @@ export type ApplicationErrorDetails =
  */
 export class ApplicationError extends Error {
   readonly code: string;
-  readonly context?: Record<string, unknown>;
+  readonly context: Record<string, unknown> | undefined;
 
   constructor(message: string, options: ApplicationErrorOptions = {}) {
     super(message, { cause: options.cause });

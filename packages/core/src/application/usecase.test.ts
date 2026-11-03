@@ -9,14 +9,13 @@ import type {
 import type { UniqueIdentifier } from '../domain/types';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
 import {
-  CancellationToken,
+  type CancellationToken,
   failure,
   success,
   Usecase,
-  UsecaseExecutionConfiguration
+  type UsecaseExecutionConfiguration
 } from './index';
 
-// Mock Clock Implementation - implements ClockPort exactly
 class MockClock implements ClockPort {
   private fixedTime: number;
 
@@ -33,7 +32,6 @@ class MockClock implements ClockPort {
   }
 }
 
-// Mock Identifier Implementation - implements IdentifierPort exactly
 class MockIdentifier implements IdentifierPort {
   counter = 0;
 
@@ -46,7 +44,6 @@ class MockIdentifier implements IdentifierPort {
   }
 }
 
-// Mock Logger Implementation - implements LoggingPort exactly
 class MockLogger implements LoggingPort {
   logs: Array<{ level: string; message: string; data?: unknown }> = [];
 
@@ -77,7 +74,6 @@ class MockLogger implements LoggingPort {
   }
 }
 
-// Mock CancellationToken Implementation
 class MockCancellationToken implements CancellationToken {
   readonly isCancelled: boolean;
   readonly reason?: string;
@@ -90,7 +86,6 @@ class MockCancellationToken implements CancellationToken {
   }
 }
 
-// Mock Metrics Implementation - implements MetricsPort exactly
 class MockMetrics implements MetricsPort {
   calls: Array<{
     metric: string;
@@ -99,7 +94,7 @@ class MockMetrics implements MetricsPort {
   }> = [];
 
   increment(metric: string, labels?: Record<string, string>): void {
-    this.calls.push({ metric, labels });
+    this.calls.push({ metric, ...(labels !== undefined && { labels }) });
   }
 
   histogram(
@@ -107,11 +102,11 @@ class MockMetrics implements MetricsPort {
     value: number,
     labels?: Record<string, string>
   ): void {
-    this.calls.push({ metric, value, labels });
+    this.calls.push({ metric, value, ...(labels !== undefined && { labels }) });
   }
 
   gauge(metric: string, value: number, labels?: Record<string, string>): void {
-    this.calls.push({ metric, value, labels });
+    this.calls.push({ metric, value, ...(labels !== undefined && { labels }) });
   }
 
   clear(): void {
@@ -123,11 +118,14 @@ class MockMetrics implements MetricsPort {
   }
 }
 
-// Test Use Case Implementations
 class TestUseCase<TInput = void, TOutput = void> extends Usecase<
   TInput,
   TOutput
 > {
+  constructor(config?: UsecaseExecutionConfiguration) {
+    super({ logging: NoOpLoggingAdapter, ...config });
+  }
+
   protected override async executeInternal(
     input: TInput,
     _logger: LoggingPort,
@@ -138,6 +136,10 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
 }
 
 class SuccessUseCase extends TestUseCase<string, string> {
+  constructor(config?: UsecaseExecutionConfiguration) {
+    super({ logging: NoOpLoggingAdapter, ...config });
+  }
+
   protected override async executeInternal(
     input: string,
     _logger: LoggingPort,
@@ -148,6 +150,10 @@ class SuccessUseCase extends TestUseCase<string, string> {
 }
 
 class FailureUseCase extends TestUseCase<string, string> {
+  constructor(config?: UsecaseExecutionConfiguration) {
+    super({ logging: NoOpLoggingAdapter, ...config });
+  }
+
   protected override async executeInternal(
     _input: string,
     _logger: LoggingPort,
@@ -158,6 +164,10 @@ class FailureUseCase extends TestUseCase<string, string> {
 }
 
 class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
+  constructor(config?: UsecaseExecutionConfiguration) {
+    super({ logging: NoOpLoggingAdapter, ...config });
+  }
+
   protected override async executeInternal(
     input: { delay: number },
     _logger: LoggingPort,
@@ -165,36 +175,6 @@ class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
   ): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, input.delay));
     return 'completed';
-  }
-}
-
-class VerifyInputUseCase extends TestUseCase<string, string> {
-  protected override async executeInternal(
-    inputValue: string,
-    _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
-  ): Promise<string> {
-    return inputValue;
-  }
-}
-
-class VoidInputUseCase extends TestUseCase<void, string> {
-  protected override async executeInternal(
-    _input: void,
-    _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
-  ): Promise<string> {
-    return 'done';
-  }
-}
-
-class VoidOutputUseCase extends TestUseCase<string, void> {
-  protected override async executeInternal(
-    _input: string,
-    _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
-  ): Promise<void> {
-    return;
   }
 }
 
@@ -451,7 +431,6 @@ describe('Usecase', () => {
       const durationCall = metrics.calls.find(
         (call) => call.metric === 'usecase_duration'
       );
-      // Duration should be >= 0 (0 when using mock clock or synchronous execution)
       expect(durationCall?.value).toBeGreaterThanOrEqual(0);
     });
 
@@ -482,8 +461,7 @@ describe('Usecase', () => {
       expect(cancelCall?.labels).toHaveProperty('executionId');
     });
 
-    it('uses NoOpMetricsAdapter by default (no errors)', async () => {
-      // This should not throw when metrics are not provided
+    it('uses NoOpMetricsAdapter by default', async () => {
       const useCase = new SuccessUseCase();
       const result = await useCase.execute('hello');
 
@@ -611,7 +589,7 @@ describe('Usecase', () => {
         (call) => call.metric === 'usecase_duration'
       );
       expect(durationCall?.value).toBeGreaterThan(0);
-      expect(durationCall?.value).toBeLessThan(duration + 50); // Allow some tolerance
+      expect(durationCall?.value).toBeLessThan(duration + 50);
     });
 
     it('records zero duration for synchronous execution', async () => {
@@ -777,7 +755,6 @@ describe('Usecase', () => {
       const logger = new MockLogger();
       const useCase = new SuccessUseCase({ logging: logger });
 
-      // Configuration should be accessible via protected dependencies
       expect(useCase['dependencies'].logging).toBe(logger);
     });
   });

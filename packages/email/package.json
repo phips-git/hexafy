@@ -31,9 +31,13 @@
   },
   "scripts": {
     "build": "tsc",
+    "clean": "rm -rf dist && git clean -xdf node_modules",
     "test": "bun test",
-    "typecheck": "bun check",
-    "clean": "rm -rf dist"
+    "typecheck": "bun check"
+  },
+  "devDependencies": {
+    "@hexafy/typescript-config": "*",
+    "typescript": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

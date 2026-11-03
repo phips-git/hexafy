@@ -14,8 +14,6 @@
     "type": "git",
     "url": "https://github.com/phips-git/hexafy"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     "./application": {
       "types": "./dist/application/index.d.ts",
@@ -35,11 +33,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "bun check",
     "clean": "rm -rf dist && git clean -xdf node_modules",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "bun check"
   },
   "devDependencies": {
+    "@hexafy/typescript-config": "*",
     "typescript": "catalog:"
   },
   "engines": {

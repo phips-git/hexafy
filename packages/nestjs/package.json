@@ -26,7 +26,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && git clean -xdf node_modules",
     "test": "bun test",
     "typecheck": "bun check"
   },
@@ -36,7 +36,8 @@
     "@nestjs/core": "^11.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.0",
+    "@hexafy/typescript-config": "*",
+    "@types/node": "catalog:",
     "typescript": "catalog:"
   },
   "engines": {

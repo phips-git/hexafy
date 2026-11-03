@@ -1,4 +1,4 @@
-import { Entity as EntityType, UniqueIdentifier } from '../types';
+import { Entity as EntityType, type UniqueIdentifier } from '../types';
 
 /**
  * Base repository class providing common CRUD operations

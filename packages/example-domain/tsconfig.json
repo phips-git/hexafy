@@ -1,12 +1,9 @@
 {
-  "extends": "@hexafy/typescript-config/base.json",
+  "extends": "@hexafy/typescript-config/publish",
   "compilerOptions": {
-    "outDir": "./dist",
     "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "outDir": "./dist"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts"]
 }

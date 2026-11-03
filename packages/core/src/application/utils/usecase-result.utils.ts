@@ -1,4 +1,4 @@
-import { UsecaseResult } from '../types';
+import type { UsecaseResult } from '../types';
 
 export function isSuccess<T, E extends Error>(
   result: UsecaseResult<T, E>

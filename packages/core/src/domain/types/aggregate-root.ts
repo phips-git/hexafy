@@ -1,5 +1,5 @@
 import { Entity } from './entity';
-import { UniqueIdentifier } from './unique-identifier.type';
+import type { UniqueIdentifier } from './unique-identifier.type';
 
 /**
  * Aggregate Root is an entity that defines a boundary within which other

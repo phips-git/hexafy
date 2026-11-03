@@ -1,4 +1,4 @@
-import { LoggingPort } from '../../../domain/ports';
+import type { LoggingPort } from '../../../domain/ports';
 
 export const ConsoleLoggingAdapter: LoggingPort = {
   info(message: string, data?: unknown): void {
