@@ -178,9 +178,9 @@ The package works with both `@hexafy/core` errors and custom consumer errors:
 ```typescript
 import {
   ApplicationError,
-  ValidationError,
   getDomainErrorCode,
-  isDomainError
+  isDomainError,
+  ValidationError
 } from '@hexafy/core/domain';
 
 // Handler automatically formats based on error type

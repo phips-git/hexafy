@@ -229,13 +229,13 @@ You can use these classes directly, but it is not required. Consumers can throw 
 
 #### When to Use Each
 
-| Error Type              | When to Throw/Return       | Example                       |
-| ----------------------- | -------------------------- | ----------------------------- |
-| **ApplicationError** family | Return via `failure()` | Invalid email, user not found |
-| **ValidationError**     | Return via `failure()`     | Input validation fails        |
-| **NotFoundError**       | Return via `failure()`     | Resource lookup returns null  |
-| **InfrastructureError** | Throw in try/catch         | Database connection failed    |
-| **Any other error**     | Throw (caught and wrapped) | Unexpected exceptions         |
+| Error Type                  | When to Throw/Return       | Example                       |
+| --------------------------- | -------------------------- | ----------------------------- |
+| **ApplicationError** family | Return via `failure()`     | Invalid email, user not found |
+| **ValidationError**         | Return via `failure()`     | Input validation fails        |
+| **NotFoundError**           | Return via `failure()`     | Resource lookup returns null  |
+| **InfrastructureError**     | Throw in try/catch         | Database connection failed    |
+| **Any other error**         | Throw (caught and wrapped) | Unexpected exceptions         |
 
 #### Logging Behavior
 

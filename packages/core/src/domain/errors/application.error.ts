@@ -5,12 +5,11 @@ export interface ApplicationErrorOptions {
 }
 
 export type ApplicationErrorDetails =
-  | Omit<ApplicationErrorOptions, 'code'>
-  | unknown;
+  Omit<ApplicationErrorOptions, 'code'> | unknown;
 
 /**
- * Neutral base error for application/domain boundaries.
- * Consumers may use this class or provide their own errors with a compatible shape.
+ * Neutral base error for application/domain boundaries. Consumers may use this
+ * class or provide their own errors with a compatible shape.
  */
 export class ApplicationError extends Error {
   readonly code: string;
@@ -58,20 +57,14 @@ export class ConflictError extends ApplicationError {
 }
 
 export class UnauthorizedError extends ApplicationError {
-  constructor(
-    message = 'Unauthorized',
-    details?: ApplicationErrorDetails
-  ) {
+  constructor(message = 'Unauthorized', details?: ApplicationErrorDetails) {
     const options = normalizeApplicationErrorDetails(details);
     super(message, { ...options, code: 'UNAUTHORIZED_ERROR' });
   }
 }
 
 export class ForbiddenError extends ApplicationError {
-  constructor(
-    message = 'Forbidden',
-    details?: ApplicationErrorDetails
-  ) {
+  constructor(message = 'Forbidden', details?: ApplicationErrorDetails) {
     const options = normalizeApplicationErrorDetails(details);
     super(message, { ...options, code: 'FORBIDDEN_ERROR' });
   }
