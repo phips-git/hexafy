@@ -7,8 +7,8 @@
     "./infrastructure": "./src/infrastructure/index.ts"
   },
   "scripts": {
-    "example": "tsx src/main.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "bun check"
   },
   "dependencies": {
     "@hexafy/core": "*",

@@ -31,6 +31,8 @@
   },
   "scripts": {
     "build": "tsc",
+    "test": "bun test",
+    "typecheck": "bun check",
     "clean": "rm -rf dist"
   },
   "engines": {

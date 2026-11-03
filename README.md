@@ -62,7 +62,7 @@ hexafy/
 bun run typecheck   # Type check all packages
 bun run test        # Run all tests
 bun run format      # Format code
-bun run lint        # Run linters
+bun run lint        # Run ESLint via Bun
 ```
 
 ## 📦 Publishing Packages
@@ -88,7 +88,6 @@ Quick commands:
 Private packages (not published):
 
 - `@hexafy/typescript-config`
-- `@hexafy/eslint-config`
 - `@hexafy/example-domain`
 
 ## 📖 Learn More

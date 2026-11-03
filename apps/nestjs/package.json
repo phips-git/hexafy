@@ -12,11 +12,12 @@
     "test": "bun test",
     "test:cov": "bun test --coverage",
     "test:debug": "bun test --inspect-brk",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "typecheck": "bun check"
   },
   "dependencies": {
-    "@hexafy/core": "1.0.0",
-    "@hexafy/nestjs": "1.0.0",
+    "@hexafy/core": "*",
+    "@hexafy/nestjs": "*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

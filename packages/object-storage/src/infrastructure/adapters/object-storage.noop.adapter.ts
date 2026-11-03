@@ -1,5 +1,3 @@
-import { NotFoundError } from '@hexafy/core/domain';
-
 import type { ObjectMetadata, StoredObject } from '../../domain/models';
 import type {
   CreateSignedUrlOptions,
@@ -27,8 +25,7 @@ export class ObjectStorageNoopAdapter implements ObjectStoragePort {
 
   async getObject(key: string): Promise<StoredObject> {
     const object = this.objects.get(key);
-    if (!object)
-      throw new NotFoundError('Object not found', { context: { key } });
+    if (!object) throw new Error('Object not found', { context: { key } });
     return object;
   }
 

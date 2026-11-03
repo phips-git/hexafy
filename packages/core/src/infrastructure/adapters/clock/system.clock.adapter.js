@@ -1,3 +1,3 @@
 export const SystemClockAdapter = {
-  now: () => Date.now()
+    now: () => Date.now()
 };

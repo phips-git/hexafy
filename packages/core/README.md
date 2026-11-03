@@ -213,28 +213,25 @@ Usecase.execute() — logs completion or error
 #### Error Hierarchy
 
 ```
-HexagonalError (base)
-├── DomainError
-│   ├── ValidationError        — Invalid input data
-│   ├── NotFoundError          — Resource not found
-│   ├── ConflictError          — Resource conflict
-│   ├── ForbiddenError         — Access denied
-│   ├── UnauthorizedError      — Authentication required
-│   ├── InvariantError         — Business invariant violated
-│   ├── ExternalServiceError   — External dependency failure
-│   ├── InternalServerError    — Internal business error
-│   ├── TimeoutError           — Operation timed out
-│   ├── RateLimitError         — Rate limit exceeded
-│   └── ServiceUnavailableError — Service unavailable
-├── UseCaseError              — Use case specific errors
-└── InfrastructureError       — Infrastructure failures (DB, network, etc.)
+ApplicationError (neutral base)
+├── ValidationError          — Invalid input data
+├── NotFoundError            — Resource not found
+├── ConflictError            — Resource conflict
+├── ForbiddenError           — Access denied
+├── UnauthorizedError        — Authentication required
+├── InvariantError           — Business invariant violated
+├── InfrastructureError      — Infrastructure failures (DB, network, etc.)
+├── ExternalServiceError     — External dependency failure
+└── InternalServerError      — Internal business error
 ```
+
+You can use these classes directly, but it is not required. Consumers can throw their own `Error` types as long as they expose a compatible shape (`name` and/or `code`). Use `isDomainError()` and `getDomainErrorCode()` to work with both core and custom errors.
 
 #### When to Use Each
 
 | Error Type              | When to Throw/Return       | Example                       |
 | ----------------------- | -------------------------- | ----------------------------- |
-| **DomainError** (all)   | Return via `failure()`     | Invalid email, user not found |
+| **ApplicationError** family | Return via `failure()` | Invalid email, user not found |
 | **ValidationError**     | Return via `failure()`     | Input validation fails        |
 | **NotFoundError**       | Return via `failure()`     | Resource lookup returns null  |
 | **InfrastructureError** | Throw in try/catch         | Database connection failed    |
@@ -583,9 +580,7 @@ export { LoggerPort, consoleLogger, NOOP_LOGGER } from './logger';
 
 // Errors
 export {
-  HexagonalError,
-  DomainError,
-  UseCaseError,
+  ApplicationError,
   InfrastructureError,
   ValidationError,
   NotFoundError,
@@ -594,11 +589,10 @@ export {
   UnauthorizedError,
   InvariantError,
   ExternalServiceError,
-  InternalServerError,
-  TimeoutError,
-  RateLimitError,
-  ServiceUnavailableError
-} from './errors';
+  InternalServerError
+} from '@hexafy/core/domain';
+
+export { isDomainError, getDomainErrorCode } from '@hexafy/core/domain';
 
 // Domain primitives
 export { Entity, Repository, UnitOfWorkBase } from './domain';

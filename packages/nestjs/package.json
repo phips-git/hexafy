@@ -26,10 +26,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "bun test",
+    "typecheck": "bun check"
   },
   "dependencies": {
-    "@hexafy/core": "1.0.0",
+    "@hexafy/core": "*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0"
   },

@@ -173,15 +173,15 @@ export const createUserHandler = createLambdaHandler({
 
 ## Error Handling
 
-The package uses the error hierarchy from `@hexafy/core`:
+The package works with both `@hexafy/core` errors and custom consumer errors:
 
 ```typescript
 import {
-  DomainError,
-  HexagonalError,
-  RepositoryError,
-  UseCaseError
-} from '@hexafy/core';
+  ApplicationError,
+  ValidationError,
+  getDomainErrorCode,
+  isDomainError
+} from '@hexafy/core/domain';
 
 // Handler automatically formats based on error type
 export const handler = createLambdaHandler({
@@ -194,11 +194,13 @@ export const handler = createLambdaHandler({
 class CreateUserUseCase {
   async execute(input) {
     if (!input.email) {
-      throw new UseCaseError('Email is required'); // → 400
+      throw new ValidationError('Email is required'); // → 400
     }
 
     // Business logic error
-    throw new DomainError('User already exists'); // → 400
+    throw new ApplicationError('User already exists', {
+      code: 'USER_ALREADY_EXISTS'
+    }); // → 400/500 based on your formatter
   }
 }
 ```

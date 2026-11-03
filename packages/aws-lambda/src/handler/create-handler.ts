@@ -4,7 +4,8 @@
  * This provides a clean way to compose use cases with Lambda-specific concerns
  * (input parsing, error handling, response formatting)
  */
-import { HexagonalError, Result, unwrap, Usecase } from '@hexafy/core';
+import type { Usecase } from '@hexafy/core/application';
+import { getDomainErrorCode, isDomainError } from '@hexafy/core/domain';
 import type { Context as LambdaContext } from 'aws-lambda';
 
 /** Type aliases for AWS Lambda */
@@ -111,18 +112,29 @@ export function createLambdaHandler<Input, Output>(
     // Format error response
     const formattedError = errorFormatter(error);
 
-    // For HexagonalError, include code in body
-    if (error instanceof HexagonalError) {
+    // For domain-like errors, include stable code metadata
+    if (isDomainError(error)) {
+      const code = getDomainErrorCode(error);
+      const timestamp = readErrorTimestamp(error);
+
       formattedError.body = JSON.stringify({
         success: false,
-        error: (error as HexagonalError).message,
-        code: (error as HexagonalError).code,
-        timestamp: (error as HexagonalError).timestamp.toISOString()
+        error: error.message,
+        ...(code && { code }),
+        ...(timestamp && { timestamp })
       });
     }
 
     return formattedError;
   };
+}
+
+function readErrorTimestamp(error: Error): string | undefined {
+  const maybeTimestamp = (error as { timestamp?: unknown }).timestamp;
+  if (maybeTimestamp instanceof Date) {
+    return maybeTimestamp.toISOString();
+  }
+  return undefined;
 }
 
 /** Standard JSON response formatter */

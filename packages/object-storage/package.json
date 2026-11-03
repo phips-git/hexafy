@@ -33,18 +33,18 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist"
+    "test": "bun test",
+    "clean": "rm -rf dist",
+    "typecheck": "bun check"
   },
   "dependencies": {
-    "@hexafy/core": "1.0.0"
+    "@hexafy/core": "*"
   },
   "devDependencies": {
-    "@hexafy/eslint-config": "*",
-    "@hexafy/typescript-config": "*",
-    "@types/node": "^22.15.0"
+    "@hexafy/typescript-config": "*"
   },
   "engines": {
-    "bun": ">=1.3",
+    "bun": ">=1.4",
     "node": ">=22"
   }
 }

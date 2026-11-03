@@ -1,4 +1,0 @@
-{
-  "extends": "@hexafy/typescript-config/base",
-  "include": ["src", "./*.config.ts"]
-}

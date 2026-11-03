@@ -1,4 +1,4 @@
-import { isDomainError } from '@hexafy/core/domain';
+import { getDomainErrorCode, isDomainError } from '@hexafy/core/domain';
 
 export interface LambdaErrorResponse {
   statusCode: number;
@@ -35,13 +35,14 @@ export function buildLambdaErrorResponse(
   }
 
   if (isDomainError(error)) {
+    const domainErrorCode = getDomainErrorCode(error) ?? error.name;
     const statusCode = getStatusCodeForDomainError(error);
     return {
       statusCode,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         error: error.message,
-        code: error.name,
+        code: domainErrorCode,
         requestId
       })
     };
@@ -59,21 +60,22 @@ export function buildLambdaErrorResponse(
 }
 
 function getStatusCodeForDomainError(error: Error): number {
-  switch (error.constructor.name) {
-    case 'UnauthorizedError':
+  switch (getDomainErrorCode(error)) {
+    case 'UNAUTHORIZED_ERROR':
       return 401;
-    case 'ForbiddenError':
+    case 'FORBIDDEN_ERROR':
       return 403;
-    case 'NotFoundError':
+    case 'NOT_FOUND_ERROR':
       return 404;
-    case 'ValidationError':
+    case 'VALIDATION_ERROR':
       return 400;
-    case 'ConflictError':
+    case 'CONFLICT_ERROR':
       return 409;
-    case 'InternalServerError':
-    case 'InvariantError':
+    case 'INTERNAL_SERVER_ERROR':
+    case 'INVARIANT_ERROR':
+    case 'INFRASTRUCTURE_ERROR':
       return 500;
-    case 'ExternalServiceError':
+    case 'EXTERNAL_SERVICE_ERROR':
       return 502;
     default:
       return 500;

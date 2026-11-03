@@ -250,19 +250,21 @@ export class UserService {
 
 ## Error Handling
 
-The package uses the error hierarchy from `@hexafy/core`:
+The package supports `@hexafy/core` errors and custom consumer errors with a `code`/`name` shape:
 
 ```typescript
-import { DomainError, UseCaseError } from '@hexafy/core';
+import { ApplicationError, ValidationError } from '@hexafy/core/domain';
 
 // Errors are thrown in use cases and automatically caught by filters:
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
   protected async executeInternal(input, logger) {
     if (!input.email) {
-      throw new UseCaseError('Email is required'); // → 400
+      throw new ValidationError('Email is required'); // → 400
     }
 
-    throw new DomainError('User already exists'); // → 400
+    throw new ApplicationError('User already exists', {
+      code: 'USER_ALREADY_EXISTS'
+    }); // mapped by your filter
   }
 }
 ```

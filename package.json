@@ -14,21 +14,20 @@
   "scripts": {
     "changeset": "changeset",
     "clean": "git clean -xdf node_modules && bun --filter '*' clean",
+    "lint": "bun lint --fix --max-warnings 0",
     "format": "bun fmt",
-    "lint": "bun --filter '*' lint",
     "publish": "bun publish --recursive",
     "publish:ci": "changeset publish",
-    "test": "bun test --workspaces --if-present",
+    "test": "bun --filter '*' test",
     "typecheck": "bun --filter '*' typecheck",
     "version": "changeset version"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",
-    "eslint": "10.11.0",
-    "tsx": "4.23.15",
+    "@types/bun": "latest",
     "typescript": "^7"
   },
   "engines": {
-    "bun": ">=1.4.2"
+    "bun": ">=1.4.4"
   }
 }

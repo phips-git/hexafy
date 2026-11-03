@@ -35,6 +35,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "typecheck": "bun check",
     "clean": "rm -rf dist && git clean -xdf node_modules",
     "test": "bun test"
   },

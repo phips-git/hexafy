@@ -2,10 +2,10 @@
   "name": "@hexafy/typescript-config",
   "private": true,
   "scripts": {
-    "clean": "git clean -xdf node_modules"
+    "clean": "git clean -xdf node_modules",
+    "typecheck": "bun check"
   },
   "devDependencies": {
-    "@tsconfig/strictest": "2.0.8",
-    "@types/bun": "latest"
+    "@tsconfig/strictest": "2.0.8"
   }
 }

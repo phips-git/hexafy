@@ -25,6 +25,7 @@ export type ValidProjectCreationProperties = Brand<
 export interface ProjectUpdateProperties extends Partial<
   Pick<Project, 'name' | 'description'>
 > {}
+
 export type ValidProjectUpdateProperties = Brand<
   ProjectUpdateProperties,
   'ValidProjectUpdateProperties'
