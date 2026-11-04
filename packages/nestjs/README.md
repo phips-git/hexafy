@@ -250,69 +250,373 @@ export class UserService {
 
 ## Error Handling
 
-The package supports `@hexafy/core` errors and custom consumer errors with a `code`/`name` shape:
+This package provides a complete error handling system that integrates `@hexafy/core` domain errors with HTTP-specific errors for NestJS controllers.
+
+### Error Hierarchy
+
+#### Domain Errors (from @hexafy/core)
+
+```
+ApplicationError
+├── ValidationError
+├── NotFoundError
+├── ConflictError
+├── UnauthorizedError
+├── ForbiddenError
+└── InvariantError
+```
+
+#### Adapter-Specific Errors (from @hexafy/nestjs)
+
+```
+ApplicationError (re-exported from @hexafy/core)
+├── InfrastructureError          — Database, network, file system failures → HTTP 500
+├── ExternalServiceError         — Third-party API failures → HTTP 500
+├── InternalServerError          — Unexpected system errors → HTTP 500
+├── HttpUnauthorizedError        — Missing/invalid authentication → HTTP 401
+└── HttpForbiddenError           — Insufficient permissions → HTTP 403
+```
+
+### Error Classes
+
+#### Domain Errors
+
+All domain errors are re-exported from `@hexafy/core` and work identically:
 
 ```typescript
-import { ApplicationError, ValidationError } from '@hexafy/core/domain';
+import { NotFoundError, ValidationError } from '@hexafy/core/domain';
 
-// Errors are thrown in use cases and automatically caught by filters:
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
   protected async executeInternal(input, logger) {
+    // Validation error → HTTP 400 Bad Request
     if (!input.email) {
-      throw new ValidationError('Email is required'); // → 400
+      throw new ValidationError('Email is required');
     }
 
-    throw new ApplicationError('User already exists', {
-      code: 'USER_ALREADY_EXISTS'
-    }); // mapped by your filter
+    // Not found error → HTTP 400 Bad Request
+    const user = await this.userRepository.findById(input.userId);
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    return { userId: user.id };
   }
+}
+```
+
+#### Infrastructure Errors
+
+Use these for infrastructure-layer failures in controllers or repositories:
+
+```typescript
+import { ExternalServiceError, InfrastructureError } from '@hexafy/nestjs';
+
+class NotificationService {
+  async sendNotification(to: string, message: string) {
+    try {
+      await this.emailProvider.send(to, message);
+    } catch (error) {
+      // Wrap infrastructure errors → HTTP 500 Internal Server Error
+      throw new InfrastructureError('Failed to send email', {
+        cause: error,
+        context: { recipient: to }
+      });
+    }
+  }
+
+  async sendSMS(to: string, message: string) {
+    try {
+      await this.smsProvider.send(to, message);
+    } catch (error) {
+      // External service failures → HTTP 500
+      throw new ExternalServiceError('SMS provider unavailable', {
+        cause: error
+      });
+    }
+  }
+}
+```
+
+#### HTTP-Specific Errors
+
+Use these for authentication/authorization failures in guards or interceptors:
+
+```typescript
+import { HttpForbiddenError, HttpUnauthorizedError } from '@hexafy/nestjs';
+
+class AuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+
+    // No authentication token → HTTP 401
+    if (!request.headers.authorization) {
+      throw new HttpUnauthorizedError('Missing authentication token');
+    }
+
+    // Invalid token → HTTP 401
+    if (!isValidToken(request.headers.authorization)) {
+      throw new HttpUnauthorizedError('Invalid authentication token');
+    }
+
+    // User lacks permissions → HTTP 403
+    if (!request.user.hasPermission('edit')) {
+      throw new HttpForbiddenError('Insufficient permissions');
+    }
+
+    return true;
+  }
+}
+```
+
+### Exception Filters
+
+Three filters handle different error types with appropriate HTTP status codes:
+
+#### HttpExceptionFilter (HTTP 401/403)
+
+```typescript
+import {
+  HttpExceptionFilter,
+  HttpForbiddenError,
+  HttpUnauthorizedError
+} from '@hexafy/nestjs';
+import { Module } from '@nestjs/common';
+
+@Module({
+  providers: [
+    {
+      provide: 'APP_FILTER',
+      useClass: HttpExceptionFilter
+    }
+  ]
+})
+export class AuthModule {}
+```
+
+Handles:
+
+- `HttpUnauthorizedError` → HTTP 401
+- `HttpForbiddenError` → HTTP 403
+
+Response format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "HTTP_UNAUTHORIZED_ERROR",
+    "message": "Invalid authentication token",
+    "context": {/* optional */}
+  }
+}
+```
+
+#### DomainExceptionFilter (HTTP 400)
+
+```typescript
+import { DomainExceptionFilter } from '@hexafy/nestjs';
+import { Module } from '@nestjs/common';
+
+@Module({
+  providers: [
+    {
+      provide: 'APP_FILTER',
+      useClass: DomainExceptionFilter
+    }
+  ]
+})
+export class AppModule {}
+```
+
+Handles:
+
+- All `@hexafy/core` errors (`ValidationError`, `NotFoundError`, etc.)
+- Any error extending `ApplicationError` → HTTP 400
+
+Response format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Email is required",
+    "context": {/* optional */}
+  }
+}
+```
+
+#### InfrastructureExceptionFilter (HTTP 500)
+
+```typescript
+import {
+  InfrastructureError,
+  InfrastructureExceptionFilter
+} from '@hexafy/nestjs';
+import { Module } from '@nestjs/common';
+
+@Module({
+  providers: [
+    {
+      provide: 'APP_FILTER',
+      useClass: InfrastructureExceptionFilter
+    }
+  ]
+})
+export class AppModule {}
+```
+
+Handles:
+
+- `InfrastructureError` → HTTP 500
+- `ExternalServiceError` → HTTP 500
+- `InternalServerError` → HTTP 500
+
+Response format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INFRASTRUCTURE_ERROR",
+    "message": "Database connection failed",
+    "context": {/* optional */}
+  }
+}
+```
+
+### Complete Error Handling Setup
+
+Register all filters in your main app module:
+
+```typescript
+import {
+  DomainExceptionFilter,
+  HttpExceptionFilter,
+  InfrastructureExceptionFilter
+} from '@hexafy/nestjs';
+import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+
+@Module({
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter
+    },
+    {
+      provide: APP_FILTER,
+      useClass: DomainExceptionFilter
+    },
+    {
+      provide: APP_FILTER,
+      useClass: InfrastructureExceptionFilter
+    }
+  ]
+})
+export class AppModule {}
+```
+
+### Custom Error Creation
+
+Extend `ApplicationError` for domain-specific errors:
+
+```typescript
+import { ApplicationError, type ApplicationErrorDetails } from '@hexafy/nestjs';
+
+class PaymentProcessingError extends ApplicationError {
+  constructor(
+    message = 'Payment processing failed',
+    details?: ApplicationErrorDetails
+  ) {
+    const options = normalizeApplicationErrorDetails(details);
+    super(message, { ...options, code: 'PAYMENT_PROCESSING_ERROR' });
+  }
+}
+
+function normalizeApplicationErrorDetails(
+  details: ApplicationErrorDetails | undefined
+): { context?: Record<string, unknown>; cause?: unknown } {
+  if (details === undefined) return {};
+  if (
+    details !== null &&
+    typeof details === 'object' &&
+    ('context' in details || 'cause' in details)
+  ) {
+    return details as { context?: Record<string, unknown>; cause?: unknown };
+  }
+  return { cause: details };
+}
+
+// Usage in use case
+if (paymentStatus.failed) {
+  throw new PaymentProcessingError('Payment declined', {
+    context: { reason: 'Insufficient funds', attemptId: 'pay_123' }
+  });
 }
 ```
 
 ## Best Practices
 
-### 1. Use Domain Modules
+### 1. Keep Domain Errors in Use Cases
 
-Keep domain logic isolated:
+Domain errors should be thrown in use cases and automatically converted to HTTP responses:
 
 ```typescript
-@DomainModule({
-  providers: [
-    // Pure business logic
-    CreateUserUseCase,
-    UserService
-  ]
-})
-export class DomainModule {}
+class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
+  protected async executeInternal(input) {
+    // Domain errors → HTTP 400
+    if (!input.email) {
+      throw new ValidationError('Email is required');
+    }
+
+    return { userId: id };
+  }
+}
 ```
 
-### 2. Register Use Cases as Providers
+### 2. Use Infrastructure Errors in Repositories
 
-Make use cases injectable:
+Infrastructure errors should be thrown in repositories and infrastructure layers:
+
+```typescript
+class UserRepository {
+  async findById(id: string) {
+    try {
+      return await this.db.query('SELECT * FROM users WHERE id = ?', [id]);
+    } catch (error) {
+      // Infrastructure errors → HTTP 500
+      throw new InfrastructureError('Database query failed', { cause: error });
+    }
+  }
+}
+```
+
+### 3. Add All Exception Filters
+
+Register all three filters for complete error handling:
 
 ```typescript
 @Module({
   providers: [
-    createUsecaseProvider(new CreateUserUseCase())
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    { provide: APP_FILTER, useClass: DomainExceptionFilter },
+    { provide: APP_FILTER, useClass: InfrastructureExceptionFilter }
   ]
 })
+export class AppModule {}
 ```
 
-### 3. Add Exception Filters
+### 4. Create Domain-Specific Errors
 
-Handle errors globally:
+Extend `ApplicationError` for reusable domain errors:
 
 ```typescript
-providers: [
-  {
-    provide: 'APP_FILTER',
-    useClass: DomainExceptionFilter
-  },
-  {
-    provide: 'APP_FILTER',
-    useClass: UseCaseFilter
+class PaymentProcessingError extends ApplicationError {
+  constructor(message = 'Payment failed', details?: ApplicationErrorDetails) {
+    super(message, { ...details, code: 'PAYMENT_PROCESSING_ERROR' });
   }
-];
+}
 ```
 
 ## License

@@ -11,18 +11,18 @@ import { Module } from '@nestjs/common';
  *
  * Use this module for your domain logic that should be isolated from frameworks
  */
-export const DomainModule = Module({
-  global: false
-});
+const DomainModule = Module({});
+
+export { DomainModule };
 
 /**
  * Infrastructure module - contains database, external services, and adapters
  *
  * Use this module for infrastructure-specific implementations
  */
-export const InfrastructureModule = Module({
-  global: false
-});
+const InfrastructureModule = Module({});
+
+export { InfrastructureModule };
 
 /**
  * Create a domain module with providers

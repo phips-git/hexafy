@@ -213,29 +213,37 @@ Usecase.execute() — logs completion or error
 #### Error Hierarchy
 
 ```
-ApplicationError (neutral base)
+ApplicationError (base for all application errors)
 ├── ValidationError          — Invalid input data
 ├── NotFoundError            — Resource not found
-├── ConflictError            — Resource conflict
-├── ForbiddenError           — Access denied
-├── UnauthorizedError        — Authentication required
-├── InvariantError           — Business invariant violated
-├── InfrastructureError      — Infrastructure failures (DB, network, etc.)
-├── ExternalServiceError     — External dependency failure
-└── InternalServerError      — Internal business error
+├── ConflictError            — Resource conflict (e.g., duplicate)
+├── UnauthorizedError        — Authentication required (HTTP 401)
+├── ForbiddenError           — Authorization denied (HTTP 403)
+└── InvariantError           — Business invariant violated
 ```
 
-You can use these classes directly, but it is not required. Consumers can throw their own `Error` types as long as they expose a compatible shape (`name` and/or `code`). Use `isDomainError()` and `getDomainErrorCode()` to work with both core and custom errors.
+**Note**: `InfrastructureError`, `ExternalServiceError`, and `InternalServerError` are **not** exported from `@hexafy/core`. These are infrastructure-layer errors that should be thrown by adapters, not use cases. See the [@hexafy/nestjs](../nestjs) package for adapter-specific error handling.
+
+You can use these classes directly, or create your own error classes that extend `ApplicationError`. All errors support the same properties:
+
+- `code` — Unique error code (e.g., `"VALIDATION_ERROR"`, `"USER_NOT_FOUND"`)
+- `message` — Human-readable error message
+- `context` — Optional structured context for debugging
+- `cause` — Optional underlying error (for chaining)
 
 #### When to Use Each
 
-| Error Type                  | When to Throw/Return       | Example                       |
-| --------------------------- | -------------------------- | ----------------------------- |
-| **ApplicationError** family | Return via `failure()`     | Invalid email, user not found |
-| **ValidationError**         | Return via `failure()`     | Input validation fails        |
-| **NotFoundError**           | Return via `failure()`     | Resource lookup returns null  |
-| **InfrastructureError**     | Throw in try/catch         | Database connection failed    |
-| **Any other error**         | Throw (caught and wrapped) | Unexpected exceptions         |
+| Error Type            | When to Use                                           | Example                              |
+| --------------------- | ----------------------------------------------------- | ------------------------------------ |
+| **ValidationError**   | Input validation fails                                | Email format invalid, required field |
+| **NotFoundError**     | Resource lookup returns null/undefined                | User by ID not found                 |
+| **ConflictError**     | Unique constraint violation                           | Email already registered             |
+| **UnauthorizedError** | Authentication required (before authorization check)  | Missing JWT token                    |
+| **ForbiddenError**    | Authentication succeeded but insufficient permissions | User can't edit another's order      |
+| **InvariantError**    | Business rule invariant violated                      | Cannot cancel order after shipment   |
+| **ApplicationError**  | Generic domain error not covered above                | Custom business logic error          |
+
+**Important**: For infrastructure errors (database, external services, unexpected exceptions), **throw** the error in try/catch blocks. The `Usecase.execute()` method automatically catches and wraps them in a `failure()` result.
 
 #### Logging Behavior
 
@@ -244,6 +252,46 @@ You can use these classes directly, but it is not required. Consumers can throw 
 | `failure()` in `executeInternal` | DEBUG     | Automatic   | Expected domain failures |
 | `throw` infrastructure error     | ERROR     | Catch block | System issues            |
 | Unexpected exception             | ERROR     | Catch block | Investigate              |
+
+### Error Utilities
+
+#### `isDomainError(value: unknown): value is DomainErrorLike`
+
+Checks if a value is a domain error (has compatible shape). Works with both `@hexafy/core` errors and custom error classes.
+
+```typescript
+import { ApplicationError, isDomainError, ValidationError } from '@hexafy/core';
+
+// Built-in errors
+isDomainError(new ValidationError('Invalid input')); // true
+
+// Custom errors with code/context
+isDomainError({
+  code: 'MY_ERROR',
+  message: 'Something went wrong',
+  context: { userId: 123 }
+}); // true
+
+// Regular Error (no code/context)
+isDomainError(new Error('Generic error')); // false
+```
+
+#### `getDomainErrorCode(error: Error): string | undefined`
+
+Extracts the error code from any error. Useful for routing errors to appropriate handlers.
+
+```typescript
+import { getDomainErrorCode, ValidationError } from '@hexafy/core';
+
+getDomainErrorCode(new ValidationError());
+// Returns: 'VALIDATION_ERROR'
+
+getDomainErrorCode(new ApplicationError('Custom error', { code: 'CUSTOM' }));
+// Returns: 'CUSTOM'
+
+getDomainErrorCode(new Error('Generic'));
+// Returns: 'UNKNOWN_ERROR' (derived from name)
+```
 
 ### 4. Logger Port
 
@@ -376,6 +424,45 @@ try {
 } catch (e) {
   await uow.rollback();
   throw e;
+}
+```
+
+### Extending the Error System
+
+You can extend `ApplicationError` to create domain-specific errors:
+
+```typescript
+import { ApplicationError, type ApplicationErrorDetails } from '@hexafy/core';
+
+class PaymentProcessingError extends ApplicationError {
+  constructor(
+    message = 'Payment processing failed',
+    details?: ApplicationErrorDetails
+  ) {
+    const options = normalizeApplicationErrorDetails(details);
+    super(message, { ...options, code: 'PAYMENT_PROCESSING_ERROR' });
+  }
+}
+
+function normalizeApplicationErrorDetails(
+  details: ApplicationErrorDetails | undefined
+): { context?: Record<string, unknown>; cause?: unknown } {
+  if (details === undefined) return {};
+  if (
+    details !== null &&
+    typeof details === 'object' &&
+    ('context' in details || 'cause' in details)
+  ) {
+    return details as { context?: Record<string, unknown>; cause?: unknown };
+  }
+  return { cause: details };
+}
+
+// Usage
+if (!paymentDetails.valid) {
+  throw new PaymentProcessingError('Invalid payment details', {
+    context: { paymentId: 'pay_123', reason: 'Expired card' }
+  });
 }
 ```
 
@@ -581,15 +668,12 @@ export { LoggerPort, consoleLogger, NOOP_LOGGER } from './logger';
 // Errors
 export {
   ApplicationError,
-  InfrastructureError,
   ValidationError,
   NotFoundError,
   ConflictError,
-  ForbiddenError,
   UnauthorizedError,
-  InvariantError,
-  ExternalServiceError,
-  InternalServerError
+  ForbiddenError,
+  InvariantError
 } from '@hexafy/core/domain';
 
 export { isDomainError, getDomainErrorCode } from '@hexafy/core/domain';
@@ -660,6 +744,15 @@ logger.error('Invalid email'); // Expected behavior, not an error
 ```
 
 ## 🔗 Related Packages
+
+### Adapter-Specific Errors
+
+Infrastructure and HTTP-specific errors are provided by adapter packages:
+
+- **@hexafy/nestjs** - `InfrastructureError`, `ExternalServiceError`, `InternalServerError`, `HttpUnauthorizedError`, `HttpForbiddenError`
+- **@hexafy/aws-lambda** - Infrastructure errors for Lambda adapters
+
+See the [nestjs package README](../nestjs) for adapter-specific error handling.
 
 - `@hexafy/nestjs` — NestJS adapters for hexagonal architecture
 - `@hexafy/aws-lambda` — AWS Lambda adapters for serverless applications

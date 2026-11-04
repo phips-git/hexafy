@@ -43,7 +43,7 @@ export type ApplicationErrorDetails =
  *   } catch (e) {
  *     throw new ApplicationError('Operation failed', { cause: e });
  *   }
- *   ```
+ *   ```;
  *
  * @param message - The error message
  * @param options - Optional error configuration
@@ -83,7 +83,7 @@ export class ApplicationError extends Error {
  *       reason: 'Invalid email format'
  *     }
  *   });
- *   ```
+ *   ```;
  *
  * @param message - Optional error message (default: 'Validation failed')
  * @param details - Optional validation details or raw value
@@ -109,7 +109,7 @@ export class ValidationError extends ApplicationError {
  *
  *   // Custom message
  *   throw new NotFoundError('The specified order was not found');
- *   ```
+ *   ```;
  *
  * @param resourceOrMessage - Resource name or custom error message
  * @param details - Optional error details
@@ -131,7 +131,7 @@ export class NotFoundError extends ApplicationError {
  * @example
  *   ```typescript
  *   throw new ConflictError('Email already registered');
- *   ```
+ *   ```;
  *
  * @param message - Optional error message (default: 'Conflict detected')
  * @param details - Optional error details
@@ -152,7 +152,7 @@ export class ConflictError extends ApplicationError {
  * @example
  *   ```typescript
  *   throw new UnauthorizedError('Invalid authentication token');
- *   ```
+ *   ```;
  *
  * @param message - Optional error message (default: 'Unauthorized')
  * @param details - Optional error details
@@ -170,7 +170,7 @@ export class UnauthorizedError extends ApplicationError {
  * @example
  *   ```typescript
  *   throw new ForbiddenError('Insufficient permissions');
- *   ```
+ *   ```;
  *
  * @param message - Optional error message (default: 'Forbidden')
  * @param details - Optional error details
@@ -188,7 +188,7 @@ export class ForbiddenError extends ApplicationError {
  * @example
  *   ```typescript
  *   throw new InvariantError('Order cannot be modified after shipment');
- *   ```
+ *   ```;
  *
  * @param message - Optional error message (default: 'Invariant violated')
  * @param details - Optional error details
@@ -200,75 +200,6 @@ export class InvariantError extends ApplicationError {
   ) {
     const options = normalizeApplicationErrorDetails(details);
     super(message, { ...options, code: 'INVARIANT_ERROR' });
-  }
-}
-
-/**
- * Infrastructure error for external system failures.
- *
- * @example
- *   ```typescript
- *   try {
- *     await database.query();
- *   } catch (e) {
- *     throw new InfrastructureError('Database operation failed', e);
- *   }
- *   ```
- *
- * @param message - Optional error message (default: 'Infrastructure failure')
- * @param details - Optional error details or cause
- */
-export class InfrastructureError extends ApplicationError {
-  constructor(
-    message = 'Infrastructure failure',
-    details?: ApplicationErrorDetails
-  ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'INFRASTRUCTURE_ERROR' });
-  }
-}
-
-/**
- * External service error for third-party API failures.
- *
- * @example
- *   ```typescript
- *   throw new ExternalServiceError('Payment gateway unavailable');
- *   ```
- *
- * @param message - Optional error message (default: 'External service failure')
- * @param details - Optional error details
- */
-export class ExternalServiceError extends ApplicationError {
-  constructor(
-    message = 'External service failure',
-    details?: ApplicationErrorDetails
-  ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'EXTERNAL_SERVICE_ERROR' });
-  }
-}
-
-/**
- * Internal server error for unexpected system failures.
- *
- * @example
- *   ```typescript
- *   throw new InternalServerError(
- *     'Unexpected null reference in order processing'
- *   );
- *   ```
- *
- * @param message - Optional error message (default: 'Internal server error')
- * @param details - Optional error details
- */
-export class InternalServerError extends ApplicationError {
-  constructor(
-    message = 'Internal server error',
-    details?: ApplicationErrorDetails
-  ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'INTERNAL_SERVER_ERROR' });
   }
 }
 

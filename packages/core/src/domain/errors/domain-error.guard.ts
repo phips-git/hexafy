@@ -12,10 +12,7 @@ const KNOWN_DOMAIN_ERROR_NAMES = new Set<string>([
   'ConflictError',
   'UnauthorizedError',
   'ForbiddenError',
-  'InvariantError',
-  'InfrastructureError',
-  'ExternalServiceError',
-  'InternalServerError'
+  'InvariantError'
 ]);
 
 const DOMAIN_ERROR_CODE_ALIASES: Record<string, string> = {
@@ -23,10 +20,7 @@ const DOMAIN_ERROR_CODE_ALIASES: Record<string, string> = {
   FORBIDDEN: 'FORBIDDEN_ERROR',
   NOT_FOUND: 'NOT_FOUND_ERROR',
   VALIDATION: 'VALIDATION_ERROR',
-  CONFLICT: 'CONFLICT_ERROR',
-  EXTERNAL_SERVICE: 'EXTERNAL_SERVICE_ERROR',
-  INTERNAL: 'INTERNAL_SERVER_ERROR',
-  INFRASTRUCTURE: 'INFRASTRUCTURE_ERROR'
+  CONFLICT: 'CONFLICT_ERROR'
 };
 
 export function isDomainError(value: unknown): value is DomainErrorLike {
@@ -73,9 +67,9 @@ function toCodeFromName(name: string): string | null {
     return 'APPLICATION_ERROR';
   }
 
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .replace(/_ERROR$/, '')
-    .toUpperCase()
-    .concat('_ERROR');
+  const nameWithoutError = name.replace(/_ERROR$/, '');
+  if (nameWithoutError !== name) {
+    return nameWithoutError + '_ERROR';
+  }
+  return name.toUpperCase().concat('_ERROR');
 }

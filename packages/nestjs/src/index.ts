@@ -7,8 +7,15 @@ export {
 
 export {
   ApplicationError,
-  DomainExceptionFilter,
-  UseCaseFilter
-} from './filters';
+  ExternalServiceError,
+  HttpForbiddenError,
+  HttpUnauthorizedError,
+  InfrastructureError,
+  InternalServerError
+} from './domain/errors';
 
-export { createUsecaseProvider, UseCaseProviderConfig } from './providers';
+export {
+  DomainExceptionFilter,
+  HttpExceptionFilter,
+  InfrastructureExceptionFilter
+} from './filters';
