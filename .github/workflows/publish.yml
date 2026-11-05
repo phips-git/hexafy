@@ -13,7 +13,7 @@ on:
 
 env:
   BUN_VERSION: 'canary' # Set to specific version when linter is released
-  PNPM_VERSION: '10'
+  PNPM_VERSION: '12'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
