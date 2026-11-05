@@ -70,8 +70,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           commit: 'chore(release): ${{ inputs.channel }} release'
-        env:
-          NPM_CONFIG_PROVENANCE: 'true'
 
       - name: '📦 Publish packages'
         uses: changesets/action/publish@v2
@@ -84,9 +82,3 @@ jobs:
             fi
         env:
           NPM_CONFIG_PROVENANCE: 'true'
-
-      - name: '🚀 Create GitHub Release'
-        if: inputs.channel == 'Release'
-        uses: changesets/action/create-release@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
