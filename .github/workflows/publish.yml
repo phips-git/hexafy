@@ -58,7 +58,7 @@ jobs:
       - name: '🏗️ Build'
         run: bun run build
 
-      - name: '📦 Pack validation'
+      - name: '📦 Validate package tarballs'
         run: |
           rm -rf /tmp/hexafy-packs && mkdir -p /tmp/hexafy-packs
           pnpm -r pack --pack-destination /tmp/hexafy-packs
