@@ -1,4 +1,4 @@
-import { isDomainError } from '@hexagonal-ts-template/common/domain';
+import { getDomainErrorCode, isDomainError } from '@hexafy/core/domain';
 import {
   ArgumentsHost,
   Catch,
@@ -48,21 +48,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private getStatusForDomainError(exception: Error): number {
-    switch (exception.constructor.name) {
-      case 'UnauthorizedError':
+    switch (getDomainErrorCode(exception)) {
+      case 'UNAUTHORIZED_ERROR':
         return HttpStatus.UNAUTHORIZED;
-      case 'ForbiddenError':
+      case 'FORBIDDEN_ERROR':
         return HttpStatus.FORBIDDEN;
-      case 'NotFoundError':
+      case 'NOT_FOUND_ERROR':
         return HttpStatus.NOT_FOUND;
-      case 'ValidationError':
+      case 'VALIDATION_ERROR':
         return HttpStatus.BAD_REQUEST;
-      case 'ConflictError':
+      case 'CONFLICT_ERROR':
         return HttpStatus.CONFLICT;
-      case 'InternalServerError':
-      case 'InvariantError':
+      case 'INTERNAL_SERVER_ERROR':
+      case 'INVARIANT_ERROR':
+      case 'INFRASTRUCTURE_ERROR':
         return HttpStatus.INTERNAL_SERVER_ERROR;
-      case 'ExternalServiceError':
+      case 'EXTERNAL_SERVICE_ERROR':
         return HttpStatus.BAD_GATEWAY;
       default:
         return HttpStatus.INTERNAL_SERVER_ERROR;

@@ -1,4 +1,4 @@
-import { initializeSchema } from '@hexagonal-ts-template/task-management/infrastructure';
+import { initializeSchema } from '@hexafy/task-management/infrastructure';
 import Database from 'better-sqlite3';
 
 const DB_PATH = process.env['DB_PATH'] || '.tmp/nestjs-task-management.db';

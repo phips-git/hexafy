@@ -1,0 +1,45 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: friday
+      time: 12:00
+      timezone: UTC
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: chore
+      prefix-development: chore(deps-dev)
+      include: scope
+
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: friday
+      time: 12:00
+      timezone: UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      prefix-development: chore(deps-dev)
+      include: scope
+    groups:
+      production-dependencies:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+      development-dependencies:
+        dependency-type: development
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+      major-updates:
+        update-types:
+          - major

@@ -1,12 +1,16 @@
-import assert from 'node:assert';
-import { test } from 'node:test';
+import { describe, expect, it } from 'bun:test';
+
 import type { Email } from '../../../domain/models';
 import { EmailNoopAdapter } from '../email.noop.adapter';
 
-test('EmailNoopAdapter', async () => {
-  const adapter = new EmailNoopAdapter();
+describe('EmailNoopAdapter', () => {
+  let adapter: EmailNoopAdapter;
 
-  await test('does not send emails, just logs them', async () => {
+  beforeEach(() => {
+    adapter = new EmailNoopAdapter();
+  });
+
+  it('does not send emails, just logs them', async () => {
     const testEmail: Email = {
       to: 'test@example.com',
       subject: 'Test Subject',
@@ -16,10 +20,10 @@ test('EmailNoopAdapter', async () => {
 
     await adapter.send(testEmail);
 
-    assert.deepStrictEqual(adapter.getSentEmails(), [testEmail]);
+    expect(adapter.getSentEmails()).toEqual([testEmail]);
   });
 
-  await test('resets logs', async () => {
+  it('resets logs', async () => {
     await adapter.send({
       to: 'test@example.com',
       subject: 'Test',
@@ -27,6 +31,6 @@ test('EmailNoopAdapter', async () => {
     });
 
     adapter.reset();
-    assert.deepStrictEqual(adapter.getSentEmails(), []);
+    expect(adapter.getSentEmails()).toEqual([]);
   });
 });

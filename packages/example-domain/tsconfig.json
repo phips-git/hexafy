@@ -1,0 +1,3 @@
+{
+  "extends": "@hexafy/typescript-config/base"
+}

@@ -4,6 +4,7 @@
     "forceConsistentCasingInFileNames": true,
     "incremental": false,
     "lib": ["DOM", "ESNext"],
+    "types": ["bun"],
     "module": "Preserve",
     "moduleDetection": "force",
     "moduleResolution": "Bundler",

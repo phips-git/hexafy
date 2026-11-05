@@ -1,5 +1,6 @@
-import type { User } from '@hexagonal-ts-template/auth/domain';
+import type { User } from '@hexafy/auth/domain';
 import type { APIGatewayProxyEvent } from 'aws-lambda';
+
 import { getGetAuthenticatedUserUsecase } from './usecase-factory';
 
 export type { User as AuthenticatedUser };

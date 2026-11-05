@@ -1,15 +1,16 @@
-import type { UsecaseExecutionDependencies } from '@hexagonal-ts-template/common/application';
+import type { UsecaseExecutionDependencies } from '@hexafy/core/application';
 import {
   CreateTaskUsecase,
   DeleteTaskUsecase,
   UpdateTaskUsecase
-} from '@hexagonal-ts-template/task-management/application';
+} from '@hexafy/task-management/application';
 import type {
   ProjectId,
   TaskManagementAuthorizationContext,
   TenantId
-} from '@hexagonal-ts-template/task-management/domain';
+} from '@hexafy/task-management/domain';
 import { Injectable } from '@nestjs/common';
+
 import { CreateTaskDto, UpdateTaskDto } from './dtos/create-task.dto';
 
 export interface AuthorizationContext {
@@ -29,7 +30,7 @@ export class TasksService {
       generateId: () =>
         this.databaseService.getPersistencePorts().generator.generate(),
       loggerFactory: (name: string) => {
-        const mod = require('@hexagonal-ts-template/common/infrastructure');
+        const mod = require('@hexafy/core/infrastructure');
         return mod.createConsoleLogger(name);
       }
     };

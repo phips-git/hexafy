@@ -1,13 +1,13 @@
-import { GetAuthenticatedUserUsecase } from '@hexagonal-ts-template/auth/application';
+import { GetAuthenticatedUserUsecase } from '@hexafy/auth/application';
 import {
   JwtAuthenticationAdapter,
   NoOpUserPersistenceAdapter
-} from '@hexagonal-ts-template/auth/infrastructure';
+} from '@hexafy/auth/infrastructure';
 import {
   createConsoleLogger,
   NanoidGeneratorAdapter,
   SqliteUnitOfWorkAdapter
-} from '@hexagonal-ts-template/common/infrastructure';
+} from '@hexafy/core/infrastructure';
 import {
   CreateProjectUsecase,
   CreateTaskUsecase,
@@ -16,12 +16,13 @@ import {
   ListTasksUsecase,
   UpdateProjectUsecase,
   UpdateTaskUsecase
-} from '@hexagonal-ts-template/task-management/application';
+} from '@hexafy/task-management/application';
 import {
   SqliteProjectPersistenceAdapter,
   SqliteProjectStatsPersistenceAdapter,
   SqliteTaskPersistenceAdapter
-} from '@hexagonal-ts-template/task-management/infrastructure';
+} from '@hexafy/task-management/infrastructure';
+
 import { getDatabase } from './database';
 
 class Container {

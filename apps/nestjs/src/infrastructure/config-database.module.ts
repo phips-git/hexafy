@@ -1,7 +1,8 @@
-import { GetAuthenticatedUserUsecase } from '@hexagonal-ts-template/auth/application';
-import { createConsoleLogger } from '@hexagonal-ts-template/common/infrastructure';
+import { GetAuthenticatedUserUsecase } from '@hexafy/auth/application';
+import { createConsoleLogger } from '@hexafy/common/infrastructure';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+
 import { DatabaseService } from './database.service';
 
 @Global()

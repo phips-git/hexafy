@@ -1,7 +1,7 @@
 import {
-  GetAuthenticatedUserUsecase,
-  type GetAuthenticatedUserOutput
-} from '@hexagonal-ts-template/auth/application';
+  type GetAuthenticatedUserOutput,
+  GetAuthenticatedUserUsecase
+} from '@hexafy/auth/application';
 import {
   Body,
   Controller,
@@ -15,6 +15,7 @@ import {
   Put,
   UseGuards
 } from '@nestjs/common';
+
 import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
 import { CreateTaskDto, UpdateTaskDto } from './dtos/create-task.dto';
 import { TasksService } from './tasks.service';

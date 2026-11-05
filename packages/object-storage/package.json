@@ -1,22 +1,69 @@
 {
-  "name": "@hexagonal-ts-template/object-storage",
-  "private": true,
+  "name": "@hexafy/object-storage",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Object storage domain and infrastructure for hexafy applications",
+  "keywords": [
+    "aws",
+    "hexafy",
+    "hexagonal-architecture",
+    "s3",
+    "storage",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phips-git/hexafy"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
   "exports": {
     "./domain": "./src/domain.export.ts",
     "./infrastructure": "./src/infrastructure.export.ts"
   },
+  "publishConfig": {
+    "exports": {
+      "./domain": {
+        "types": "./dist/domain.d.mts",
+        "import": "./dist/domain.mjs",
+        "default": "./dist/domain.mjs"
+      },
+      "./infrastructure": {
+        "types": "./dist/infrastructure.d.mts",
+        "import": "./dist/infrastructure.mjs",
+        "default": "./dist/infrastructure.mjs"
+      }
+    },
+    "access": "public"
+  },
   "scripts": {
-    "lint": "eslint --max-warnings 0 --fix",
-    "test": "tsx --test 'src/**/*.test.ts'",
-    "typecheck": "tsc --noEmit"
+    "build": "tsdown",
+    "clean": "rm -rf dist && git clean -xdf node_modules",
+    "test": "bun test",
+    "typecheck": "bun check"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1146.0",
-    "@aws-sdk/s3-request-presigner": "3.1146.0",
-    "@hexagonal-ts-template/common": "*"
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@hexafy/core": "workspace:*"
   },
   "devDependencies": {
-    "@hexagonal-ts-template/eslint-config": "*",
-    "@hexagonal-ts-template/typescript-config": "*"
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@hexafy/tsdown-config": "workspace:*",
+    "@hexafy/typescript-config": "workspace:*",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0"
+  },
+  "engines": {
+    "bun": ">=1.4",
+    "node": ">=22"
   }
 }

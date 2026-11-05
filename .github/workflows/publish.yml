@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        type: choice
+        options:
+          - RC
+          - RELEASE
+
+env:
+  BUN_VERSION: 'canary' # Set to specific version when linter is released
+  PNPM_VERSION: '10'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: '🚀 Release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: '🔒 Enforce main branch'
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::Releases can only run from main."
+            exit 1
+          fi
+
+      - name: '📦 Checkout repository'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: '🔧 Setup Bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: '🔧 Setup pnpm'
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: '📥 Install dependencies'
+        run: bun ci
+
+      - name: '🏗️ Build'
+        run: bun run build
+
+      - name: '📦 Pack validation'
+        run: |
+          rm -rf /tmp/hexafy-packs && mkdir -p /tmp/hexafy-packs
+          pnpm -r pack --pack-destination /tmp/hexafy-packs
+          for tgz in /tmp/hexafy-packs/*.tgz; do
+            pnpm exec publint run "$tgz"
+            pnpm exec attw "$tgz"
+          done
+
+      - name: '📝 Enter prerelease mode (RC)'
+        if: inputs.channel == 'RC'
+        run: |
+          bun x changeset pre enter next
+
+      - name: '🔓 Exit pre-release mode (RELEASE)'
+        if: inputs.channel == 'RELEASE'
+        run: |
+          bun x changeset pre exit
+
+      - name: '🚀 Create Release'
+        uses: changesets/action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: pnpm exec changeset version
+          publish: pnpm exec changeset publish
+          commit: 'chore(release): ${{ inputs.channel }} release'
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'

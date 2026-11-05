@@ -1,0 +1,24 @@
+{
+  "name": "@hexafy/example-domain",
+  "private": true,
+  "exports": {
+    "./application": "./src/application/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./infrastructure": "./src/infrastructure/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf node_modules",
+    "test": "bun test",
+    "typecheck": "bun check"
+  },
+  "dependencies": {
+    "@hexafy/core": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "jose": "6.2.12"
+  },
+  "devDependencies": {
+    "@hexafy/nestjs": "workspace:*",
+    "@hexafy/typescript-config": "workspace:*",
+    "@types/better-sqlite3": "9.6.0"
+  }
+}
