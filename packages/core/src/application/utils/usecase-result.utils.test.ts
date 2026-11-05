@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 
-import { failure, isFailure, isSuccess, success, unwrap } from './usecase-result.utils';
+import {
+  failure,
+  isFailure,
+  isSuccess,
+  success,
+  unwrap
+} from './usecase-result.utils';
 
 describe('usecase-result.utils', () => {
   it('detects success and failure results', () => {

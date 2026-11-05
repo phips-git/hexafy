@@ -8,7 +8,7 @@
  *   ```typescript
  *   // Get current timestamp
  *   const timestamp = clock.now(); // milliseconds since epoch
- *   ```
+ *   ```;
  *
  * @returns Current time as milliseconds since Unix epoch
  */

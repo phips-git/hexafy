@@ -27,7 +27,7 @@
  *       await db.users.delete({ id: id.value });
  *     }
  *   }
- *   ```
+ *   ```;
  *
  * @template Entity - The entity type managed by this repository
  * @template UniqueIdentifier - The unique identifier type for the entity

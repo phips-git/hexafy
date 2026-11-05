@@ -22,7 +22,7 @@ import type { UniqueIdentifier } from './unique-identifier.type';
  *       return this.id === other.id;
  *     }
  *   }
- *   ```
+ *   ```;
  *
  * @template Id - The unique identifier type for the entity
  */

@@ -29,7 +29,7 @@ import {
   Usecase,
   type UsecaseExecutionConfiguration
 } from '@hexafy/core/application';
-import { ValidationError, type LoggerPort } from '@hexafy/core/domain';
+import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
 
 interface CreateUserInput {
   email: string;
@@ -90,7 +90,7 @@ The package is built around a simple application flow:
 Example:
 
 ```ts
-import { success, failure } from '@hexafy/core/application';
+import { failure, success } from '@hexafy/core/application';
 
 const ok = success({ id: '1' });
 const bad = failure(new Error('Something went wrong'));
@@ -105,13 +105,13 @@ if (ok.success) {
 This package exposes focused subpaths:
 
 ```ts
-import { Usecase, success, failure } from '@hexafy/core/application';
+import { failure, success, Usecase } from '@hexafy/core/application';
 import {
   ApplicationError,
-  ValidationError,
+  type LoggerPort,
   RepositoryBase,
   type RepositoryPort,
-  type LoggerPort
+  ValidationError
 } from '@hexafy/core/domain';
 import { ConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
 ```

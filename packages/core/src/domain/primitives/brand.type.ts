@@ -17,7 +17,7 @@
  *   // Error: cannot use plain string
  *   createUser('123' as UserId); // ❌ Error
  *   createUser('123' as UserId); // ✅ Correct
- *   ```
+ *   ```;
  *
  * @template T - The underlying type to brand
  * @template B - The brand name (string literal)

@@ -14,7 +14,7 @@
  *   } else {
  *     console.error('Failed:', result.error.message);
  *   }
- *   ```
+ *   ```;
  *
  * @template TSuccess - The type of the success value
  * @template TFailure - The type of the failure (default: Error)

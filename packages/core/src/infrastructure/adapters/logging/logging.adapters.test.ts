@@ -49,22 +49,10 @@ describe('ConsoleLoggingAdapter', () => {
     ConsoleLoggingAdapter.debug('debug');
     ConsoleLoggingAdapter.debug('debug-data', { ok: true });
 
-    expect(logCalls).toEqual([
-      ['info'],
-      ['info-data', { ok: true }]
-    ]);
-    expect(warnCalls).toEqual([
-      ['warn'],
-      ['warn-data', { ok: true }]
-    ]);
-    expect(errorCalls).toEqual([
-      ['error'],
-      ['error-data', { ok: true }]
-    ]);
-    expect(debugCalls).toEqual([
-      ['debug'],
-      ['debug-data', { ok: true }]
-    ]);
+    expect(logCalls).toEqual([['info'], ['info-data', { ok: true }]]);
+    expect(warnCalls).toEqual([['warn'], ['warn-data', { ok: true }]]);
+    expect(errorCalls).toEqual([['error'], ['error-data', { ok: true }]]);
+    expect(debugCalls).toEqual([['debug'], ['debug-data', { ok: true }]]);
   });
 });
 

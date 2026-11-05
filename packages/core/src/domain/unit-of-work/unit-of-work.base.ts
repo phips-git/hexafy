@@ -29,7 +29,7 @@
  *     return user;
  *   });
  *   // Returns user and commits transaction
- *   ```
+ *   ```;
  */
 
 export abstract class UnitOfWorkBase {

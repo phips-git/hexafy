@@ -39,10 +39,10 @@ Important: this repository still uses pnpm for the actual publishing step, even 
 
 Run the GitHub Actions **Release** workflow from `main`:
 
-| Channel  | npm dist-tag | Intended use |
-| -------- | ------------ | ------------ |
+| Channel  | npm dist-tag | Intended use       |
+| -------- | ------------ | ------------------ |
 | `rc`     | `next`       | release candidates |
-| `latest` | `latest`     | stable releases |
+| `latest` | `latest`     | stable releases    |
 
 Release workflow behavior:
 

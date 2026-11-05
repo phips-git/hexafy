@@ -1,5 +1,5 @@
 ---
-"@hexafy/core": major
+'@hexafy/core': major
 ---
 
 Initial release

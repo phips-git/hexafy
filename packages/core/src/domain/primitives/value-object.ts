@@ -31,7 +31,7 @@
  *       return new Money(this.amount + other.amount, this.currency);
  *     }
  *   }
- *   ```
+ *   ```;
  */
 export abstract class ValueObject {
   abstract toJSON(): Record<string, unknown>;

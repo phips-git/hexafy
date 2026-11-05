@@ -27,7 +27,7 @@ import type { UniqueIdentifier } from './unique-identifier.type';
  *       this.updateTimestamp();
  *     }
  *   }
- *   ```
+ *   ```;
  *
  * @template Id - The unique identifier type for the aggregate
  */

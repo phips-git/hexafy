@@ -16,7 +16,7 @@
  *
  *   // Execute use case with cancellation
  *   await useCase.execute(data, context, token);
- *   ```
+ *   ```;
  *
  * @param isCancelled - Whether cancellation has been requested
  * @param reason - Optional reason for cancellation

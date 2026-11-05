@@ -15,6 +15,6 @@
  *   function getUser(id: UserId): User | null {
  *     return db.users.find(id);
  *   }
- *   ```
+ *   ```;
  */
 export type UniqueIdentifier = string | number;
