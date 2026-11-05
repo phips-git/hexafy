@@ -10,6 +10,7 @@
     "typescript"
   ],
   "license": "MIT",
+  "author": "Philipp Teßner-Müller",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phips-git/hexafy.git"
