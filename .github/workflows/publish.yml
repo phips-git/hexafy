@@ -12,7 +12,7 @@ on:
           - RELEASE
 
 env:
-  BUN_VERSION: '1.4.4'
+  BUN_VERSION: 'canary' # Set to specific version when linter is released
   PNPM_VERSION: '10'
 
 concurrency:

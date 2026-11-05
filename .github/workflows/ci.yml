@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  BUN_VERSION: '1.4.4'
+  BUN_VERSION: 'canary' # Set to specific version when linter is released
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
