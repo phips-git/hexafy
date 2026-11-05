@@ -65,18 +65,28 @@ jobs:
         run: |
           bun x changeset pre exit
 
-      - name: '🚀 Create Release'
-        uses: changesets/action@v2
+      - name: '🚀 Version packages'
+        uses: changesets/action/version@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          version-script: pnpm exec changeset version
-          publish-script: |
+          commit: 'chore(release): ${{ inputs.channel }} release'
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'
+
+      - name: '📦 Publish packages'
+        uses: changesets/action/publish@v2
+        with:
+          publish-command: |
             if [ "${{ inputs.channel }}" == "RC" ]; then
               pnpm exec changeset publish --tag rc
             else
               pnpm exec changeset publish
             fi
-          commit-message: 'chore(release): ${{ inputs.channel }} release'
-          create-github-releases: ${{ inputs.channel == 'Release' }}
         env:
           NPM_CONFIG_PROVENANCE: 'true'
+
+      - name: '🚀 Create GitHub Release'
+        if: inputs.channel == 'Release'
+        uses: changesets/action/create-release@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
