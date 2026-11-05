@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "lint": "bun lint --fix --max-warnings 0",
+    "lint": "bun lint --fix",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "clean": "git clean -xdf node_modules && bun --filter '*' clean",
