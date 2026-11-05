@@ -69,7 +69,8 @@ jobs:
         uses: changesets/action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          publish: |
+          version-script: pnpm exec changeset version
+          publish-script: |
             if [ "${{ inputs.channel }}" == "RC" ]; then
               pnpm exec changeset publish --tag rc
             else
