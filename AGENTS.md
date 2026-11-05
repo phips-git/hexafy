@@ -33,6 +33,5 @@ Current release rule: Bun is still used for development and local scripts, but t
 
 - `pnpm -r pack --pack-destination /tmp/hexafy-packs`
 - `pnpm exec changeset publish`
-- `pnpm exec publint run "$tgz"` and `pnpm exec attw "$tgz"` on packed tarballs
 
 This is required because the repo intentionally relies on pnpm to apply `publishConfig.exports` overrides and rewrite `workspace:*` dependencies during packaging. Avoid `npm publish` and `bun publish` for publishable workspace packages until Bun matches the same release behavior.
