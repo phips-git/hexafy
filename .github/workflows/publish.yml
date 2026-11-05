@@ -70,7 +70,7 @@ jobs:
       - name: Enter prerelease mode (RC)
         if: inputs.channel == 'RC'
         run: |
-          bun x changeset pre enter rc
+          bun x changeset pre enter next
 
       - name: Exit pre-release mode (RELEASE)
         if: inputs.channel == 'RELEASE'
