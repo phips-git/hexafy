@@ -67,13 +67,12 @@ bun run lint        # Run ESLint via Bun
 
 ## 📦 Publishing Packages
 
-This monorepo uses **Changesets** for individual package versioning and publishing.
+The repository uses Bun for local development and CI validation, while the actual package release flow is managed through the GitHub Actions release workflow and Changesets.
 
 Quick commands:
 
 - `bun run changeset` - Create a changeset for a package
 - `bun run changeset:version` - Version all changed packages
-- `bun run changeset:publish` - Publish versioned packages to npm
 
 Releases are run from the GitHub Actions **Release** workflow (`rc` → `next`, `latest` → `latest`).
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for release policy and first-release details.

@@ -35,6 +35,8 @@ main (single source of truth) ← feature/* (short-lived work)
 
 ## Release process
 
+Important: this repository still uses pnpm for the actual publishing step, even though Bun is the local toolchain. The reason is that pnpm is the piece that applies the publish-time `publishConfig.exports` override and rewrites workspace dependencies before the package is packed/published. Without that step, the source TS entrypoints would leak into the published tarball.
+
 Run the GitHub Actions **Release** workflow from `main`:
 
 | Channel  | npm dist-tag | Intended use |

@@ -44,6 +44,8 @@ npm install @hexafy/core
 yarn add @hexafy/core
 ```
 
+> Package consumers receive the built ESM artifacts from `dist/`. The monorepo keeps TypeScript sources in `src/` for local development and swaps the published export map at release time to the compiled output.
+
 ## 🚀 Quick Start
 
 ### Your First Use Case
@@ -111,9 +113,9 @@ if (result.success) {
 
 ## 📚 Core Concepts
 
-### 1. Result Type
+### Result Type
 
-Explicit success/failure handling without exceptions for domain errors.
+Explicit success/failure handling for domain errors:
 
 ```typescript
 import { failure, Result, success } from '@hexafy/core';
@@ -129,129 +131,7 @@ const errorResult = failure(new Error('Something went wrong'));
 if (!errorResult.success) {
   console.error(errorResult.error.message);
 }
-
-// Type inference works automatically
-const typed: Result<User> = success(user);
 ```
-
-### 2. Use Case Base Class
-
-Extend `Usecase<Input, Output>` to implement business logic.
-
-#### Basic Pattern
-
-```typescript
-class UseCase extends Usecase<Input, Output> {
-  protected async executeInternal(
-    input: Input,
-    logger: LoggerPort
-  ): Promise<Result<Output>> {
-    // Your business logic here
-    return success(output);
-  }
-}
-```
-
-#### With Dependencies
-
-```typescript
-class UseCase extends Usecase<Input, Output> {
-  constructor(deps: UsecaseExecutionDependencies) {
-    super(deps);
-  }
-
-  protected async executeInternal(
-    input: Input,
-    logger: LoggerPort
-  ): Promise<Result<Output>> {
-    // Access dependencies if provided
-    const id = this.dependencies.generateId?.() ?? crypto.randomUUID();
-    return success({ id });
-  }
-}
-```
-
-#### Error Handling
-
-```typescript
-protected async executeInternal(
-  input: Input,
-  logger: LoggerPort
-): Promise<Result<Output>> {
-  // ✅ Domain errors — return via failure()
-  if (!input.valid) {
-    return failure(new ValidationError('Invalid input'));
-  }
-
-  // ✅ Infrastructure errors — throw for unexpected failures
-  try {
-    await this.repository.save(input);
-  } catch (e) {
-    throw new InfrastructureError('Save failed', e);
-  }
-
-  return success({ result: 'done' });
-}
-```
-
-#### Execution Flow
-
-```
-useCase.execute(input)
-  ↓
-Usecase.execute() — logs start, captures duration
-  ↓
-executeInternal(input, logger) — your business logic
-  ↓
-Result<Output> returned
-  ↓
-Usecase.execute() — logs completion or error
-```
-
-### 3. Error Types
-
-#### Error Hierarchy
-
-```
-ApplicationError (base for all application errors)
-├── ValidationError          — Invalid input data
-├── NotFoundError            — Resource not found
-├── ConflictError            — Resource conflict (e.g., duplicate)
-├── UnauthorizedError        — Authentication required (HTTP 401)
-├── ForbiddenError           — Authorization denied (HTTP 403)
-└── InvariantError           — Business invariant violated
-```
-
-**Note**: `InfrastructureError`, `ExternalServiceError`, and `InternalServerError` are **not** exported from `@hexafy/core`. These are infrastructure-layer errors that should be thrown by adapters, not use cases. See the [@hexafy/nestjs](../nestjs) package for adapter-specific error handling.
-
-You can use these classes directly, or create your own error classes that extend `ApplicationError`. All errors support the same properties:
-
-- `code` — Unique error code (e.g., `"VALIDATION_ERROR"`, `"USER_NOT_FOUND"`)
-- `message` — Human-readable error message
-- `context` — Optional structured context for debugging
-- `cause` — Optional underlying error (for chaining)
-
-#### When to Use Each
-
-| Error Type            | When to Use                                           | Example                              |
-| --------------------- | ----------------------------------------------------- | ------------------------------------ |
-| **ValidationError**   | Input validation fails                                | Email format invalid, required field |
-| **NotFoundError**     | Resource lookup returns null/undefined                | User by ID not found                 |
-| **ConflictError**     | Unique constraint violation                           | Email already registered             |
-| **UnauthorizedError** | Authentication required (before authorization check)  | Missing JWT token                    |
-| **ForbiddenError**    | Authentication succeeded but insufficient permissions | User can't edit another's order      |
-| **InvariantError**    | Business rule invariant violated                      | Cannot cancel order after shipment   |
-| **ApplicationError**  | Generic domain error not covered above                | Custom business logic error          |
-
-**Important**: For infrastructure errors (database, external services, unexpected exceptions), **throw** the error in try/catch blocks. The `Usecase.execute()` method automatically catches and wraps them in a `failure()` result.
-
-#### Logging Behavior
-
-| Scenario                         | Log Level | Handled By  | Purpose                  |
-| -------------------------------- | --------- | ----------- | ------------------------ |
-| `failure()` in `executeInternal` | DEBUG     | Automatic   | Expected domain failures |
-| `throw` infrastructure error     | ERROR     | Catch block | System issues            |
-| Unexpected exception             | ERROR     | Catch block | Investigate              |
 
 ### Error Utilities
 
@@ -293,143 +173,47 @@ getDomainErrorCode(new Error('Generic'));
 // Returns: 'UNKNOWN_ERROR' (derived from name)
 ```
 
-### 4. Logger Port
+### Logger Port
 
-Logger is always available — configured via `loggerFactory` or defaults to NOOP.
+Structured logging is always available. Configure via `loggerFactory` or defaults to NOOP:
 
 ```typescript
-import { consoleLogger, LoggerPort, NOOP_LOGGER } from '@hexafy/core';
+import { consoleLogger, LoggerPort } from '@hexafy/core';
 
-// Usage in use case
 class MyUseCase extends Usecase<Input, Output> {
   protected async executeInternal(
     input: Input,
-    logger: LoggerPort // Always available, never null
+    logger: LoggerPort
   ): Promise<Result<Output>> {
     logger.debug('Starting execution', { input });
-
-    // ... logic ...
-
     logger.info('Success', { result: output });
     return success(output);
   }
 }
 
-// Configuration with logging
+// Configure with your logger
 const useCase = new MyUseCase({
   loggerFactory: (name) => consoleLogger
 });
-
-// Without logging (NOOP by default)
-const silentUseCase = new MyUseCase({});
 ```
 
-#### Logger Methods
+### Error Types
 
-```typescript
-logger.debug(message: string, data?: Record<string, unknown>): void
-logger.info(message: string, data?: Record<string, unknown>): void
-logger.warn(message: string, data?: Record<string, unknown>): void
-logger.error(message: string, data?: Record<string, unknown>): void
-```
+Built-in error classes for domain errors. All errors support `code`, `message`, `context`, and `cause`:
 
-### 5. Repositories
+| Error Type            | When to Use                            | Example                              |
+| --------------------- | -------------------------------------- | ------------------------------------ |
+| **ValidationError**   | Input validation fails                 | Email format invalid, required field |
+| **NotFoundError**     | Resource lookup returns null/undefined | User by ID not found                 |
+| **ConflictError**     | Unique constraint violation            | Email already registered             |
+| **UnauthorizedError** | Authentication required                | Missing JWT token                    |
+| **ForbiddenError**    | Insufficient permissions               | User can't edit another's order      |
+| **InvariantError**    | Business rule violated                 | Cannot cancel order after shipment   |
+| **ApplicationError**  | Generic domain error                   | Custom business logic error          |
 
-Abstract data access with type-safe entity management.
+**Note**: Infrastructure errors (database, external services) should be **thrown**, not returned. See [@hexafy/nestjs](../nestjs) for infrastructure error types.
 
-```typescript
-import { Entity, Repository } from '@hexafy/core';
-
-// Define entity
-class User extends Entity<string> {
-  constructor(
-    id: string,
-    public email: string,
-    public name: string
-  ) {
-    super(id);
-  }
-}
-
-// Define repository
-class UserRepository extends Repository<User, string> {
-  constructor(private db: Database) {
-    super();
-  }
-
-  async findById(id: string): Promise<User | null> {
-    const row = await db.users.get(id);
-    return row ? new User(row.id, row.email, row.name) : null;
-  }
-
-  async findByEmail(email: string): Promise<User | null> {
-    const row = await db.users.findFirst({ email });
-    return row ? new User(row.id, row.email, row.name) : null;
-  }
-
-  async save(entity: User): Promise<User> {
-    const data = {
-      id: entity.getId(),
-      email: entity.email,
-      name: entity.name
-    };
-    const saved = await db.users.upsert(data);
-    return new User(saved.id, saved.email, saved.name);
-  }
-
-  async delete(id: string): Promise<void> {
-    await db.users.delete(id);
-  }
-}
-```
-
-### 6. Unit of Work
-
-Manage transactional boundaries across multiple repositories.
-
-```typescript
-import { InfrastructureError, UnitOfWorkBase } from '@hexafy/core';
-
-class DatabaseUnitOfWork extends UnitOfWorkBase {
-  constructor(private db: Database) {
-    super();
-  }
-
-  async commit(): Promise<void> {
-    if (this.committed) {
-      throw new InfrastructureError('Already committed');
-    }
-    await this.db.commit();
-    this.committed = true;
-  }
-
-  async rollback(): Promise<void> {
-    await this.db.rollback();
-    this.rolledBack = true;
-  }
-
-  // Override to add your own state
-  private committed = false;
-  private rolledBack = false;
-}
-
-// Usage
-const uow = new DatabaseUnitOfWork(db);
-try {
-  await uow.withTransaction(async () => {
-    await userRepo.save(user);
-    await orderRepo.save(order);
-  });
-  await uow.commit();
-} catch (e) {
-  await uow.rollback();
-  throw e;
-}
-```
-
-### Extending the Error System
-
-You can extend `ApplicationError` to create domain-specific errors:
+#### Creating Custom Errors
 
 ```typescript
 import { ApplicationError, type ApplicationErrorDetails } from '@hexafy/core';
@@ -439,30 +223,8 @@ class PaymentProcessingError extends ApplicationError {
     message = 'Payment processing failed',
     details?: ApplicationErrorDetails
   ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'PAYMENT_PROCESSING_ERROR' });
+    super(message, { ...details, code: 'PAYMENT_PROCESSING_ERROR' });
   }
-}
-
-function normalizeApplicationErrorDetails(
-  details: ApplicationErrorDetails | undefined
-): { context?: Record<string, unknown>; cause?: unknown } {
-  if (details === undefined) return {};
-  if (
-    details !== null &&
-    typeof details === 'object' &&
-    ('context' in details || 'cause' in details)
-  ) {
-    return details as { context?: Record<string, unknown>; cause?: unknown };
-  }
-  return { cause: details };
-}
-
-// Usage
-if (!paymentDetails.valid) {
-  throw new PaymentProcessingError('Invalid payment details', {
-    context: { paymentId: 'pay_123', reason: 'Expired card' }
-  });
 }
 ```
 
@@ -470,248 +232,113 @@ if (!paymentDetails.valid) {
 
 ### Logger Setup
 
-Provide a `loggerFactory` to enable structured logging:
-
 ```typescript
 import Pino from 'pino';
 
-const pinoLogger = Pino();
-
 const useCase = new CreateUserUseCase({
-  loggerFactory: (name) => ({
-    debug: (msg, data) => pinoLogger.debug({ msg, data }),
-    info: (msg, data) => pinoLogger.info({ msg, data }),
-    warn: (msg, data) => pinoLogger.warn({ msg, data }),
-    error: (msg, data) => pinoLogger.error({ msg, data })
-  })
+  loggerFactory: (name) => pinoLogger
 });
 ```
 
 ### Dependencies
 
-Configure execution dependencies as needed:
+Optional dependencies injected into use cases:
 
 ```typescript
 const useCase = new CreateUserUseCase({
   generateId: () => crypto.randomUUID()
-  // Add custom dependencies as needed
 });
 ```
 
-## 🏗️ Complete Example
+## 🏗️ Quick Example
 
 ```typescript
 import {
-  Entity,
   failure,
-  LoggerPort,
   NotFoundError,
-  Repository,
   Result,
   success,
   Usecase,
-  UsecaseExecutionDependencies,
   ValidationError
 } from '@hexafy/core';
 
-// 1. Define entity
-class Product extends Entity<string> {
-  constructor(
-    id: string,
-    public name: string,
-    public price: number,
-    public stock: number
-  ) {
-    super(id);
-  }
-}
-
-// 2. Define repository
-class ProductRepository extends Repository<Product, string> {
-  constructor(private db: Database) {
-    super();
-  }
-
-  async findById(id: string): Promise<Product | null> {
-    const row = await db.products.get(id);
-    return row ? new Product(row.id, row.name, row.price, row.stock) : null;
-  }
-
-  async save(product: Product): Promise<Product> {
-    const data = {
-      id: product.getId(),
-      name: product.name,
-      price: product.price,
-      stock: product.stock
-    };
-    const saved = await db.products.upsert(data);
-    return new Product(saved.id, saved.name, saved.price, saved.stock);
-  }
-}
-
-// 3. Define use case inputs/outputs
-interface CreateProductInput {
-  name: string;
-  price: number;
-  stock: number;
-}
-
-interface ProductCreated {
-  productId: string;
-  name: string;
-  price: number;
-}
-
-interface GetProductInput {
-  productId: string;
-}
-
-interface ProductFound {
-  product: Product;
-}
-
-// 4. Implement use cases
-class CreateProductUseCase extends Usecase<CreateProductInput, ProductCreated> {
-  constructor(
-    dependencies: UsecaseExecutionDependencies,
-    private repository: ProductRepository
-  ) {
-    super(dependencies);
+class GetProductUseCase extends Usecase<string, Product> {
+  constructor(private repository: ProductRepository) {
+    super({});
   }
 
   protected async executeInternal(
-    input: CreateProductInput,
+    productId: string,
     logger: LoggerPort
-  ): Promise<Result<ProductCreated>> {
-    // Validate input
-    if (input.name.length < 3) {
-      return failure(new ValidationError('Name too short'));
-    }
-
-    if (input.price < 0) {
-      return failure(new ValidationError('Price cannot be negative'));
-    }
-
-    // Create product
-    const productId = this.dependencies.generateId?.() ?? `prod_${Date.now()}`;
-    const product = new Product(
-      productId,
-      input.name,
-      input.price,
-      input.stock
-    );
-    const saved = await this.repository.save(product);
-
-    logger.info('Product created', { productId: saved.getId() });
-
-    return success({
-      productId: saved.getId(),
-      name: saved.name,
-      price: saved.price
-    });
-  }
-}
-
-class GetProductUseCase extends Usecase<GetProductInput, ProductFound> {
-  constructor(
-    dependencies: UsecaseExecutionDependencies,
-    private repository: ProductRepository
-  ) {
-    super(dependencies);
-  }
-
-  protected async executeInternal(
-    input: GetProductInput,
-    logger: LoggerPort
-  ): Promise<Result<ProductFound>> {
-    logger.debug('Fetching product', { productId: input.productId });
-
-    const product = await this.repository.findById(input.productId);
+  ): Promise<Result<Product>> {
+    const product = await this.repository.findById(productId);
 
     if (!product) {
-      return failure(new NotFoundError(`Product ${input.productId} not found`));
+      return failure(new NotFoundError(`Product ${productId} not found`));
     }
 
-    return success({ product });
+    return success(product);
   }
 }
 
-// 5. Wire it up
-const repo = new ProductRepository(database);
-const createUseCase = new CreateProductUseCase({}, repo);
-const getUseCase = new GetProductUseCase({}, repo);
-
-// 6. Execute
-const result = await createUseCase.execute({
-  name: 'Widget',
-  price: 29.99,
-  stock: 100
-});
+// Usage
+const useCase = new GetProductUseCase(repository);
+const result = await useCase.execute('prod_123');
 
 if (result.success) {
-  console.log(`Created product ${result.value.productId}`);
+  console.log(result.value.name);
+} else {
+  console.error(result.error.message);
 }
 ```
 
-## 📖 Exported API
+## 📖 API Reference
 
-```typescript
-// Result types
-export { Result, success, failure } from './result';
+### Exports from `@hexafy/core`
 
-// Use case base class
-export { Usecase, UsecaseExecutionDependencies } from './usecase';
+| Export                                | Description                             |
+| ------------------------------------- | --------------------------------------- |
+| `Result<T>`, `success()`, `failure()` | Result type for explicit error handling |
+| `Usecase<Input, Output>`              | Base class for use cases                |
+| `UsecaseExecutionDependencies`        | Injection dependencies interface        |
+| `LoggerPort`                          | Logger interface (NOOP by default)      |
+| `consoleLogger`, `NOOP_LOGGER`        | Logger implementations                  |
+| `Entity<T>`                           | Base entity class                       |
+| `Repository<T, K>`                    | Base repository interface               |
+| `UnitOfWorkBase`                      | Transactional boundary helper           |
 
-// Logger
-export { LoggerPort, consoleLogger, NOOP_LOGGER } from './logger';
+### Error Classes
 
-// Errors
-export {
-  ApplicationError,
-  ValidationError,
-  NotFoundError,
-  ConflictError,
-  UnauthorizedError,
-  ForbiddenError,
-  InvariantError
-} from '@hexafy/core/domain';
+| Error Type          | Description                 |
+| ------------------- | --------------------------- |
+| `ValidationError`   | Invalid input data          |
+| `NotFoundError`     | Resource not found          |
+| `ConflictError`     | Resource conflict           |
+| `UnauthorizedError` | Authentication required     |
+| `ForbiddenError`    | Authorization denied        |
+| `InvariantError`    | Business invariant violated |
+| `ApplicationError`  | Generic domain error        |
 
-export { isDomainError, getDomainErrorCode } from '@hexafy/core/domain';
+### Utilities
 
-// Domain primitives
-export { Entity, Repository, UnitOfWorkBase } from './domain';
-```
+| Function               | Description                       |
+| ---------------------- | --------------------------------- |
+| `isDomainError()`      | Type guard for domain errors      |
+| `getDomainErrorCode()` | Extract error code from any error |
 
 ## 🎓 Best Practices
 
-### 1. Always Return Domain Errors
+### Return Domain Errors, Don't Throw
+
+Use `failure()` for expected domain errors. Throw infrastructure errors (database, external services):
 
 ```typescript
-// ✅ Good
-if (!input.valid) {
-  return failure(new ValidationError('Invalid'));
-}
-
-// ❌ Bad
-if (!input.valid) {
-  throw new ValidationError('Invalid');
-}
-```
-
-### 2. Use Appropriate Error Types
-
-```typescript
-// ✅ Good - Resource not found
-if (!user) {
-  return failure(new NotFoundError('User not found'));
-}
-
-// ✅ Good - Invalid input
+// ✅ Domain errors
 if (!email.includes('@')) {
   return failure(new ValidationError('Invalid email'));
 }
 
-// ✅ Good - Infrastructure failure
+// ✅ Infrastructure errors
 try {
   await db.save(data);
 } catch (e) {
@@ -719,43 +346,24 @@ try {
 }
 ```
 
-### 3. Keep Use Cases Focused
-
-Each use case should do one thing and do it well.
+### Choose the Right Error Type
 
 ```typescript
-// ✅ Good — Single responsibility
-class TransferFundsUseCase extends Usecase<...> { ... }
+// ✅ Use NotFoundError for missing resources
+if (!user) {
+  return failure(new NotFoundError('User not found'));
+}
 
-// ❌ Bad — Too many concerns
-class ManageEverythingUseCase extends Usecase<...> { ... }
-```
-
-### 4. Log at Appropriate Levels
-
-```typescript
-// ✅ Good
-logger.debug('Domain error', { reason: 'Invalid email' });
-logger.info('Operation completed', { duration: '42ms' });
-logger.error('Infrastructure failure', { operation: 'save' });
-
-// ❌ Bad
-logger.error('Invalid email'); // Expected behavior, not an error
+// ✅ Use ConflictError for duplicate violations
+if (await this.exists(email)) {
+  return failure(new ConflictError('Email already registered'));
+}
 ```
 
 ## 🔗 Related Packages
 
-### Adapter-Specific Errors
-
-Infrastructure and HTTP-specific errors are provided by adapter packages:
-
-- **@hexafy/nestjs** - `InfrastructureError`, `ExternalServiceError`, `InternalServerError`, `HttpUnauthorizedError`, `HttpForbiddenError`
-- **@hexafy/aws-lambda** - Infrastructure errors for Lambda adapters
-
-See the [nestjs package README](../nestjs) for adapter-specific error handling.
-
-- `@hexafy/nestjs` — NestJS adapters for hexagonal architecture
-- `@hexafy/aws-lambda` — AWS Lambda adapters for serverless applications
+- **[@hexafy/nestjs](../nestjs)** — NestJS adapters and infrastructure errors
+- **[@hexafy/aws-lambda](../aws-lambda)** — AWS Lambda adapters
 
 ## 📄 License
 

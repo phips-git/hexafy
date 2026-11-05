@@ -1,6 +1,8 @@
 {
-  "baseBranch": "main",
   "access": "public",
-  "updateInternalDependencies": "patch",
-  "ignore": ["example-domain"]
+  "ignore": [
+    "@hexafy/example-domain",
+    "@hexafy/typescript-config",
+    "@hexafy/tsdown-config"
+  ]
 }

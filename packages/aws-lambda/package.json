@@ -15,23 +15,30 @@
     "url": "https://github.com/phips-git/hexafy"
   },
   "files": [
-    "dist/**/*"
+    "dist"
   ],
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
-    ".": {
-      "bun": "./src/index.ts",
-      "types": "./src/index.ts",
-      "import": {
-        "development": "./src/index.ts",
-        "production": "./dist/index.js"
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
       },
-      "require": "./dist/index.js"
-    }
+      "./package.json": "./package.json"
+    },
+    "access": "public"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown",
     "clean": "rm -rf dist && git clean -xdf node_modules",
     "test": "bun test",
     "typecheck": "bun check"
@@ -40,10 +47,11 @@
     "@hexafy/core": "workspace:*"
   },
   "devDependencies": {
+    "@hexafy/tsdown-config": "workspace:*",
     "@hexafy/typescript-config": "workspace:*",
     "@types/aws-lambda": "8.10.164",
-    "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@types/node": "^24.2.0",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "bun": ">=1.3",

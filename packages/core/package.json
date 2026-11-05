@@ -14,44 +14,46 @@
     "type": "git",
     "url": "https://github.com/phips-git/hexafy"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
   "exports": {
-    "./application": {
-      "bun": "./src/application/index.ts",
-      "types": "./src/application/index.ts",
-      "import": {
-        "development": "./src/application/index.ts",
-        "production": "./dist/application/index.js"
+    "./application": "./src/application/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./infrastructure": "./src/infrastructure/index.ts"
+  },
+  "publishConfig": {
+    "exports": {
+      "./application": {
+        "types": "./dist/application.d.mts",
+        "import": "./dist/application.mjs",
+        "default": "./dist/application.mjs"
       },
-      "require": "./dist/application/index.js"
+      "./domain": {
+        "types": "./dist/domain.d.mts",
+        "import": "./dist/domain.mjs",
+        "default": "./dist/domain.mjs"
+      },
+      "./infrastructure": {
+        "types": "./dist/infrastructure.d.mts",
+        "import": "./dist/infrastructure.mjs",
+        "default": "./dist/infrastructure.mjs"
+      }
     },
-    "./domain": {
-      "bun": "./src/domain/index.ts",
-      "types": "./src/domain/index.ts",
-      "import": {
-        "development": "./src/domain/index.ts",
-        "production": "./dist/domain/index.js"
-      },
-      "require": "./dist/domain/index.js"
-    },
-    "./infrastructure": {
-      "bun": "./src/infrastructure/index.ts",
-      "types": "./src/infrastructure/index.ts",
-      "import": {
-        "development": "./src/infrastructure/index.ts",
-        "production": "./dist/infrastructure/index.js"
-      },
-      "require": "./dist/infrastructure/index.js"
-    }
+    "access": "public"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown",
     "clean": "rm -rf dist && git clean -xdf node_modules",
     "test": "bun test",
     "typecheck": "bun check"
   },
   "devDependencies": {
+    "@hexafy/tsdown-config": "workspace:*",
     "@hexafy/typescript-config": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "^7.0.2"
   },
   "engines": {
     "bun": ">=1.3",

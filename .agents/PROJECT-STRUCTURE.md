@@ -30,17 +30,19 @@ import type { Entity } from '@hexafy/core/domain';
 
 ## Exports
 
-All packages use dual-exports for bun/npm:
+Local development uses Bun-native TypeScript sources. The publishable tarball intentionally swaps to `dist/` via `publishConfig.exports`; this avoids shipping `src/*.ts` paths to npm consumers.
 
 ```json
 {
+  "type": "module",
   "exports": {
-    "./domain": {
-      "bun": "./src/domain/index.ts",
-      "types": "./src/domain/index.ts",
-      "import": {
-        "development": "./src/domain/index.ts",
-        "production": "./dist/domain/index.js"
+    "./domain": "./src/domain.export.ts"
+  },
+  "publishConfig": {
+    "exports": {
+      "./domain": {
+        "types": "./dist/domain.export.d.ts",
+        "import": "./dist/domain.export.js"
       }
     }
   }

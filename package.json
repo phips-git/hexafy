@@ -2,34 +2,31 @@
   "name": "hexafy",
   "private": true,
   "author": "Philipp Teßner-Müller",
-  "workspaces": {
-    "packages": [
-      "apps/*",
-      "packages/*"
-    ],
-    "catalog": {
-      "@types/node": "~26",
-      "typescript": "~7"
-    }
-  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "lint": "bun lint --fix --max-warnings 0",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "clean": "git clean -xdf node_modules && bun --filter '*' clean",
     "format": "bun fmt",
-    "changeset:publish": "changeset publish",
+    "changeset:publish": "pnpm exec changeset publish",
     "test": "bun test",
-    "typecheck": "bun --filter '*' typecheck",
-    "build": "bun --filter '*' build"
+    "typecheck": "bun --filter '@hexafy/core' typecheck && bun --filter '@hexafy/email' typecheck && bun --filter '@hexafy/aws-lambda' typecheck && bun --filter '@hexafy/nestjs' typecheck && bun --filter '@hexafy/object-storage' typecheck",
+    "build": "bun --filter '@hexafy/core' build && bun --filter '@hexafy/email' build && bun --filter '@hexafy/aws-lambda' build && bun --filter '@hexafy/nestjs' build && bun --filter '@hexafy/object-storage' build",
+    "pack:check": "rm -rf /tmp/hexafy-packs && mkdir -p /tmp/hexafy-packs && pnpm -r pack --pack-destination /tmp/hexafy-packs && for tgz in /tmp/hexafy-packs/*.tgz; do pnpm exec publint run \"$tgz\"; pnpm exec attw \"$tgz\"; done"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.17.1",
     "@changesets/cli": "3.0.3",
     "@types/bun": "1.4.4",
-    "typescript": "^7"
+    "publint": "0.3.25",
+    "tsdown": "0.23.5",
+    "typescript": "7.0.2"
   },
   "engines": {
     "bun": ">=1.4.4"
-  },
-  "packageManager": "bun@1.4.4"
+  }
 }
