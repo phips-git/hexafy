@@ -1,4 +1,4 @@
-import type { Project, ProjectCreationProperties } from '../models';
+import type { Project, ProjectCreationProperties } from '../models/project';
 
 export interface ProjectPort {
   findById(id: string): Promise<Project | null>;

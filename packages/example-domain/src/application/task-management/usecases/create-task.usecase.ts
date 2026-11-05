@@ -1,10 +1,9 @@
-import type { Result } from '@hexafy/core/result';
-import type { UsecaseExecutionDependencies } from '@hexafy/core/usecase';
+import type { UsecaseResult } from '@hexafy/core/application';
 
 import type {
   Task,
   TaskCreationProperties
-} from '../../domain/task-management/models';
+} from '../../domain/task-management/models/task';
 import type { TaskPort } from '../../domain/task-management/ports';
 
 interface CreateTaskUseCaseInput extends TaskCreationProperties {
@@ -17,7 +16,7 @@ export class CreateTaskUseCase {
     private readonly dependencies: UsecaseExecutionDependencies
   ) {}
 
-  async execute(input: CreateTaskUseCaseInput): Promise<Result<Task>> {
+  async execute(input: CreateTaskUseCaseInput): Promise<UsecaseResult<Task>> {
     // Validate input
     if (!input.title || input.title.trim().length === 0) {
       return { success: false, error: new Error('Title is required') };

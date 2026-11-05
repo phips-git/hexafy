@@ -16,8 +16,8 @@
     "typecheck": "bun check"
   },
   "dependencies": {
-    "@hexafy/core": "*",
-    "@hexafy/nestjs": "*",
+    "@hexafy/core": "workspace:*",
+    "@hexafy/nestjs": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

@@ -1,4 +1,4 @@
-import type { TenantId, UserId } from '../auth/models';
+import type { TenantId, UserId } from '../../auth/models';
 import type { ProjectId, TaskId } from './task';
 
 export interface AuthorizationContext {

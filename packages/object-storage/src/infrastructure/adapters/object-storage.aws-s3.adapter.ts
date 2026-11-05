@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- AWS SDK types need to be installed by consumers */
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -7,7 +8,7 @@ import {
   S3Client
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { ExternalServiceError, NotFoundError } from '@hexafy/core/domain';
+import { InfrastructureError, NotFoundError } from '@hexafy/core/domain';
 
 import type { ObjectMetadata, StoredObject } from '../../domain/models';
 import type {
@@ -135,7 +136,7 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
     try {
       return await this.options.client.send(command);
     } catch (error) {
-      throw new ExternalServiceError('S3 operation failed', {
+      throw new InfrastructureError('S3 operation failed', {
         cause: error,
         context: { operation: this.getOperationName(command) }
       });

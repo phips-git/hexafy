@@ -1,159 +1,68 @@
-# Codestyle Guidelines
+# Codestyle
 
-## General Principles
+## Principles
 
-### Clean Code
-
-- Write code that is self-explanatory
-- Prefer clear, descriptive names over clever abbreviations
-- Keep functions small and focused on a single responsibility
-- Follow the Single Responsibility Principle rigorously
-
-### No Unnecessary Comments
-
-- Comments should explain **why**, not **what**
-- If code requires a comment to understand, refactor the code instead
-- Never comment out dead code - remove it
-- JSDoc is only for public API surface, not internal implementation
-
-### No Shimming or Re-exports
-
-- Import directly from source modules
-- Do not re-export for convenience - it adds unnecessary indirection
-- Each package exports its own public API clearly
-- If something needs to be in another package, move it there
+- **Self-explanatory code** - Clear names, no unnecessary comments
+- **No `any` types** - Full type safety required
+- **Direct imports** - No convenience re-exports
+- **Small functions** - Single responsibility
 
 ## Imports
 
-- Import from source: `from '@hexafy/core'`, `from '@hexafy/aws-lambda'`, or `from '@hexafy/nestjs'`
-- Don't create convenience re-exports in intermediate index files
-- Type imports must use `import type` for type-only exports
-- Keep imports grouped and sorted alphabetically within groups
-
-## Comments
-
-Only add comments when the code itself cannot express the intent:
-
-- Explain complex business rules
-- Document non-obvious decisions or trade-offs
-- Mark technical debt or TODOs with context
-- Explain constraints or assumptions
-
-### Avoid These
-
 ```typescript
-// Don't do this:
-const x = 42; // x is 42
-
-// Do this instead:
-const maxRetries = 42; // Clear intent from name
+// ✅ Import from source
+import { Usecase } from '@hexafy/core/domain';
+import type { Entity } from '@hexafy/core/domain';
+// ❌ No re-exports
+import { Usecase } from '@hexafy/nestjs/domain'; // Wrong
 ```
 
-## Bun Usage
+## Naming
 
-This template uses bun for all package management. Always prefer bun over npm:
+- **Classes**: PascalCase (`SqliteDatabaseClient`)
+- **Functions**: camelCase (`initializeSchema`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_RETRIES`)
+- **Types**: PascalCase (`TaskStatus`)
+
+## Hexagonal Patterns
+
+### Use Cases
+
+Extend `Usecase` base class:
+
+```typescript
+import { failure, success, Usecase } from '@hexafy/core/application';
+
+class CreateUserUseCase extends Usecase<Input, Output> {
+  async executeInternal(input, logger) {
+    if (!input.email) {
+      return failure(new ValidationError('Email required'));
+    }
+    return success({ userId: '123' });
+  }
+}
+```
+
+### Errors
+
+- **Domain errors**: Return via `Result` (don't throw)
+- **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.)
+
+### Exports
+
+Import from subpaths:
+
+```typescript
+import { Usecase } from '@hexafy/core/application';
+import { Usecase } from '@hexafy/core/domain';
+import { LoggerPort } from '@hexafy/core/infrastructure';
+```
+
+## Commands
 
 ```bash
-# ✅ Preferred
 bun install
+bun run typecheck
+bun run test
 bun run build
-bun publish
-
-# ❌ Avoid
-npm install
-npm run build
-npm publish
 ```
-
-## Naming Conventions
-
-- Classes: PascalCase (`SqliteDatabaseClient`)
-- Functions/variables: camelCase (`initializeSchema`)
-- Constants: UPPER_SNAKE_CASE (`DB_PATH`)
-- Type aliases: PascalCase (`TaskStatus`)
-- Files: match the exported name (lowercase with hyphens or PascalCase)
-
-## Type Safety
-
-- **All code must be completely typesafe** - no `any` types unless absolutely necessary
-- Use branded types for domain entities (`TaskId`, `ProjectId`) to prevent type confusion
-- Never use `as string` for type assertions - validate and transform properly
-- Use `import type` for type-only imports to avoid runtime overhead
-- Function parameters and return types must be explicitly declared (no implicit `any`)
-- See [TypeScript Best Practices](/docs/typescript.md) for detailed guidelines
-
-## File Structure
-
-- Keep files focused - if a file grows beyond 200-300 lines, consider splitting
-- Place related code together in the same file or package
-- Export only what's needed - no barrel files that export everything
-
-## Hexagonal Template Guidelines
-
-### Package Structure
-
-This template uses three core packages:
-
-- **`@hexafy/core`** - Domain primitives, use case base class, repository patterns
-- **`@hexafy/aws-lambda`** - AWS Lambda adapters and handlers
-- **`@hexafy/nestjs`** - NestJS decorators, modules, and exception filters
-
-### Use Case Implementation
-
-Always extend the `Usecase` base class:
-
-````typescript
-import {
-  Usecase,
-  UsecaseExecutionDependencies,
-  LoggerPort
-} from '@hexafy/core';
-```typescript
-import { Usecase, UsecaseExecutionDependencies, LoggerPort, Result, success, failure } from '@hexafy/core';
-
-class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
-  constructor(dependencies: UsecaseExecutionDependencies) {
-    super(dependencies);
-  }
-
-  protected async executeInternal(input: CreateUserInput, logger: LoggerPort): Promise<Result<UserCreated>> {
-    // Domain errors returned as failure() - no throwing needed
-    if (!input.email) {
-      return failure(new UseCaseError('Email is required'));
-    }
-
-    logger.info('Processing', { input });  // Logger always available (NOOP if not configured)
-    return success({ userId: 'user_123' });
-  }
-}
-````
-
-**Domain errors return via `Result`** - Throw only infrastructure errors. Domain errors are part of normal business flow.
-
-### Error Hierarchy
-
-Use the domain-specific error types:
-
-```typescript
-import { DomainError, UseCaseError } from '@hexafy/core';
-
-// Business rule violations
-throw new DomainError('User already exists');
-
-// Use case execution errors
-throw new UseCaseError('Invalid email format');
-```
-
-## Module Exports
-
-```json
-{
-  "exports": {
-    "./application": "./src/application.export.ts",
-    "./domain": "./src/domain.export.ts",
-    "./infrastructure": "./src/infrastructure.export.ts"
-  }
-}
-```
-
-Import using these subpath exports - don't create new subpaths for convenience.

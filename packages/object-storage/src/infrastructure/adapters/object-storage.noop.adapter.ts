@@ -25,7 +25,7 @@ export class ObjectStorageNoopAdapter implements ObjectStoragePort {
 
   async getObject(key: string): Promise<StoredObject> {
     const object = this.objects.get(key);
-    if (!object) throw new Error('Object not found', { context: { key } });
+    if (!object) throw new Error('Object not found');
     return object;
   }
 

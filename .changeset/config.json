@@ -1,4 +1,5 @@
 {
+  "baseBranch": "main",
   "access": "public",
   "updateInternalDependencies": "patch",
   "ignore": ["example-domain"]

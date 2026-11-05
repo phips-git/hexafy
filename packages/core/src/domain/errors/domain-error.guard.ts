@@ -67,9 +67,9 @@ function toCodeFromName(name: string): string | null {
     return 'APPLICATION_ERROR';
   }
 
-  const nameWithoutError = name.replace(/_ERROR$/, '');
-  if (nameWithoutError !== name) {
-    return nameWithoutError + '_ERROR';
-  }
-  return name.toUpperCase().concat('_ERROR');
+  const nameWithoutSuffix = name.replace(/Error$/, '');
+  return nameWithoutSuffix
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toUpperCase()
+    .concat('_ERROR');
 }

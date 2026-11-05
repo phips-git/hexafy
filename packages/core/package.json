@@ -16,18 +16,30 @@
   },
   "exports": {
     "./application": {
-      "types": "./dist/application/index.d.ts",
-      "import": "./dist/application/index.js",
+      "bun": "./src/application/index.ts",
+      "types": "./src/application/index.ts",
+      "import": {
+        "development": "./src/application/index.ts",
+        "production": "./dist/application/index.js"
+      },
       "require": "./dist/application/index.js"
     },
     "./domain": {
-      "types": "./dist/domain/index.d.ts",
-      "import": "./dist/domain/index.js",
+      "bun": "./src/domain/index.ts",
+      "types": "./src/domain/index.ts",
+      "import": {
+        "development": "./src/domain/index.ts",
+        "production": "./dist/domain/index.js"
+      },
       "require": "./dist/domain/index.js"
     },
     "./infrastructure": {
-      "types": "./dist/infrastructure/index.d.ts",
-      "import": "./dist/infrastructure/index.js",
+      "bun": "./src/infrastructure/index.ts",
+      "types": "./src/infrastructure/index.ts",
+      "import": {
+        "development": "./src/infrastructure/index.ts",
+        "production": "./dist/infrastructure/index.js"
+      },
       "require": "./dist/infrastructure/index.js"
     }
   },
@@ -38,7 +50,7 @@
     "typecheck": "bun check"
   },
   "devDependencies": {
-    "@hexafy/typescript-config": "*",
+    "@hexafy/typescript-config": "workspace:*",
     "typescript": "catalog:"
   },
   "engines": {

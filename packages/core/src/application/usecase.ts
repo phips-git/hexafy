@@ -4,7 +4,7 @@ import type {
   LoggingPort,
   MetricsPort
 } from '../domain/ports';
-import type { UniqueIdentifier } from '../domain/types';
+import type { UniqueIdentifier } from '../domain/primitives';
 import { SystemClockAdapter } from '../infrastructure/adapters/clock';
 import { SystemIdentifierAdapter } from '../infrastructure/adapters/identifier';
 import { ConsoleLoggingAdapter } from '../infrastructure/adapters/logging';
@@ -29,6 +29,9 @@ export interface UsecaseExecutionConfiguration {
   metrics?: MetricsPort;
   identifier?: IdentifierPort;
 }
+
+/** Alias for UsecaseExecutionConfiguration for backwards compatibility. */
+export type UsecaseExecutionDependencies = UsecaseExecutionConfiguration;
 
 /**
  * Abstract base class for all use cases.

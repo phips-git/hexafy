@@ -1,7 +1,7 @@
 import type {
   Project,
   ProjectCreationProperties
-} from '../../domain/task-management/models';
+} from '../../domain/task-management/models/project';
 import type { ProjectPort } from '../../domain/task-management/ports';
 
 export class InMemoryProjectRepository implements ProjectPort {

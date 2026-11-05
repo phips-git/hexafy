@@ -13,8 +13,8 @@
     "apps/aws-lambda": {
       "name": "@hexafy/aws-lambda-example",
       "dependencies": {
-        "@hexafy/aws-lambda": "*",
-        "@hexafy/core": "*",
+        "@hexafy/aws-lambda": "workspace:*",
+        "@hexafy/core": "workspace:*",
         "nanoid": "6.0.1",
       },
       "devDependencies": {
@@ -27,8 +27,8 @@
     "apps/nestjs": {
       "name": "@hexafy/nestjs-example",
       "dependencies": {
-        "@hexafy/core": "*",
-        "@hexafy/nestjs": "*",
+        "@hexafy/core": "workspace:*",
+        "@hexafy/nestjs": "workspace:*",
         "@nestjs/common": "^11.0.1",
         "@nestjs/core": "^11.0.1",
         "@nestjs/platform-express": "^11.0.1",
@@ -57,10 +57,10 @@
       "name": "@hexafy/aws-lambda",
       "version": "1.0.0",
       "dependencies": {
-        "@hexafy/core": "*",
+        "@hexafy/core": "workspace:*",
       },
       "devDependencies": {
-        "@hexafy/typescript-config": "*",
+        "@hexafy/typescript-config": "workspace:*",
         "@types/aws-lambda": "8.10.164",
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -70,7 +70,7 @@
       "name": "@hexafy/core",
       "version": "1.0.0",
       "devDependencies": {
-        "@hexafy/typescript-config": "*",
+        "@hexafy/typescript-config": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -78,20 +78,20 @@
       "name": "@hexafy/email",
       "version": "1.0.0",
       "devDependencies": {
-        "@hexafy/typescript-config": "*",
+        "@hexafy/typescript-config": "workspace:*",
         "typescript": "catalog:",
       },
     },
     "packages/example-domain": {
       "name": "@hexafy/example-domain",
       "dependencies": {
-        "@hexafy/core": "*",
+        "@hexafy/core": "workspace:*",
         "better-sqlite3": "13.0.3",
         "jose": "6.2.12",
       },
       "devDependencies": {
-        "@hexafy/nestjs": "*",
-        "@hexafy/typescript-config": "*",
+        "@hexafy/nestjs": "workspace:*",
+        "@hexafy/typescript-config": "workspace:*",
         "@types/better-sqlite3": "9.6.0",
       },
     },
@@ -99,12 +99,12 @@
       "name": "@hexafy/nestjs",
       "version": "1.0.0",
       "dependencies": {
-        "@hexafy/core": "*",
+        "@hexafy/core": "workspace:*",
         "@nestjs/common": "^11.0.0",
         "@nestjs/core": "^11.0.0",
       },
       "devDependencies": {
-        "@hexafy/typescript-config": "*",
+        "@hexafy/typescript-config": "workspace:*",
         "@types/node": "catalog:",
         "typescript": "catalog:",
       },
@@ -113,10 +113,10 @@
       "name": "@hexafy/object-storage",
       "version": "1.0.0",
       "dependencies": {
-        "@hexafy/core": "*",
+        "@hexafy/core": "workspace:*",
       },
       "devDependencies": {
-        "@hexafy/typescript-config": "*",
+        "@hexafy/typescript-config": "workspace:*",
         "typescript": "catalog:",
       },
     },

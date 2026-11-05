@@ -2,7 +2,7 @@ import type {
   Task,
   TaskCreationProperties,
   TaskUpdateProperties
-} from '../../domain/task-management/models';
+} from '../../domain/task-management/models/task';
 import type { TaskPort } from '../../domain/task-management/ports';
 
 export class InMemoryTaskRepository implements TaskPort {

@@ -1,5 +1,4 @@
-import type { Result } from '@hexafy/core/result';
-import type { UsecaseExecutionDependencies } from '@hexafy/core/usecase';
+import type { UsecaseResult } from '@hexafy/core/application';
 
 import type { User } from '../../domain/auth/models';
 import type { UserPort } from '../../domain/auth/ports';
@@ -16,14 +15,11 @@ interface CreateUseCaseOutput {
 }
 
 export class CreateUseCase {
-  constructor(
-    private readonly userPort: UserPort,
-    private readonly dependencies: UsecaseExecutionDependencies
-  ) {}
+  constructor(private readonly userPort: UserPort) {}
 
   async execute(
     input: CreateUseCaseInput
-  ): Promise<Result<CreateUseCaseOutput>> {
+  ): Promise<UsecaseResult<CreateUseCaseOutput>> {
     // Validate email format
     if (!this.isValidEmail(input.email)) {
       return { success: false, error: new Error('Invalid email format') };
@@ -37,8 +33,8 @@ export class CreateUseCase {
 
     // Create new user
     const user = await this.userPort.save({
-      id: this.dependencies.generateId?.() ?? `user_${Date.now()}`,
-      tenantId: this.dependencies.generateId?.() ?? `tenant_${Date.now()}`,
+      id: `user_${Date.now()}`,
+      tenantId: `tenant_${Date.now()}`,
       email: input.email,
       name: input.name ?? null,
       role: 'member' as const,

@@ -4,8 +4,6 @@
  * @hexafy/core primitives
  */
 
-import { consoleLogger, UsecaseExecutionDependencies } from '@hexafy/core';
-
 import {
   AuthenticateUseCase,
   CreateUseCase
@@ -25,24 +23,12 @@ const userRepository = new InMemoryUserRepository();
 const taskRepository = new InMemoryTaskRepository();
 const authenticationAdapter = new InMemoryAuthenticationAdapter(userRepository);
 
-// Configure use case dependencies
-const dependencies: UsecaseExecutionDependencies = {
-  generateId: () =>
-    `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-  loggerFactory: (name) => consoleLogger
-};
-
 // Create use cases (application)
-const createAuthUseCase = new CreateUseCase(userRepository, dependencies);
-const authenticateAuthUseCase = new AuthenticateUseCase(
-  authenticationAdapter,
-  dependencies
-);
-const createTaskUseCase = new CreateTaskUseCase(taskRepository, dependencies);
-const completeTaskUseCase = new CompleteTaskUseCase(
-  taskRepository,
-  dependencies
-);
+// Note: Usecase base class handles dependencies internally
+const createAuthUseCase = new CreateUseCase(userRepository);
+const authenticateAuthUseCase = new AuthenticateUseCase(authenticationAdapter);
+const createTaskUseCase = new CreateTaskUseCase(taskRepository);
+const completeTaskUseCase = new CompleteTaskUseCase(taskRepository);
 
 // Example: Register a new user
 async function registerUser() {

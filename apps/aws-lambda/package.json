@@ -11,8 +11,8 @@
     "typecheck": "bun check"
   },
   "dependencies": {
-    "@hexafy/aws-lambda": "*",
-    "@hexafy/core": "*",
+    "@hexafy/aws-lambda": "workspace:*",
+    "@hexafy/core": "workspace:*",
     "nanoid": "6.0.1"
   },
   "devDependencies": {

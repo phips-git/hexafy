@@ -1,4 +1,5 @@
-import type { ProjectId, TaskStatus } from '../models';
+import type { ProjectId } from '../models/project';
+import type { TaskStatus } from '../models/task-status.enum';
 
 export interface ProjectStats {
   totalTasks: number;

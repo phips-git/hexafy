@@ -1,4 +1,4 @@
-import type { UniqueIdentifier } from '../types';
+import type { UniqueIdentifier } from '../primitives';
 import type { ClockPort } from './clock.port';
 
 /**
@@ -13,7 +13,7 @@ import type { ClockPort } from './clock.port';
  *   // Generate a unique identifier
  *   const id = identifier.generate(clock);
  *   // 'a1b2c3d4e5f6g7h8'
- *   ```
+ *   ```;
  *
  * @param clock - Optional clock port for time-based generation
  * @returns A unique identifier string

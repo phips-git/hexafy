@@ -21,14 +21,22 @@
   ],
   "exports": {
     "./domain": {
-      "types": "./src/domain/index.d.ts",
-      "import": "./src/domain/index.js",
-      "require": "./src/domain/index.js"
+      "bun": "./src/domain/index.ts",
+      "types": "./src/domain/index.ts",
+      "import": {
+        "development": "./src/domain/index.ts",
+        "production": "./dist/domain/index.js"
+      },
+      "require": "./dist/domain/index.js"
     },
     "./infrastructure": {
-      "types": "./src/infrastructure/index.d.ts",
-      "import": "./src/infrastructure/index.js",
-      "require": "./src/infrastructure/index.js"
+      "bun": "./src/infrastructure/index.ts",
+      "types": "./src/infrastructure/index.ts",
+      "import": {
+        "development": "./src/infrastructure/index.ts",
+        "production": "./dist/infrastructure/index.js"
+      },
+      "require": "./dist/infrastructure/index.js"
     }
   },
   "scripts": {
@@ -38,11 +46,19 @@
     "typecheck": "bun check"
   },
   "dependencies": {
-    "@hexafy/core": "*"
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@hexafy/core": "workspace:*"
   },
   "devDependencies": {
-    "@hexafy/typescript-config": "*",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@hexafy/typescript-config": "workspace:*",
     "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0"
   },
   "engines": {
     "bun": ">=1.4",

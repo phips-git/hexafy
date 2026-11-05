@@ -1,5 +1,5 @@
 import type { User } from '../../domain/auth/models';
-import type { AuthenticationPort } from '../../domain/auth/ports';
+import type { AuthenticationPort, UserPort } from '../../domain/auth/ports';
 
 export class InMemoryAuthenticationAdapter implements AuthenticationPort {
   constructor(private readonly userRepository: UserPort) {}

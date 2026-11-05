@@ -203,6 +203,27 @@ export class InvariantError extends ApplicationError {
   }
 }
 
+/**
+ * Infrastructure error for external service failures.
+ *
+ * @example
+ *   ```typescript
+ *   throw new InfrastructureError('Database connection failed', e);
+ *   ```;
+ *
+ * @param message - Optional error message (default: 'Infrastructure failure')
+ * @param details - Optional error details or underlying error
+ */
+export class InfrastructureError extends ApplicationError {
+  constructor(
+    message = 'Infrastructure failure',
+    details?: ApplicationErrorDetails
+  ) {
+    const options = normalizeApplicationErrorDetails(details);
+    super(message, { ...options, code: 'INFRASTRUCTURE_ERROR' });
+  }
+}
+
 function normalizeApplicationErrorDetails(
   details: ApplicationErrorDetails | undefined
 ): Omit<ApplicationErrorOptions, 'code'> {

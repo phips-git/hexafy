@@ -1,4 +1,4 @@
-import type { UserId } from '../models';
+import type { User, UserId } from '../models';
 
 export interface UserPort {
   findById(id: UserId): Promise<User | null>;

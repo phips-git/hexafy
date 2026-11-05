@@ -1,4 +1,4 @@
-import { Entity as EntityType, type UniqueIdentifier } from '../types';
+import { Entity as EntityType, type UniqueIdentifier } from '../primitives';
 
 /**
  * Base repository class providing common CRUD operations.
@@ -35,7 +35,7 @@ import { Entity as EntityType, type UniqueIdentifier } from '../types';
  *       await db.users.delete({ id: id.value });
  *     }
  *   }
- *   ```
+ *   ```;
  *
  * @template Entity - The entity type managed by this repository
  * @template Id - The unique identifier type for the entity

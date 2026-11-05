@@ -1,11 +1,8 @@
-import {
-  CancellationToken,
-  LoggerPort,
-  Usecase,
-  UsecaseExecutionDependencies
-} from '@hexafy/core/application';
+import type { CancellationToken } from '@hexafy/core/application';
+import { Usecase } from '@hexafy/core/application';
+import type { LoggerPort } from '@hexafy/core/domain';
 
-import type { Task } from '../../domain/task-management/models';
+import type { Task } from '../../domain/task-management/models/task';
 import type { TaskPort } from '../../domain/task-management/ports';
 
 interface CompleteTaskInput {
@@ -30,11 +27,8 @@ export class CompleteTaskUseCase extends Usecase<
   CompleteTaskInput,
   CompleteTaskOutput
 > {
-  constructor(
-    private readonly taskPort: TaskPort,
-    dependencies: UsecaseExecutionDependencies
-  ) {
-    super(dependencies);
+  constructor(private readonly taskPort: TaskPort) {
+    super();
   }
 
   protected async executeInternal(

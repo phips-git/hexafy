@@ -19,14 +19,22 @@
   ],
   "exports": {
     "./domain": {
-      "types": "./src/domain/index.d.ts",
-      "import": "./src/domain/index.js",
-      "require": "./src/domain/index.js"
+      "bun": "./src/domain/index.ts",
+      "types": "./src/domain/index.ts",
+      "import": {
+        "development": "./src/domain/index.ts",
+        "production": "./dist/domain/index.js"
+      },
+      "require": "./dist/domain/index.js"
     },
     "./infrastructure": {
-      "types": "./src/infrastructure/index.d.ts",
-      "import": "./src/infrastructure/index.js",
-      "require": "./src/infrastructure/index.js"
+      "bun": "./src/infrastructure/index.ts",
+      "types": "./src/infrastructure/index.ts",
+      "import": {
+        "development": "./src/infrastructure/index.ts",
+        "production": "./dist/infrastructure/index.js"
+      },
+      "require": "./dist/infrastructure/index.js"
     }
   },
   "scripts": {
@@ -36,7 +44,7 @@
     "typecheck": "bun check"
   },
   "devDependencies": {
-    "@hexafy/typescript-config": "*",
+    "@hexafy/typescript-config": "workspace:*",
     "typescript": "catalog:"
   },
   "engines": {

@@ -2,7 +2,7 @@ import type {
   Task,
   TaskCreationProperties,
   TaskUpdateProperties
-} from '../models';
+} from '../models/task';
 
 export interface TaskPort {
   findById(id: string): Promise<Task | null>;

@@ -1,59 +1,63 @@
-name: Publish Packages
+name: Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        type: choice
+        options:
+          - RC
+          - RELEASE
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     permissions:
-      contents: read
-      id-token: write
-      pulls: write
+      contents: write
 
     steps:
+      - name: Enforce main branch
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::Releases can only run from main."
+            exit 1
+          fi
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/.cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun ci
 
-      - name: Create Release Pull Request or Publish to npm
-        id: changesets
-        uses: changesets/action@v1
+      - name: Enter prerelease mode (RC)
+        if: inputs.channel == 'RC'
+        run: |
+          bun x changeset pre enter rc
+
+      - name: Exit pre-release mode (RELEASE)
+        if: inputs.channel == 'RELEASE'
+        run: |
+          bun x changeset pre exit
+
+      - name: Create Release
+        uses: changesets/action@v2
         with:
-          # Assumes your repo has a GitHub token stored as GITHUB_TOKEN
-          # This is created automatically by GitHub Actions
-          version: bun run version
-          # This assumes your repo has a GitHub token stored as GITHUB_TOKEN
-          # This is created automatically by GitHub Actions
-          publish: bun run publish
-          # This command will read your .changeset folder and create a PR with your changelog updates
-          commit: '[ci] version packages'
-          title: '[ci] version packages'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: bun run changeset:version
+          publish: bun run changeset:publish
+          commit: 'chore(release): ${{ inputs.channel }} release'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true

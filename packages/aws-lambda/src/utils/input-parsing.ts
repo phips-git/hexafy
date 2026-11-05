@@ -3,12 +3,12 @@
  *
  * Handles null/empty body and provides type-safe parsing
  */
-export function parseJsonBody<Input>(event: unknown): Input {
+export function parseJsonBody<Input>(event: Record<string, unknown>): Input {
   if (!event || typeof event !== 'object' || !('body' in event)) {
     throw new Error('Request event missing body');
   }
 
-  const eventBody = (event as Record<string, unknown>).body;
+  const eventBody = event['body'];
   if (!eventBody) {
     throw new Error('Request body is required');
   }
@@ -36,7 +36,7 @@ export function parseJsonBody<Input>(event: unknown): Input {
 export function parseQueryParameters<
   T extends Record<string, string> = Record<string, string>
 >(event: Record<string, unknown>): T {
-  return (event.queryParameters ?? {}) as T;
+  return (event['queryParameters'] ?? {}) as T;
 }
 
 /**
@@ -50,7 +50,7 @@ export function parseQueryParameters<
 export function parsePathParameters<
   T extends Record<string, string> = Record<string, string>
 >(event: Record<string, unknown>): T {
-  return (event.pathParameters ?? {}) as T;
+  return (event['pathParameters'] ?? {}) as T;
 }
 
 /** Validate HTTP method */
@@ -58,7 +58,7 @@ export function validateHttpMethod(
   event: Record<string, unknown>,
   allowedMethods: string[]
 ): void {
-  const httpMethod = event.httpMethod as string;
+  const httpMethod = event['httpMethod'] as string;
   if (!httpMethod || !allowedMethods.includes(httpMethod.toUpperCase())) {
     throw new Error(
       `Method not allowed. Allowed: ${allowedMethods.join(', ')}`
@@ -71,7 +71,7 @@ export function validateRequiredHeaders(
   event: Record<string, unknown>,
   requiredHeaders: string[]
 ): void {
-  const headers = event.headers as Record<string, string> | undefined;
+  const headers = event['headers'] as Record<string, string> | undefined;
   if (!headers) {
     throw new Error('Missing headers');
   }

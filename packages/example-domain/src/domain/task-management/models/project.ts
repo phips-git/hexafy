@@ -1,6 +1,6 @@
-import type { Brand } from '@hexafy/core/brand';
+import type { Brand } from '@hexafy/core/domain';
 
-import type { UserId } from '../auth/models';
+import type { UserId } from '../../auth/models';
 
 export type ProjectId = Brand<string, 'ProjectId'>;
 

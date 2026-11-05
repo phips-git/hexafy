@@ -1,5 +1,4 @@
-import type { Result } from '@hexafy/core/result';
-import type { UsecaseExecutionDependencies } from '@hexafy/core/usecase';
+import type { UsecaseResult } from '@hexafy/core/application';
 
 import type { User } from '../../domain/auth/models';
 import type { AuthenticationPort } from '../../domain/auth/ports';
@@ -15,14 +14,11 @@ interface AuthenticateUseCaseOutput {
 }
 
 export class AuthenticateUseCase {
-  constructor(
-    private readonly authenticationPort: AuthenticationPort,
-    private readonly dependencies: UsecaseExecutionDependencies
-  ) {}
+  constructor(private readonly authenticationPort: AuthenticationPort) {}
 
   async execute(
     input: AuthenticateUseCaseInput
-  ): Promise<Result<AuthenticateUseCaseOutput>> {
+  ): Promise<UsecaseResult<AuthenticateUseCaseOutput>> {
     try {
       // In real implementation, validate password hash
       const user = await this.authenticationPort.authenticate(
