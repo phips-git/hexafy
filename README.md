@@ -72,9 +72,8 @@ The repository uses Bun for local development and CI validation, while the actua
 Quick commands:
 
 - `bun run changeset` - Create a changeset for a package
-- `bun run changeset:version` - Version all changed packages
 
-Releases are run from the GitHub Actions **Release** workflow (`rc` → `next`, `latest` → `latest`).
+Releases are run from the GitHub Actions **Release** workflow (`RC` → `rc`, `Release` → `latest`).
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for release policy and first-release details.
 
 ### Publishable Packages

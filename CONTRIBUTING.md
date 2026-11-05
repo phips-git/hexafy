@@ -21,10 +21,9 @@ main (single source of truth) ← feature/* (short-lived work)
 3. Create changeset: `bun run changeset`
 4. Open PR to `main` (CI + changeset check must pass)
 5. Merge PR to `main`
-6. Maintainer runs **Release** workflow from GitHub Actions and selects:
-   - `rc` → publish to npm `next` dist-tag
-   - `latest` → publish to npm `latest` dist-tag
-7. Workflow pushes tags and creates GitHub Releases from Changesets changelog notes
+6. Trigger **Release** workflow from GitHub Actions:
+   - `RC` → publish to npm with `rc` tag (release candidates)
+   - `Release` → publish to npm with `latest` tag (stable)
 
 ## Changesets
 
@@ -35,29 +34,14 @@ main (single source of truth) ← feature/* (short-lived work)
 
 ## Release process
 
-Important: this repository still uses pnpm for the actual publishing step, even though Bun is the local toolchain. The reason is that pnpm is the piece that applies the publish-time `publishConfig.exports` override and rewrites workspace dependencies before the package is packed/published. Without that step, the source TS entrypoints would leak into the published tarball.
+Release is handled via GitHub Actions **Release** workflow:
 
-Run the GitHub Actions **Release** workflow from `main`:
+| Channel   | npm tag  | Use                |
+| --------- | -------- | ------------------ |
+| `RC`      | `rc`     | Release candidates |
+| `Release` | `latest` | Stable releases    |
 
-| Channel  | npm dist-tag | Intended use       |
-| -------- | ------------ | ------------------ |
-| `rc`     | `next`       | release candidates |
-| `latest` | `latest`     | stable releases    |
-
-Release workflow behavior:
-
-1. Versions packages from pending changesets
-2. Publishes changed public packages
-3. Pushes release tags
-4. Creates GitHub Releases per package from generated changelog sections
-
-### First initial release
-
-For never-published packages:
-
-1. Add a changeset that includes each package
-2. Merge to `main`
-3. Run Release with `latest` (or `rc` first, then `latest`)
+Workflow steps: version → build → publish → GitHub release.
 
 ## CI Gates
 
@@ -67,10 +51,9 @@ For never-published packages:
 
 ## Commands
 
-| Command                 | Purpose                  |
-| ----------------------- | ------------------------ |
-| `bun run changeset`     | Create version changeset |
-| `bun run typecheck`     | TypeScript validation    |
-| `bun run test`          | Run tests                |
-| `bun run build`         | Generate dist/           |
-| `bun publish --dry-run` | Verify package           |
+| Command             | Purpose               |
+| ------------------- | --------------------- |
+| `bun run changeset` | Create changeset      |
+| `bun run typecheck` | TypeScript validation |
+| `bun run test`      | Run tests             |
+| `bun run build`     | Generate dist/        |

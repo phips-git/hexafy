@@ -15,6 +15,6 @@ bun run test
 3. Create changeset: `bun run changeset`
 4. Open PR to `main`
 5. Merge PR
-6. Maintainer runs Release workflow (`rc` or `latest`)
+6. Trigger **Release** workflow from GitHub Actions (`RC` or `Release`)
 
-See `PROJECT-STRUCTURE.md` for layout and `../CONTRIBUTING.md` for release policy.
+See `PROJECT-STRUCTURE.md` and `../CONTRIBUTING.md`.

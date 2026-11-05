@@ -27,7 +27,6 @@ Use Bun for package management and scripts in local development. The release pro
 bun install
 bun run <script>
 bun run changeset
-bun run changeset:version
 ```
 
 Current release rule: Bun is still used for development and local scripts, but the actual package publication path is still `pnpm` in CI:

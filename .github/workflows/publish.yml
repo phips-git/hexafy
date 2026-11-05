@@ -65,29 +65,17 @@ jobs:
         run: |
           bun x changeset pre exit
 
-      - name: '🏗️ Build'
-        run: bun run build
-
-      - name: '📦 Validate package tarballs'
-        run: |
-          rm -rf /tmp/hexafy-packs && mkdir -p /tmp/hexafy-packs
-          pnpm -r pack --pack-destination /tmp/hexafy-packs
-          for tgz in /tmp/hexafy-packs/*.tgz; do
-            pnpm exec publint run "$tgz"
-            pnpm exec attw "$tgz"
-          done
-
       - name: '🚀 Create Release'
         uses: changesets/action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          version: pnpm exec changeset version
           publish: |
             if [ "${{ inputs.channel }}" == "RC" ]; then
               pnpm exec changeset publish --tag rc
             else
               pnpm exec changeset publish
             fi
-          commit: ''
+          commit-message: 'chore(release): ${{ inputs.channel }} release'
+          create-github-releases: ${{ inputs.channel == 'Release' }}
         env:
           NPM_CONFIG_PROVENANCE: 'true'

@@ -9,20 +9,15 @@
   "scripts": {
     "lint": "bun lint --fix",
     "changeset": "changeset",
-    "changeset:version": "changeset version",
     "clean": "git clean -xdf node_modules && bun --filter '*' clean",
     "format": "bun fmt",
-    "changeset:publish": "pnpm exec changeset publish",
     "test": "bun test",
     "typecheck": "bun --filter '@hexafy/core' typecheck && bun --filter '@hexafy/email' typecheck && bun --filter '@hexafy/aws-lambda' typecheck && bun --filter '@hexafy/nestjs' typecheck && bun --filter '@hexafy/object-storage' typecheck",
-    "build": "bun --filter '@hexafy/core' build && bun --filter '@hexafy/email' build && bun --filter '@hexafy/aws-lambda' build && bun --filter '@hexafy/nestjs' build && bun --filter '@hexafy/object-storage' build",
-    "pack:check": "rm -rf /tmp/hexafy-packs && mkdir -p /tmp/hexafy-packs && pnpm -r pack --pack-destination /tmp/hexafy-packs && for tgz in /tmp/hexafy-packs/*.tgz; do pnpm exec publint run \"$tgz\"; pnpm exec attw \"$tgz\"; done"
+    "build": "bun --filter '@hexafy/core' build && bun --filter '@hexafy/email' build && bun --filter '@hexafy/aws-lambda' build && bun --filter '@hexafy/nestjs' build && bun --filter '@hexafy/object-storage' build"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.17.1",
     "@changesets/cli": "3.0.3",
     "@types/bun": "1.4.4",
-    "publint": "0.3.25",
     "tsdown": "0.23.5",
     "typescript": "7.0.2"
   },
