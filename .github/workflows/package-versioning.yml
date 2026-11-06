@@ -38,6 +38,11 @@ jobs:
       - name: '📦 Install dependencies'
         run: bun ci
 
+      - name: '🔧 Setup pnpm'
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: '🔍 Select Changesets mode'
         id: select-mode
         uses: changesets/action/select-mode@v2
@@ -64,6 +69,11 @@ jobs:
 
       - name: '📦 Install dependencies'
         run: bun ci
+
+      - name: '🔧 Setup pnpm'
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: '🏗️  Version packages'
         id: version
