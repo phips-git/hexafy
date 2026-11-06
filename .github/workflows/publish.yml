@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   apply-mode:
-    name: Apply Changesets mode
+    name: '✨ Apply Changesets mode'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -39,7 +39,7 @@ jobs:
       - name: '📦 Install dependencies'
         run: bun ci
 
-      - name: Apply release channel
+      - name: '🏷️ Apply release channel'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -59,7 +59,7 @@ jobs:
           fi
 
   select-mode:
-    name: Select Changesets mode
+    name: '🔍 Select Changesets mode'
     needs: apply-mode
     runs-on: ubuntu-latest
     outputs:
@@ -81,12 +81,12 @@ jobs:
       - name: '📦 Install dependencies'
         run: bun ci
 
-      - name: Select Changesets mode
+      - name: '🔍 Select Changesets mode'
         id: select-mode
         uses: changesets/action/select-mode@v2
 
   version:
-    name: Update package versions
+    name: '🔢 Update package versions'
     if: needs.select-mode.outputs.mode == 'version'
     needs: select-mode
     runs-on: ubuntu-latest
@@ -107,11 +107,11 @@ jobs:
       - name: '📦 Install dependencies'
         run: bun ci
 
-      - name: Version packages
+      - name: '🏗️  Version packages'
         id: version
         uses: changesets/action/version@v2
 
-      - name: Summarize next step
+      - name: '📝 Summarize next step'
         run: |
           {
             echo "### Version PR ready"
@@ -119,7 +119,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   pack:
-    name: Pack packages for distribution
+    name: '📦 Pack packages for distribution'
     if: needs.select-mode.outputs.mode == 'publish'
     needs: select-mode
     runs-on: ubuntu-latest
@@ -141,17 +141,17 @@ jobs:
       - name: '📦 Install dependencies'
         run: bun ci
 
-      - name: Build packages
+      - name: '🔨 Build packages'
         run: bun run build
 
-      - name: Pack packages
+      - name: '📦 Pack packages'
         id: pack
         uses: changesets/action/pack@v2
         with:
           publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
 
   publish:
-    name: Publish packages to npm
+    name: '🚀 Publish packages to npm'
     needs: pack
     runs-on: ubuntu-latest
     permissions:
@@ -171,7 +171,7 @@ jobs:
       - name: '📦 Install dependencies'
         run: bun ci
 
-      - name: Publish packages
+      - name: '🚀 Publish packages'
         uses: changesets/action/publish@v2
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
