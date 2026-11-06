@@ -187,6 +187,6 @@ jobs:
       - name: '🚀 Publish packages'
         uses: changesets/action/publish@v2
         with:
-          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
           create-github-releases: ${{ inputs.channel == 'Release' }}
           script: pnpm exec changeset publish
