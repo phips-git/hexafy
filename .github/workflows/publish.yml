@@ -121,43 +121,6 @@ jobs:
         id: version
         uses: changesets/action/version@v2
 
-  pack:
-    name: '📦 Pack packages for distribution'
-    if: needs.select-mode.outputs.mode == 'publish'
-    needs: select-mode
-    runs-on: ubuntu-latest
-    outputs:
-      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
-    permissions:
-      contents: read
-    steps:
-      - name: '📥 Checkout code'
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false # Do not persist git credentials on disk
-
-      - name: '🔧 Setup Bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: '📦 Install dependencies'
-        run: bun ci
-
-      - name: '🔨 Build packages'
-        run: bun run build
-
-      - name: '🔧 Setup pnpm'
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: '📦 Pack packages'
-        id: pack
-        uses: changesets/action/pack@v2
-        with:
-          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
-
   publish:
     name: '🚀 Publish packages to npm'
     needs: pack
