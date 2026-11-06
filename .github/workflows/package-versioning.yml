@@ -30,26 +30,13 @@ jobs:
         with:
           persist-credentials: false # Do not persist git credentials on disk
 
-      - name: '🔧 Setup Bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: '📦 Install dependencies'
-        run: bun ci
-
-      - name: '🔧 Setup pnpm'
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - name: '🔍 Select Changesets mode'
         id: select-mode
         uses: changesets/action/select-mode@v2
 
   version:
     # Only runs when there are pending changesets to consume
-    name: '🏗️  Version packages'
+    name: '🔢 Create package version pull request'
     if: needs.select-mode.outputs.mode == 'version'
     needs: select-mode
     runs-on: ubuntu-latest
@@ -61,19 +48,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false # Do not persist git credentials on disk
-
-      - name: '🔧 Setup Bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: '📦 Install dependencies'
-        run: bun ci
-
-      - name: '🔧 Setup pnpm'
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: '🏗️  Version packages'
         id: version
