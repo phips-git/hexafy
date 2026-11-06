@@ -13,11 +13,13 @@
     "format": "bun fmt",
     "test": "bun test",
     "typecheck": "bun --filter '@hexafy/core' typecheck && bun --filter '@hexafy/email' typecheck && bun --filter '@hexafy/aws-lambda' typecheck && bun --filter '@hexafy/nestjs' typecheck && bun --filter '@hexafy/object-storage' typecheck",
-    "build": "bun --filter '@hexafy/core' build && bun --filter '@hexafy/email' build && bun --filter '@hexafy/aws-lambda' build && bun --filter '@hexafy/nestjs' build && bun --filter '@hexafy/object-storage' build"
+    "build": "bun --filter '@hexafy/core' build && bun --filter '@hexafy/email' build && bun --filter '@hexafy/aws-lambda' build && bun --filter '@hexafy/nestjs' build && bun --filter '@hexafy/object-storage' build",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",
     "@types/bun": "1.4.4",
+    "husky": "^9.1.7",
     "publint": "0.3.25",
     "tsdown": "0.23.5",
     "typescript": "7.0.2"
