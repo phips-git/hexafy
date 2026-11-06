@@ -1,6 +1,6 @@
 {
   "name": "@hexafy/nestjs",
-  "version": "0.0.1-rc.0",
+  "version": "0.0.0",
   "description": "NestJS adapters and helpers for hexagonal architecture",
   "keywords": [
     "hexagonal-architecture",

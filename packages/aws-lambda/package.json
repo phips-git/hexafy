@@ -1,6 +1,6 @@
 {
   "name": "@hexafy/aws-lambda",
-  "version": "0.0.1-rc.0",
+  "version": "1.0.0",
   "description": "AWS Lambda adapters and helpers for hexagonal architecture",
   "keywords": [
     "api-gateway",
