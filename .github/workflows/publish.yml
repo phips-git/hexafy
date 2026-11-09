@@ -97,7 +97,6 @@ jobs:
 
   publish:
     name: '🚀 Publish packages to npm'
-    needs: pack
     runs-on: ubuntu-latest
     permissions:
       contents: write
