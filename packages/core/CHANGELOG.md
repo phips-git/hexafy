@@ -1,5 +1,11 @@
 # @hexafy/core
 
+## 1.0.0-rc.2
+
+### Patch Changes
+
+- 2bd3316: Update CI workflow definitions
+
 ## 1.0.0-rc.1
 
 ### Patch Changes
