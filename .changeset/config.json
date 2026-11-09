@@ -2,6 +2,9 @@
   "access": "public",
   "ignore": [
     "@hexafy/example-domain",
+    "@hexafy/aws-lambda",
+    "@hexafy/nestjs",
+    "@hexafy/object-storage",
     "@hexafy/typescript-config",
     "@hexafy/tsdown-config"
   ]
