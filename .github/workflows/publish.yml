@@ -97,6 +97,8 @@ jobs:
 
   publish:
     name: '🚀 Publish packages to npm'
+    if: needs.select-mode.outputs.mode == 'publish'
+    needs: select-mode
     runs-on: ubuntu-latest
     permissions:
       contents: write
