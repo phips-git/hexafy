@@ -7,16 +7,6 @@
 - **Direct imports** - No convenience re-exports
 - **Small functions** - Single responsibility
 
-## Imports
-
-```typescript
-// ✅ Import from source
-import { Usecase } from '@hexafy/core/domain';
-import type { Entity } from '@hexafy/core/domain';
-// ❌ No re-exports
-import { Usecase } from '@hexafy/nestjs/domain'; // Wrong
-```
-
 ## Naming
 
 - **Classes**: PascalCase (`SqliteDatabaseClient`)
@@ -24,7 +14,55 @@ import { Usecase } from '@hexafy/nestjs/domain'; // Wrong
 - **Constants**: UPPER_SNAKE_CASE (`MAX_RETRIES`)
 - **Types**: PascalCase (`TaskStatus`)
 
-## Hexagonal Patterns
+## Error Classes
+
+All errors extend `ApplicationError` with `code` and optional `context`:
+
+| Class                 | Code                   | Use                        |
+| --------------------- | ---------------------- | -------------------------- |
+| `ApplicationError`    | `APPLICATION_ERROR`    | Generic application errors |
+| `ValidationError`     | `VALIDATION_ERROR`     | Input validation failures  |
+| `NotFoundError`       | `NOT_FOUND_ERROR`      | Missing resources          |
+| `ConflictError`       | `CONFLICT_ERROR`       | Duplicate entries          |
+| `UnauthorizedError`   | `UNAUTHORIZED_ERROR`   | Auth failures              |
+| `ForbiddenError`      | `FORBIDDEN_ERROR`      | Permission denied          |
+| `InvariantError`      | `INVARIANT_ERROR`      | Business rule violations   |
+| `InfrastructureError` | `INFRASTRUCTURE_ERROR` | External service failures  |
+
+```typescript
+throw new ValidationError('Email required');
+throw new NotFoundError('User');
+throw new ConflictError('Email already registered');
+```
+
+## NestJS Integration
+
+```typescript
+// Module setup
+import { DomainModule, InfrastructureModule } from '@hexafy/nestjs';
+
+@Module({
+  imports: [
+    DomainModule.forRoot(configService),
+    InfrastructureModule.forRoot(configService)
+  ]
+})
+export class AppModule {}
+
+// Exception filters
+import { DomainExceptionFilter, HttpExceptionFilter } from '@hexafy/nestjs';
+
+@Controller()
+export class UserController {
+  @UseFilters(new DomainExceptionFilter())
+  @Get()
+  async getAll() {
+    // ...
+  }
+}
+```
+
+Also see [PROJECT-STRUCTURE.md](../PROJECT-STRUCTURE.md) for import/export patterns.
 
 ### Use Cases
 
@@ -56,13 +94,4 @@ Import from subpaths:
 import { Usecase } from '@hexafy/core/application';
 import { Usecase } from '@hexafy/core/domain';
 import { LoggerPort } from '@hexafy/core/infrastructure';
-```
-
-## Commands
-
-```bash
-bun install
-bun run typecheck
-bun run test
-bun run build
 ```

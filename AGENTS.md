@@ -4,34 +4,41 @@ Use this file as the entry point for agent-facing guidance in this repository.
 
 ## Documentation
 
-- **[.agents/CODESTYLE.md](./.agents/CODESTYLE.md)** - Coding standards and patterns
-- **[.agents/PROJECT-STRUCTURE.md](./.agents/PROJECT-STRUCTURE.md)** - Package layout and import patterns
-- **[.agents/QUICKSTART.md](./.agents/QUICKSTART.md)** - Fast workflow overview
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contributor and release process
+- **[.agents/CODESTYLE.md](./.agents/CODESTYLE.md)** - Error classes, naming, use case patterns, NestJS integration
+- **[.agents/PROJECT-STRUCTURE.md](./.agents/PROJECT-STRUCTURE.md)** - Package layout, import/export patterns, domain primitives
+- **[.agents/QUICKSTART.md](./.agents/QUICKSTART.md)** - Commands, workflow, build/publish details
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - PR process, changesets, release workflow
+
+## Core Architecture
+
+- **Hexagonal architecture**: Domain is independent; application and infrastructure layers depend on it
+- **Use Cases**: Extend `Usecase<TInput, TOutput>` base class from `@hexafy/core/application`
+- **Domain primitives**: `Entity`, `ValueObject`, `AggregateRoot` from `@hexafy/core/domain`
+- **Ports**: Define interfaces in `domain/ports`; implement adapters in `infrastructure/adapters`
+- **Errors**: Domain errors return via `Result` (`success`/`failure`); infrastructure errors throw
 
 ## Guidelines
 
-Agents should follow repository codestyle and architecture boundaries:
+- **Self-explanatory code**: Clear names, no unnecessary comments
+- **Type safety**: No `any` types; use proper generics and type guards (`isSuccess`/`isFailure`)
+- **Direct imports**: Import from source subpaths (e.g., `@hexafy/core/application`), not barrel exports
+- **Result handling**: Always check `result.success` before accessing value; use `unwrap()` only when failure is unexpected
+- **Cancellation**: Pass `CancellationToken` to long-running use cases
+- **Logging**: Use provided `LoggerPort` with execution context; log business events, not error details
 
-- Write self-explanatory code with clear naming
-- Maintain complete type safety (no `any` types)
-- No unnecessary comments or JSDoc
-- Import directly from source modules
-- Follow hexagonal architecture boundaries
-
-## Bun Commands
-
-Use Bun for package management and scripts in local development. The release process remains pnpm-only for pack/publish so `publishConfig.exports` is applied consistently.
+## Development Commands
 
 ```bash
 bun install
-bun run <script>
-bun run changeset
+bun run typecheck
+bun run test
+bun run lint --fix
 ```
 
-Current release rule: Bun is still used for development and local scripts, but the actual package publication path is still `pnpm` in CI:
+See [QUICKSTART.md](./.agents/QUICKSTART.md) for build/publish workflow and changeset process.
 
-- `pnpm -r pack --pack-destination /tmp/hexafy-packs`
-- `pnpm exec changeset publish`
+## Domain Adapters
 
-This is required because the repo intentionally relies on pnpm to apply `publishConfig.exports` overrides and rewrite `workspace:*` dependencies during packaging. Avoid `npm publish` and `bun publish` for publishable workspace packages until Bun matches the same release behavior.
+- `@hexafy/aws-lambda` - Lambda API Gateway adapter
+- `@hexafy/email` - Email domain (SendGrid/SMTP)
+- `@hexafy/object-storage` - S3 with NoOp test adapter
