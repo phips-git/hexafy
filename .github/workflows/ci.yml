@@ -46,6 +46,3 @@ jobs:
 
       - name: '🏗️ Build'
         run: bun run build
-
-      - name: '📦 Require changesets for changed packages'
-        run: bunx changeset status --since origin/main
