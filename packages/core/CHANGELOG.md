@@ -1,5 +1,11 @@
 # @hexafy/core
 
+## 1.0.0-rc.4
+
+### Patch Changes
+
+- f4ae639: Update project config
+
 ## 1.0.0-rc.3
 
 ### Patch Changes
