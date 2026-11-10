@@ -48,12 +48,3 @@ Workflow steps: version → build → publish → GitHub release.
 | Branch | Changeset Required? | Behavior                                |
 | ------ | ------------------- | --------------------------------------- |
 | `main` | ✅ Yes              | CI checks (`lint`, `typecheck`, `test`) |
-
-## Commands
-
-| Command             | Purpose               |
-| ------------------- | --------------------- |
-| `bun run changeset` | Create changeset      |
-| `bun run typecheck` | TypeScript validation |
-| `bun run test`      | Run tests             |
-| `bun run build`     | Generate dist/        |

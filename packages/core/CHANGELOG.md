@@ -1,5 +1,11 @@
 # @hexafy/core
 
+## 1.0.0-rc.3
+
+### Patch Changes
+
+- c2d0942: Update CI definitions
+
 ## 1.0.0-rc.2
 
 ### Patch Changes
