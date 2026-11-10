@@ -18,7 +18,6 @@ permissions:
 jobs:
   quality-checks:
     name: '✨ Quality Checks'
-    if: ${{ github.event_name == 'pull_request' && !startsWith(github.head_ref, 'changeset-release/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
