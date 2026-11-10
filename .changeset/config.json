@@ -3,6 +3,7 @@
   "ignore": [
     "@hexafy/example-domain",
     "@hexafy/aws-lambda",
+    "@hexafy/email",
     "@hexafy/nestjs",
     "@hexafy/object-storage",
     "@hexafy/typescript-config",
