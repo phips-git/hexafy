@@ -5,8 +5,8 @@ import type {
   IdentifierPort,
   LoggingPort,
   MetricsPort
-} from '../domain/ports';
-import type { UniqueIdentifier } from '../domain/types';
+} from '../application/ports';
+import { UniqueIdentifier } from '../domain/primitives';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
 import {
   type CancellationToken,

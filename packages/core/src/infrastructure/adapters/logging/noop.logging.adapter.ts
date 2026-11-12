@@ -1,4 +1,4 @@
-import type { LoggingPort } from '../../../domain/ports';
+import type { LoggingPort } from '../../../application/ports';
 
 /**
  * No-op logging adapter implementing LoggingPort.

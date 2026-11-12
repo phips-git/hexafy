@@ -1,16 +1,12 @@
+import type { UniqueIdentifier } from '../domain/primitives';
+import { SystemIdentifierAdapter } from '../infrastructure/adapters';
 import type {
   ClockPort,
   IdentifierPort,
   LoggingPort,
   MetricsPort
-} from '../domain/ports';
-import type { UniqueIdentifier } from '../domain/primitives';
-import {
-  ConsoleLoggingAdapter,
-  NoOpMetricsAdapter,
-  SystemClockAdapter,
-  SystemIdentifierAdapter
-} from '../infrastructure/adapters';
+} from './ports';
+import { ServiceBase } from './service.base';
 import type { CancellationToken, UsecaseResult } from './types';
 import { failure, success } from './utils';
 
@@ -38,7 +34,9 @@ export type UsecaseExecutionDependencies = UsecaseExecutionConfiguration;
 /**
  * Abstract base class for all use cases.
  *
- * Provides structured logging, execution IDs, and duration tracking.
+ * A `ServiceBase` with a full operation lifecycle on top of the same injected
+ * infrastructure ports. Provides structured logging, execution IDs, and
+ * duration tracking.
  *
  * Simple semantics:
  *
@@ -74,10 +72,15 @@ export type UsecaseExecutionDependencies = UsecaseExecutionConfiguration;
  * @template TInput - The input type for the use case
  * @template TOutput - The output type for the use case
  */
-export abstract class Usecase<TInput = void, TOutput = void> {
+export abstract class Usecase<
+  TInput = void,
+  TOutput = void
+> extends ServiceBase {
   constructor(
     protected readonly dependencies: UsecaseExecutionConfiguration = {}
-  ) {}
+  ) {
+    super(dependencies);
+  }
 
   /**
    * Abstract method to implement.
@@ -108,14 +111,12 @@ export abstract class Usecase<TInput = void, TOutput = void> {
     executionContext?: Record<string, unknown>,
     cancellationToken?: CancellationToken
   ): Promise<UsecaseResult<TOutput, Error>> {
-    const startTime = this.getNow();
+    const startTime = this.clock.now();
     const executionId = this.getExecutionId();
     const baseContext = { executionId, ...(executionContext ?? {}) };
-    const logger = this.getOrCreateLoggingAdapter();
-    const metrics = this.getOrCreateMetricsAdapter();
 
     if (cancellationToken?.isCancelled) {
-      metrics.increment('usecase_cancelled', {
+      this.metrics.increment('usecase_cancelled', {
         executionId: String(executionId)
       });
       return failure(
@@ -126,45 +127,31 @@ export abstract class Usecase<TInput = void, TOutput = void> {
     try {
       const result = await this.executeInternal(
         input,
-        logger,
+        this.logger,
         cancellationToken
       );
 
-      const durationMs = this.getNow() - startTime;
-      logger.info('Execution completed', { ...baseContext, durationMs });
-      metrics.histogram('usecase_duration', durationMs);
+      const durationMs = this.clock.now() - startTime;
+      this.logger.info('Execution completed', { ...baseContext, durationMs });
+      this.metrics.histogram('usecase_duration', durationMs);
 
       return success(result);
     } catch (error) {
-      const durationMs = this.getNow() - startTime;
-      logger.error('Execution failed', { ...baseContext, durationMs });
-      metrics.increment('usecase_errors', { executionId: String(executionId) });
+      const durationMs = this.clock.now() - startTime;
+      this.logger.error('Execution failed', { ...baseContext, durationMs });
+      this.metrics.increment('usecase_errors', {
+        executionId: String(executionId)
+      });
 
       return failure(this.normalizeError(error));
     }
   }
 
-  private getNow(): number {
-    return this.dependencies.clock?.now() ?? SystemClockAdapter.now();
-  }
-
   private getExecutionId(): UniqueIdentifier {
     return (
-      this.dependencies.identifier?.generate(this.getNowAdapter()) ??
-      SystemIdentifierAdapter.generate(this.getNowAdapter())
+      this.dependencies.identifier?.generate(this.clock) ??
+      SystemIdentifierAdapter.generate(this.clock)
     );
-  }
-
-  private getNowAdapter(): ClockPort {
-    return this.dependencies.clock ?? SystemClockAdapter;
-  }
-
-  private getOrCreateLoggingAdapter(): LoggingPort {
-    return this.dependencies.logging ?? ConsoleLoggingAdapter;
-  }
-
-  private getOrCreateMetricsAdapter(): MetricsPort {
-    return this.dependencies.metrics ?? NoOpMetricsAdapter;
   }
 
   private normalizeError(error: unknown): Error {

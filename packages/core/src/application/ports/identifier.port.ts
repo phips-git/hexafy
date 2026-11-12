@@ -1,4 +1,4 @@
-import type { UniqueIdentifier } from '../primitives';
+import type { UniqueIdentifier } from '../../domain/primitives';
 import type { ClockPort } from './clock.port';
 
 /**

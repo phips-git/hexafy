@@ -1,3 +1,4 @@
+export { ServiceBase, type ServiceConfiguration } from './service.base';
 export type { CancellationToken, UsecaseResult } from './types';
 export {
   Usecase,
