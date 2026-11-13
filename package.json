@@ -12,8 +12,8 @@
     "clean": "git clean -xdf node_modules && bun --filter '*' clean",
     "format": "bun fmt",
     "test": "bun test",
-    "typecheck": "bun --filter '@hexafy/core' typecheck && bun --filter '@hexafy/email' typecheck && bun --filter '@hexafy/aws-lambda' typecheck && bun --filter '@hexafy/nestjs' typecheck && bun --filter '@hexafy/object-storage' typecheck",
-    "build": "bun --filter '@hexafy/core' build && bun --filter '@hexafy/email' build && bun --filter '@hexafy/aws-lambda' build && bun --filter '@hexafy/nestjs' build && bun --filter '@hexafy/object-storage' build",
+    "typecheck": "bun --filter '*' --filter '!@hexafy/typescript-config' --filter '!@hexafy/aws-lambda-example' --filter '!@hexafy/nestjs-example' --filter '!@hexafy/example-domain' typecheck",
+    "build": "bun --filter '*' --filter '!@hexafy/typescript-config' --filter '!@hexafy/aws-lambda-example' --filter '!@hexafy/nestjs-example' --filter '!@hexafy/example-domain' build",
     "prepare": "husky"
   },
   "devDependencies": {
