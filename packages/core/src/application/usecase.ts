@@ -14,15 +14,15 @@ import { failure, success } from './utils';
 export interface UsecaseExecutionConfiguration {
   clock?: ClockPort;
   /**
-   * Optional logging instance. If not provided, consoleLogger is used by
-   * default for developer convenience. Set to NOOP_LOGGER to explicitly disable
-   * logging.
+   * Optional logging instance. If not provided, ConsoleLoggingAdapter is used
+   * by default for developer convenience. Pass NoOpLoggingAdapter to explicitly
+   * disable logging.
    */
   logging?: LoggingPort;
   /**
-   * Optional metrics port for observability. If not provided, NOOP_METRICS is
-   * used (no metrics recorded). Pass a custom implementation to enable metrics
-   * collection.
+   * Optional metrics port for observability. If not provided,
+   * NoOpMetricsAdapter is used (no metrics recorded). Pass a custom
+   * implementation to enable metrics collection.
    */
   metrics?: MetricsPort;
   identifier?: IdentifierPort;
@@ -43,29 +43,31 @@ export type UsecaseExecutionDependencies = UsecaseExecutionConfiguration;
  * - Return a value → success (wrapped automatically)
  * - Throw an error → failure (wrapped automatically)
  *
- * Logging is enabled by default (uses console logger) for developer
- * convenience. To disable logging, explicitly pass NOOP_LOGGER.
+ * Logging is enabled by default (uses ConsoleLoggingAdapter) for developer
+ * convenience. To disable logging, pass NoOpLoggingAdapter.
  *
  * The framework logs the fact of failure, not the error details. Consumers
  * handle error logging at the call site by inspecting the Result type.
  *
  * @example
  *   ```typescript
- *   // Default: uses consoleLogger (logs to console)
+ *   import { NoOpLoggingAdapter } from '../infrastructure/adapters';
+ *
+ *   // Default: logs to the console
  *   const useCase = new CreateUserUseCase({});
  *   await useCase.execute({ email: 'user@example.com' });
  *   // → Logs to console
  *
  *   // Disable logging (for tests or silent mode)
  *   const silentUseCase = new CreateUserUseCase({
- *     logger: NOOP_LOGGER
+ *     logging: NoOpLoggingAdapter
  *   });
  *   await silentUseCase.execute({ email: 'user@example.com' });
  *   // → No output
  *
  *   // Custom logger
- *   const useCase = new CreateUserUseCase({
- *     logger: myCustomLogger
+ *   const customUseCase = new CreateUserUseCase({
+ *     logging: myCustomLogger
  *   });
  *   ```;
  *

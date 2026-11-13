@@ -14,15 +14,15 @@ export interface ServiceConfiguration {
    */
   clock?: ClockPort;
   /**
-   * Optional logging instance. If not provided, consoleLogger is used by
-   * default for developer convenience. Set to NOOP_LOGGER to explicitly disable
-   * logging.
+   * Optional logging instance. If not provided, ConsoleLoggingAdapter is used
+   * by default for developer convenience. Pass NoOpLoggingAdapter to explicitly
+   * disable logging.
    */
   logging?: LoggingPort;
   /**
-   * Optional metrics port for observability. If not provided, NOOP_METRICS is
-   * used (no metrics recorded). Pass a custom implementation to enable metrics
-   * collection.
+   * Optional metrics port for observability. If not provided,
+   * NoOpMetricsAdapter is used (no metrics recorded). Pass a custom
+   * implementation to enable metrics collection.
    */
   metrics?: MetricsPort;
 }

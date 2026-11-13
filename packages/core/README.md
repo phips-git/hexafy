@@ -1,17 +1,22 @@
 # @hexafy/core
 
-A small, opinionated toolkit for building hexagonal architecture applications in TypeScript.
+Hexafy provides a lightweight foundation for hexagonal architecture in TypeScript, helping teams build cleaner, more testable business logic without reinventing the basics.
 
-This package gives you the core building blocks for domain logic, application use cases, repositories, and error handling without bringing in a framework.
+If you’re new to hexagonal architecture, see the Key concepts section below.
 
-## What it includes
+## Why this package exists
 
-- `Usecase` base class for application logic
-- `ServiceBase` for shared business logic and lightweight entry points
-- `UsecaseResult` helpers: `success`, `failure`, `unwrap`, `isSuccess`, `isFailure`
-- domain error types such as `ValidationError`, `NotFoundError`, `ConflictError`, and `ApplicationError`
+Hexafy gives you the core building blocks for hexagonal architecture applications without forcing a framework or a large app scaffold.
+
+It keeps responsibilities explicit and gives you:
+
+- `Usecase` for commands and queries with execution tracking and result wrapping
+- `ServiceBase` for shared application logic and lightweight entry points
+- `UsecaseResult` helpers: `success`, `failure`, `unwrap`, `isSuccess`, and `isFailure`
+- domain errors such as `ValidationError`, `NotFoundError`, `ConflictError`, `ForbiddenError`, and `ApplicationError`
 - repository and unit-of-work base abstractions
-- logging, clock, identifier, and metrics ports with adapters
+- ports and adapters for clocks, identifiers, logging, and metrics
+- domain primitives such as `Entity`, `AggregateRoot`, `ValueObject`, and `UniqueIdentifier`
 
 ## Installation
 
@@ -66,8 +71,7 @@ class CreateUserUseCase extends Usecase<CreateUserInput, User> {
   }
 }
 
-const useCase = new CreateUserUseCase();
-const result = await useCase.execute({
+const result = await new CreateUserUseCase().execute({
   email: 'john@example.com',
   name: 'John'
 });
@@ -79,22 +83,78 @@ if (result.success) {
 }
 ```
 
+## Recommended project layout
+
+A practical default for projects using this package looks like this:
+
+```text
+src/
+  domain/
+    user/
+      models/
+        user.ts
+        user-id.ts
+      policies/
+        user.policies.ts
+      validators/
+        user.validators.ts
+      ports/
+        user-repository.port.ts
+
+  application/
+    user/
+      usecases/
+        create-user.usecase.ts
+        authenticate.usecase.ts
+
+  infrastructure/
+    user/
+      adapters/
+        in-memory-user.repository.ts
+        postgres-user.repository.ts
+```
+
+This keeps the domain model and rules together, while the application layer focuses on orchestration and the infrastructure layer holds concrete implementations. It is a practical pattern, not a rigid requirement.
+
 ## Core pattern
 
-The package is built around a simple application flow:
+The package follows a simple flow:
 
-- business logic lives in a `Usecase` or `ServiceBase`
-- the use case returns a value on success
-- thrown errors are converted into a failed `UsecaseResult`
-- infrastructure concerns stay outside the domain layer
+- a command or query enters through a `Usecase` or `ServiceBase`
+- business logic runs against domain objects and ports
+- success returns a value
+- expected failures become domain errors and are surfaced through `UsecaseResult`
+- infrastructure details stay outside the application layer
 
-### Entry point strategies: `Usecase` vs `ServiceBase`
+## `Usecase` vs `ServiceBase`
 
-In hexagonal architecture, inbound (input) ports are the entry points where external actors call into the application layer. The package offers two implementation strategies for them:
+### `Usecase`
 
-**`Usecase`** — full-featured entry point for a single operation. Automatically provides execution IDs, duration tracking, cancellation support, and wraps the outcome in a `UsecaseResult<T, Error>`. Extends `ServiceBase`, so both strategies share the same injected ports and differ only in lifecycle.
+Use `Usecase` for a single operation that needs:
 
-**`ServiceBase`** — lightweight component. Only provides injected infrastructure ports (`clock`, `logger`, `metrics`) with sensible defaults, no operation lifecycle:
+- execution IDs and duration tracking
+- a uniform result contract
+- cancellation support
+- structured logging and metrics
+
+```ts
+import { Usecase } from '@hexafy/core/application';
+import { ValidationError } from '@hexafy/core/domain';
+
+class CreateUser extends Usecase<{ email: string }, { userId: string }> {
+  protected async executeInternal(input: { email: string }) {
+    if (!input.email.includes('@')) {
+      throw new ValidationError('Invalid email');
+    }
+
+    return { userId: 'u_123' };
+  }
+}
+```
+
+### `ServiceBase`
+
+Use `ServiceBase` when you want reusable application logic without the full operation lifecycle.
 
 ```ts
 import { ServiceBase } from '@hexafy/core/application';
@@ -105,14 +165,14 @@ class PricingService extends ServiceBase {
   }
 
   async totalFor(cart: Cart): Promise<Money> {
-    // shared logic composed by multiple use cases
+    return Money.zero();
   }
 }
 ```
 
-Use `Usecase` when an operation needs observability, a uniform error contract, or cancellation. Use `ServiceBase` for shared business logic composed by multiple use cases, lightweight entry points (jobs, event handlers, CLI) without tracking overhead, or stateful components.
+## Result handling
 
-Example:
+The package prefers explicit results over unstructured exceptions for expected business failures.
 
 ```ts
 import { failure, success } from '@hexafy/core/application';
@@ -127,7 +187,7 @@ if (ok.success) {
 
 ## Package layout
 
-This package exposes focused subpaths:
+The public entry points are intentionally small:
 
 ```ts
 import {
@@ -138,21 +198,36 @@ import {
 } from '@hexafy/core/application';
 import {
   ApplicationError,
+  Entity,
   type LoggerPort,
   RepositoryBase,
   type RepositoryPort,
   ValidationError
 } from '@hexafy/core/domain';
-import { ConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
+import {
+  ConsoleLoggingAdapter,
+  NoOpLoggingAdapter,
+  NoOpMetricsAdapter
+} from '@hexafy/core/infrastructure';
 ```
 
 ## Recommended usage
 
-- keep domain rules and validation in `Usecase` or domain types
-- let infrastructure code throw unexpected exceptions
+- keep domain rules and validation close to the domain or use case
+- let infrastructure throw unexpected exceptions at the boundary
 - use domain errors for expected business failures
-- keep adapters on the edges of the system
-- prefer small, explicit ports over framework-specific abstractions
+- keep adapters at the edges of the system
+- prefer explicit ports over framework-specific abstractions
+
+## Key concepts
+
+- **Domain**: business rules, entities, policies, validation, and core logic
+- **Application**: use cases and orchestration logic that coordinates domain behavior
+- **Infrastructure**: implementations for persistence, HTTP, logging, external APIs, and other technical concerns
+- **Port**: a contract that the application or domain depends on
+- **Adapter**: the concrete implementation of a port
+- **Use case**: a single application operation, such as creating a user or authenticating a session
+- **Boundary**: the explicit separation between business logic and external concerns
 
 ## License
 
