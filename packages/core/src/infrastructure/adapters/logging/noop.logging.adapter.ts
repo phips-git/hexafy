@@ -7,7 +7,6 @@ import type { LoggingPort } from '../../../application/ports';
  *
  * - Production environments with external logging
  * - Testing where logging output is undesirable
- * - Performance-critical paths without logging
  *
  * @see {@link LoggingPort}
  */

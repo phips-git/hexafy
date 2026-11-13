@@ -4,8 +4,35 @@
 
 - **Self-explanatory code** - Clear names, no unnecessary comments
 - **No `any` types** - Full type safety required
+- **No type-assertion shortcuts** - Avoid `as any`, `as unknown as`, and casting to bypass compiler errors; prefer precise types, `unknown` with guards, and `satisfies`
+- **Type-safe boundaries** - Validate untrusted runtime values at boundaries and narrow them with type guards before usage
 - **Direct imports** - No convenience re-exports
 - **Small functions** - Single responsibility
+
+### Type-safety rules
+
+- Prefer explicit interfaces, type aliases, and helper functions over `as` casts
+- Use `unknown` for untrusted values and validate with `typeof`, `instanceof`, or custom guards before narrowing
+- Use `satisfies` when you want to check a value against a type without widening it
+- Only use a cast when the runtime contract is already known and the cast is expressing a true narrowing, not hiding a type problem
+- If a cast is needed at a boundary (for example JSON parsing or framework payloads), put it behind a small validating function that proves the runtime shape
+
+```ts
+const user = readFromExternalSource();
+
+if (!isUser(user)) {
+  throw new ValidationError('Invalid user payload');
+}
+
+return user;
+```
+
+Bad patterns:
+
+```ts
+const user = payload as User; // bypasses validation
+const value = data as any; // hides a real type problem
+```
 
 ## Naming
 
@@ -62,7 +89,7 @@ export class UserController {
 }
 ```
 
-Also see [PROJECT-STRUCTURE.md](../PROJECT-STRUCTURE.md) for import/export patterns.
+Also see [PROJECT-STRUCTURE.md](./PROJECT-STRUCTURE.md) for package layout and import/export patterns.
 
 ### Use Cases
 
@@ -70,12 +97,15 @@ Extend `Usecase` base class:
 
 ```typescript
 import { failure, success, Usecase } from '@hexafy/core/application';
+import { ValidationError } from '@hexafy/core/domain';
 
 class CreateUserUseCase extends Usecase<Input, Output> {
-  async executeInternal(input, logger) {
+  protected async executeInternal(input: Input, logger: LoggingPort) {
     if (!input.email) {
       return failure(new ValidationError('Email required'));
     }
+
+    logger.info('User created', { email: input.email });
     return success({ userId: '123' });
   }
 }
@@ -83,15 +113,24 @@ class CreateUserUseCase extends Usecase<Input, Output> {
 
 ### Errors
 
-- **Domain errors**: Return via `Result` (don't throw)
-- **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.)
+- **Domain errors**: Return via `failure(...)` from a use case; do not throw for expected business failures
+- **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.) at the boundary when they are not part of the business result contract
 
 ### Exports
 
-Import from subpaths:
+Prefer the package subpaths that match the responsibility:
 
 ```typescript
-import { Usecase } from '@hexafy/core/application';
-import { Usecase } from '@hexafy/core/domain';
-import { LoggerPort } from '@hexafy/core/infrastructure';
+import { failure, success, unwrap, Usecase } from '@hexafy/core/application';
+import {
+  ApplicationError,
+  Entity,
+  type LoggerPort,
+  ValidationError
+} from '@hexafy/core/domain';
+import {
+  ConsoleLoggingAdapter,
+  NoOpLoggingAdapter,
+  NoOpMetricsAdapter
+} from '@hexafy/core/infrastructure';
 ```

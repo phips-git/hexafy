@@ -1,36 +1,8 @@
 /**
- * Port for repository-based data access.
+ * Repository contract for entity persistence.
  *
- * Defines the contract for data persistence operations following the Repository
- * pattern. Provides abstraction over data sources and enables domain logic to
- * remain decoupled from infrastructure concerns.
- *
- * @example
- *   ```typescript
- *   // Implement for a specific entity
- *   class UserRepository implements RepositoryPort<User, UserId> {
- *     async findById(id: UserId): Promise<User | null> {
- *       const data = await db.users.findOne({ id: id.value });
- *       return data ? new User(id, data.email, data.name) : null;
- *     }
- *
- *     async findAll(): Promise<User[]> {
- *       return db.users.find({}).map((u) => new User(u.id, u.email, u.name));
- *     }
- *
- *     async save(entity: User): Promise<User> {
- *       await db.users.upsert(entity.toJSON());
- *       return entity;
- *     }
- *
- *     async delete(id: UserId): Promise<void> {
- *       await db.users.delete({ id: id.value });
- *     }
- *   }
- *   ```;
- *
- * @template Entity - The entity type managed by this repository
- * @template UniqueIdentifier - The unique identifier type for the entity
+ * @template Entity Stored entity type.
+ * @template UniqueIdentifier Entity identifier type.
  */
 export interface RepositoryPort<Entity, UniqueIdentifier> {
   /**

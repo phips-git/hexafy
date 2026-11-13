@@ -1,25 +1,13 @@
 {
+  "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
+    "strictPropertyInitialization": false,
+    "moduleResolution": "Bundler",
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "types": ["node", "bun"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/projects", "src/tasks", "src/scripts", "src/infrastructure"]
 }

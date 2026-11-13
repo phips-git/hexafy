@@ -69,15 +69,8 @@ import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
 ### Using with @hexafy/core primitives
 
 ```typescript
-import {
-  failure,
-  LoggerPort,
-  Result,
-  success,
-  Usecase,
-  UsecaseExecutionDependencies,
-  ValidationError
-} from '@hexafy/core';
+import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
+import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
 
 interface CreateUserInput {
   email: string;
@@ -88,7 +81,7 @@ interface CreateUserInput {
 class CreateUserUseCase extends Usecase<CreateUserInput, User> {
   constructor(
     private readonly userRepository: UserPort,
-    dependencies: UsecaseExecutionDependencies
+    dependencies: UsecaseConfiguration
   ) {
     super(dependencies);
   }
@@ -96,10 +89,10 @@ class CreateUserUseCase extends Usecase<CreateUserInput, User> {
   protected async executeInternal(
     input: CreateUserInput,
     logger: LoggerPort // Logger always available (NOOP if not configured)
-  ): Promise<Result<User>> {
+  ): Promise<User> {
     // Validate
     if (!input.email.includes('@')) {
-      return failure(new ValidationError('Invalid email format'));
+      throw new ValidationError('Invalid email format');
     }
 
     // Business logic
@@ -113,7 +106,7 @@ class CreateUserUseCase extends Usecase<CreateUserInput, User> {
     });
 
     logger.info('User created', { userId: user.id });
-    return success(user);
+    return user;
   }
 }
 ```
@@ -197,7 +190,7 @@ class CreateTaskUseCase extends Usecase<CreateTaskInput, Task> {
 ### 4. Type-Safe IDs with Brand
 
 ```typescript
-import { Brand } from '@hexafy/core/brand';
+import type { Brand } from '@hexafy/core/domain';
 
 export type TaskId = Brand<string, 'TaskId'>;
 export type UserId = Brand<string, 'UserId'>;

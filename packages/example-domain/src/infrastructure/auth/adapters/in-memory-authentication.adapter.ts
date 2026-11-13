@@ -5,14 +5,12 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
   constructor(private readonly userRepository: UserPort) {}
 
   async authenticate(email: string, password: string): Promise<User> {
-    // In real implementation, verify password hash
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    // In real implementation, verify password
     if (password !== 'password123') {
       throw new Error('Invalid credentials');
     }
@@ -44,7 +42,6 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
   }
 
   async validateToken(token: string): Promise<User | null> {
-    // In real implementation, verify JWT token
     if (token.startsWith('mock_token_')) {
       const userId = token.replace('mock_token_', '');
       return this.userRepository.findById(userId);

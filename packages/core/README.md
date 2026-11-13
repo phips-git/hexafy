@@ -31,10 +31,7 @@ yarn add @hexafy/core
 ## Quick start
 
 ```ts
-import {
-  Usecase,
-  type UsecaseExecutionConfiguration
-} from '@hexafy/core/application';
+import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
 import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
 
 interface CreateUserInput {
@@ -49,7 +46,7 @@ interface User {
 }
 
 class CreateUserUseCase extends Usecase<CreateUserInput, User> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super(config);
   }
 
@@ -82,6 +79,42 @@ if (result.success) {
   console.error(result.error.message);
 }
 ```
+
+## Public API at a glance
+
+Use the package through the public entry points below:
+
+```ts
+import {
+  type CancellationToken,
+  failure,
+  ServiceBase,
+  success,
+  Usecase,
+  type UsecaseConfiguration,
+  type UsecaseResult,
+  type UsecaseRetryConfiguration
+} from '@hexafy/core/application';
+import {
+  AggregateRoot,
+  ApplicationError,
+  Entity,
+  RepositoryBase,
+  type RepositoryPort,
+  UnitOfWorkBase,
+  ValidationError,
+  ValueObject
+} from '@hexafy/core/domain';
+import {
+  ConsoleLoggingAdapter,
+  NoOpLoggingAdapter,
+  NoOpMetricsAdapter,
+  SystemClockAdapter,
+  SystemIdentifierAdapter
+} from '@hexafy/core/infrastructure';
+```
+
+The package intentionally keeps the API small and framework-agnostic. Domain rules stay in the domain layer; application orchestration stays in `Usecase` and `ServiceBase`; infrastructure concerns stay at the edges.
 
 ## Recommended project layout
 
@@ -126,7 +159,52 @@ The package follows a simple flow:
 - expected failures become domain errors and are surfaced through `UsecaseResult`
 - infrastructure details stay outside the application layer
 
+This is intentionally conservative: no framework lock-in, no hidden side effects, and no implicit business behavior beyond the execution lifecycle.
+
 ## `Usecase` vs `ServiceBase`
+
+Usecases stay conservative by default: timeout and retry are opt-in execution policies for slow or flaky boundary calls, not implicit business logic behavior.
+
+```ts
+const result = await new CreateUserUseCase({
+  timeoutMs: 2000,
+  retry: {
+    attempts: 3,
+    delayMs: 150,
+    backoffMs: 150,
+    shouldRetry: (error) =>
+      error instanceof Error && /timeout|temporar|429|503/i.test(error.message)
+  }
+}).execute({ email: 'john@example.com', name: 'John' });
+```
+
+### Cancellation, timeouts, and retries
+
+`Usecase.execute(input, context?, cancellationToken?)` supports cooperative cancellation for request-scoped flows. Use it when the surrounding runtime already knows a request is aborted or timed out.
+
+```ts
+import { type CancellationToken, Usecase } from '@hexafy/core/application';
+
+const controller = new AbortController();
+const token: CancellationToken = {
+  isCancelled: controller.signal.aborted,
+  reason: controller.signal.reason ?? undefined
+};
+
+const result = await new RefreshUserSession({
+  timeoutMs: 1500,
+  retry: { attempts: 3, delayMs: 100, backoffMs: 200 }
+}).execute({ userId: 'user_123' }, { requestId: 'req_42' }, token);
+```
+
+Best practices:
+
+- prefer adapter-native timeout and cancellation for HTTP, DB, and queue clients
+- keep `retry` small and explicit
+- retry only safe or idempotent operations
+- fail fast on validation and domain errors
+
+`timeoutMs` and `retry` are opt-in execution policies for slow or flaky boundary calls, not business logic.
 
 ### `Usecase`
 

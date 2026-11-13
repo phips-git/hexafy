@@ -4,7 +4,7 @@
  * Provides a base module for organizing your domain, application, and
  * infrastructure layers
  */
-import { Module } from '@nestjs/common';
+import { Module, type ModuleMetadata, type Provider } from '@nestjs/common';
 
 /**
  * Domain module - contains domain entities, value objects, and domain services
@@ -35,7 +35,10 @@ export { InfrastructureModule };
  *   export class DomainModule {}
  *   ```;
  */
-export function createDomainModule(providers: any[] = [], imports: any[] = []) {
+export function createDomainModule(
+  providers: Provider[] = [],
+  imports: ModuleMetadata['imports'] = []
+) {
   return Module({
     providers,
     imports,
@@ -55,8 +58,8 @@ export function createDomainModule(providers: any[] = [], imports: any[] = []) {
  *   ```;
  */
 export function createInfrastructureModule(
-  providers: any[] = [],
-  imports: any[] = []
+  providers: Provider[] = [],
+  imports: ModuleMetadata['imports'] = []
 ) {
   return Module({
     providers,

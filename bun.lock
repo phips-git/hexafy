@@ -21,6 +21,7 @@
         "nanoid": "6.0.1",
       },
       "devDependencies": {
+        "@hexafy/typescript-config": "workspace:*",
         "@types/aws-lambda": "^8.10.147",
         "esbuild": "0.28.2",
         "tsx": "4.23.15",
