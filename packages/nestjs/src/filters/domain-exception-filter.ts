@@ -2,6 +2,12 @@
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import { Catch } from '@nestjs/common';
 
+interface HttpResponseLike {
+  status(code: number): {
+    json(body: unknown): unknown;
+  };
+}
+
 import {
   ApplicationError,
   ExternalServiceError,
@@ -19,7 +25,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     host: ArgumentsHost
   ) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<any>();
+    const response = ctx.getResponse<HttpResponseLike>();
 
     const status = exception instanceof HttpUnauthorizedError ? 401 : 403;
 
@@ -39,7 +45,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 export class DomainExceptionFilter implements ExceptionFilter {
   catch(exception: ApplicationError, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<any>();
+    const response = ctx.getResponse<HttpResponseLike>();
 
     response.status(400).json({
       success: false,
@@ -60,7 +66,7 @@ export class InfrastructureExceptionFilter implements ExceptionFilter {
     host: ArgumentsHost
   ) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<any>();
+    const response = ctx.getResponse<HttpResponseLike>();
 
     response.status(500).json({
       success: false,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 
 import { ConsoleLoggingAdapter } from './console.logging.adapter';
-import { createConsoleLogger } from './json-console.logging.adapter';
+import { JSONConsoleLoggingAdapter } from './json-console.logging.adapter';
 
 type ConsoleCall = unknown[];
 
@@ -56,10 +56,10 @@ describe('ConsoleLoggingAdapter', () => {
   });
 });
 
-describe('createConsoleLogger', () => {
+describe('JSONConsoleLoggingAdapter', () => {
   it('serializes log payload with component and context', () => {
     const infoCalls = captureConsoleMethod('info');
-    const logger = createConsoleLogger('core');
+    const logger = JSONConsoleLoggingAdapter('core');
 
     logger.info('hello', { requestId: 'r1' });
 
@@ -80,7 +80,7 @@ describe('createConsoleLogger', () => {
 
   it('normalizes Error and circular structures', () => {
     const errorCalls = captureConsoleMethod('error');
-    const logger = createConsoleLogger('core');
+    const logger = JSONConsoleLoggingAdapter('core');
 
     const nested = new Error('nested');
     const root = new Error('root', { cause: nested });
@@ -103,7 +103,7 @@ describe('createConsoleLogger', () => {
 
   it('marks circular Error cause and skips reserved error keys', () => {
     const errorCalls = captureConsoleMethod('error');
-    const logger = createConsoleLogger();
+    const logger = JSONConsoleLoggingAdapter();
 
     const loop = new Error('loop') as Error & {
       cause?: unknown;
@@ -123,7 +123,7 @@ describe('createConsoleLogger', () => {
 
   it('handles non-plain objects and serialization fallback', () => {
     const warnCalls = captureConsoleMethod('warn');
-    const logger = createConsoleLogger();
+    const logger = JSONConsoleLoggingAdapter();
 
     const when = new Date('2026-01-01T00:00:00.000Z');
     logger.warn('date', { when, values: [{ n: 1 }] });
@@ -150,7 +150,7 @@ describe('createConsoleLogger', () => {
     const debugCalls = captureConsoleMethod('debug');
     const warnCalls = captureConsoleMethod('warn');
     const errorCalls = captureConsoleMethod('error');
-    const logger = createConsoleLogger();
+    const logger = JSONConsoleLoggingAdapter();
 
     logger.info('i');
     logger.debug('d');

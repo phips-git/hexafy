@@ -5,15 +5,15 @@ import type {
   IdentifierPort,
   LoggingPort,
   MetricsPort
-} from '../domain/ports';
-import type { UniqueIdentifier } from '../domain/types';
+} from '../application/ports';
+import { UniqueIdentifier } from '../domain/primitives';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
 import {
   type CancellationToken,
   failure,
   success,
   Usecase,
-  type UsecaseExecutionConfiguration
+  type UsecaseConfiguration
 } from './index';
 
 class MockClock implements ClockPort {
@@ -76,13 +76,11 @@ class MockLogger implements LoggingPort {
 
 class MockCancellationToken implements CancellationToken {
   readonly isCancelled: boolean;
-  readonly reason?: string;
+  readonly reason: string | undefined;
 
   constructor(isCancelled: boolean, reason: string | undefined) {
     this.isCancelled = isCancelled;
-    if (reason !== undefined) {
-      this.reason = reason;
-    }
+    this.reason = reason;
   }
 }
 
@@ -122,7 +120,7 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
   TInput,
   TOutput
 > {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
@@ -136,7 +134,7 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
 }
 
 class SuccessUseCase extends TestUseCase<string, string> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
@@ -150,7 +148,7 @@ class SuccessUseCase extends TestUseCase<string, string> {
 }
 
 class FailureUseCase extends TestUseCase<string, string> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
@@ -164,7 +162,7 @@ class FailureUseCase extends TestUseCase<string, string> {
 }
 
 class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
@@ -342,6 +340,296 @@ describe('Usecase', () => {
     });
   });
 
+  describe('Timeouts', () => {
+    it('returns failure when execution exceeds timeoutMs', async () => {
+      const metrics = new MockMetrics();
+      const useCase = new AsyncDelayUseCase({
+        metrics,
+        timeoutMs: 10
+      });
+
+      const result = await useCase.execute({ delay: 50 });
+
+      expect(result.success).toBe(false);
+      if (result.success === false) {
+        expect(result.error?.message).toContain('timed out');
+      }
+      expect(metrics.hasMetric('usecase_timeout')).toBe(true);
+    });
+
+    it('passes a cancelled token to executeInternal when timeout fires', async () => {
+      let cancellationTokenSeen: CancellationToken | undefined;
+
+      class TimeoutAwareUseCase extends TestUseCase<{ delay: number }, string> {
+        protected override async executeInternal(
+          input: { delay: number },
+          _logger: LoggingPort,
+          cancellationToken?: CancellationToken
+        ): Promise<string> {
+          cancellationTokenSeen = cancellationToken;
+
+          await new Promise((resolve) => setTimeout(resolve, input.delay));
+          return 'completed';
+        }
+      }
+
+      const useCase = new TimeoutAwareUseCase({
+        timeoutMs: 10
+      });
+
+      const result = await useCase.execute({ delay: 50 });
+
+      expect(result.success).toBe(false);
+      expect(cancellationTokenSeen?.isCancelled).toBe(true);
+      expect(cancellationTokenSeen?.reason).toContain('timed out');
+    });
+  });
+
+  describe('Configuration validation', () => {
+    it('rejects non-positive timeoutMs values during construction', () => {
+      expect(() => new SuccessUseCase({ timeoutMs: 0 })).toThrow(
+        'Usecase timeoutMs must be a finite number greater than 0.'
+      );
+      expect(() => new SuccessUseCase({ timeoutMs: -1 })).toThrow(
+        'Usecase timeoutMs must be a finite number greater than 0.'
+      );
+    });
+
+    it('rejects invalid retry attempts and delay values during construction', () => {
+      expect(() => new SuccessUseCase({ retry: { attempts: 0 } })).toThrow(
+        'Usecase retry.attempts must be a positive integer.'
+      );
+      expect(
+        () => new SuccessUseCase({ retry: { attempts: 1, delayMs: -1 } })
+      ).toThrow(
+        'Usecase retry.delayMs must be a finite number greater than or equal to 0.'
+      );
+      expect(
+        () => new SuccessUseCase({ retry: { attempts: 1, backoffMs: -5 } })
+      ).toThrow(
+        'Usecase retry.backoffMs must be a finite number greater than or equal to 0.'
+      );
+    });
+
+    it('clamps extremely large retry backoff values to a safe maximum', () => {
+      const useCase = new SuccessUseCase();
+      const delayMs = (
+        useCase as unknown as {
+          calculateRetryDelayMs: (
+            config: {
+              delayMs?: number;
+              backoffMs?: number;
+            },
+            attempt: number
+          ) => number;
+        }
+      ).calculateRetryDelayMs(
+        { delayMs: 0, backoffMs: Number.MAX_SAFE_INTEGER },
+        2
+      );
+
+      expect(delayMs).toBe(30000);
+    });
+  });
+
+  describe('Retries', () => {
+    it('does not retry unless the retry policy is explicitly configured', async () => {
+      let attempts = 0;
+
+      class FlakyUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(
+          _input: string,
+          _logger: LoggingPort,
+          _cancellationToken?: CancellationToken
+        ): Promise<string> {
+          attempts += 1;
+          throw new Error('Temporary failure');
+        }
+      }
+
+      const useCase = new FlakyUseCase();
+      const result = await useCase.execute('input');
+
+      expect(result.success).toBe(false);
+      expect(attempts).toBe(1);
+    });
+
+    it('retries transient failures until success', async () => {
+      const metrics = new MockMetrics();
+      let attempts = 0;
+
+      class FlakyUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(
+          _input: string,
+          _logger: LoggingPort,
+          _cancellationToken?: CancellationToken
+        ): Promise<string> {
+          attempts += 1;
+          if (attempts < 2) {
+            throw new Error('Temporary failure');
+          }
+
+          return 'success';
+        }
+      }
+
+      const useCase = new FlakyUseCase({
+        metrics,
+        retry: { attempts: 3, delayMs: 0 }
+      });
+
+      const result = await useCase.execute('input');
+
+      expect(result.success).toBe(true);
+      if (result.success === true) {
+        expect(result.value).toBe('success');
+      }
+      expect(attempts).toBe(2);
+      expect(metrics.hasMetric('usecase_retries')).toBe(true);
+    });
+
+    it('stops waiting when cancellation is requested during retry delay', async () => {
+      let attempts = 0;
+      let cancelled = 0;
+
+      const token: CancellationToken = {
+        get isCancelled() {
+          return cancelled > 0;
+        },
+        get reason() {
+          return cancelled > 0 ? 'Retry delay cancelled' : undefined;
+        }
+      };
+
+      class RetryDelayUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(
+          _input: string,
+          _logger: LoggingPort,
+          _cancellationToken?: CancellationToken
+        ): Promise<string> {
+          attempts += 1;
+          if (attempts === 1) {
+            throw new Error('Temporary failure');
+          }
+
+          return 'success';
+        }
+      }
+
+      const useCase = new RetryDelayUseCase({
+        retry: { attempts: 3, delayMs: 50 }
+      });
+
+      setTimeout(() => {
+        cancelled += 1;
+        setTimeout(() => {
+          cancelled += 1;
+        }, 5);
+      }, 10);
+
+      const result = await useCase.execute('input', undefined, token);
+
+      expect(result.success).toBe(false);
+      if (result.success === false) {
+        expect(result.error.message).toBe('Retry delay cancelled');
+      }
+      expect(attempts).toBe(1);
+    });
+
+    it('retries after a timeout when the timeout is considered transient', async () => {
+      let attempts = 0;
+
+      class TimeoutThenRecoverUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(
+          _input: string,
+          _logger: LoggingPort,
+          _cancellationToken?: CancellationToken
+        ): Promise<string> {
+          attempts += 1;
+
+          if (attempts === 1) {
+            await new Promise<void>((resolve) => setTimeout(resolve, 25));
+            throw new Error('Execution timed out after 10 ms');
+          }
+
+          return 'recovered';
+        }
+      }
+
+      const useCase = new TimeoutThenRecoverUseCase({
+        timeoutMs: 10,
+        retry: { attempts: 2, delayMs: 0 }
+      });
+
+      const result = await useCase.execute('input');
+
+      expect(result.success).toBe(true);
+      if (result.success === true) {
+        expect(result.value).toBe('recovered');
+      }
+      expect(attempts).toBe(2);
+    });
+
+    it('does not retry validation errors by default', async () => {
+      let attempts = 0;
+
+      class ValidationFailureUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(
+          _input: string,
+          _logger: LoggingPort,
+          _cancellationToken?: CancellationToken
+        ): Promise<string> {
+          attempts += 1;
+          throw new Error('Validation failed');
+        }
+      }
+
+      const useCase = new ValidationFailureUseCase({
+        retry: { attempts: 3, delayMs: 0 }
+      });
+      const result = await useCase.execute('input');
+
+      expect(result.success).toBe(false);
+      if (result.success === false) {
+        expect(result.error.message).toBe('Validation failed');
+      }
+      expect(attempts).toBe(1);
+    });
+
+    it('uses a custom retry predicate when provided', async () => {
+      let attempts = 0;
+
+      class CustomRetryUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(
+          _input: string,
+          _logger: LoggingPort,
+          _cancellationToken?: CancellationToken
+        ): Promise<string> {
+          attempts += 1;
+          if (attempts < 3) {
+            throw new Error('Rate limited');
+          }
+
+          return 'success';
+        }
+      }
+
+      const useCase = new CustomRetryUseCase({
+        retry: {
+          attempts: 5,
+          delayMs: 0,
+          shouldRetry: (error) =>
+            error instanceof Error && /Rate limited/.test(error.message)
+        }
+      });
+
+      const result = await useCase.execute('input');
+
+      expect(result.success).toBe(true);
+      expect(attempts).toBe(3);
+    });
+  });
+
   describe('Logging', () => {
     it('logs execution completion with duration on success', async () => {
       const logger = new MockLogger();
@@ -352,7 +640,7 @@ describe('Usecase', () => {
       expect(logger.hasLogged('Execution completed')).toBe(true);
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
       expect(completionLog?.data).toHaveProperty('durationMs');
     });
 
@@ -365,7 +653,7 @@ describe('Usecase', () => {
       expect(logger.hasLogged('Execution failed', 'error')).toBe(true);
       const failureLog = logger.logs.find(
         (log) => log.message === 'Execution failed'
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
       expect(failureLog?.data).toHaveProperty('durationMs');
     });
 
@@ -382,11 +670,8 @@ describe('Usecase', () => {
       identifier.generate(); // used to increment the counter
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
-      );
-      expect(completionLog?.data).toHaveProperty(
-        'executionId'
-        // @ts-ignore - accessing via index signature
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
+      expect(completionLog?.data).toHaveProperty('executionId');
     });
 
     it('includes additional executionContext in logs', async () => {
@@ -398,15 +683,9 @@ describe('Usecase', () => {
 
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
-      );
-      expect(completionLog?.data).toHaveProperty(
-        'userId'
-        // @ts-ignore - accessing via index signature
-      );
-      expect(completionLog?.data).toHaveProperty(
-        'action'
-        // @ts-ignore - accessing via index signature
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
+      expect(completionLog?.data).toHaveProperty('userId');
+      expect(completionLog?.data).toHaveProperty('action');
     });
 
     it('allows disabling logging with NoOpLoggingAdapter', async () => {
@@ -444,7 +723,7 @@ describe('Usecase', () => {
       const errorCall = metrics.calls.find(
         (call) => call.metric === 'usecase_errors'
       );
-      expect(errorCall?.labels).toHaveProperty('executionId');
+      expect(errorCall?.labels).toBeUndefined();
     });
 
     it('records usecase_cancelled increment when cancelled', async () => {
@@ -458,7 +737,7 @@ describe('Usecase', () => {
       const cancelCall = metrics.calls.find(
         (call) => call.metric === 'usecase_cancelled'
       );
-      expect(cancelCall?.labels).toHaveProperty('executionId');
+      expect(cancelCall?.labels).toBeUndefined();
     });
 
     it('uses NoOpMetricsAdapter by default', async () => {
@@ -619,7 +898,7 @@ describe('Usecase', () => {
       const logger = new MockLogger();
       const metrics = new MockMetrics();
 
-      const config: UsecaseExecutionConfiguration = {
+      const config: UsecaseConfiguration = {
         clock,
         logging: logger,
         metrics,

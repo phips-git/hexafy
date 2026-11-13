@@ -1,106 +1,42 @@
-import { Entity, RepositoryBase } from '@hexafy/core';
-
-import { ApplicationError } from '../../packages/nestjs/src/domain/errors';
+import { CreateUseCase } from '@hexafy/example-domain/application';
+import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
+import { Injectable } from '@nestjs/common';
 
 export interface CreateUserInput {
   name: string;
   email: string;
+  password: string;
 }
 
 export interface UserCreated {
   id: string;
   name: string;
   email: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
-export class User extends Entity<string> {
-  constructor(
-    id: string,
-    private readonly name: string,
-    private readonly email: string,
-    private readonly createdAt: Date
-  ) {
-    super(id);
-  }
-
-  getName(): string {
-    return this.name;
-  }
-
-  getEmail(): string {
-    return this.email;
-  }
-
-  get createdAt(): Date {
-    return this.createdAt;
-  }
-
-  toJSON() {
-    return {
-      id: this._id,
-      name: this.name,
-      email: this.email,
-      createdAt: this.createdAt
-    };
-  }
-}
-
-export class InMemoryUserRepository extends RepositoryBase<User, string> {
-  private users: Map<string, User> = new Map();
-
-  async findById(id: string): Promise<User | null> {
-    return this.users.get(id) || null;
-  }
-
-  async findAll(): Promise<User[]> {
-    return Array.from(this.users.values());
-  }
-
-  async save(entity: User): Promise<User> {
-    this.users.set(entity.getId(), entity);
-    return entity;
-  }
-
-  async delete(id: string): Promise<void> {
-    this.users.delete(id);
-  }
-}
-
+@Injectable()
 export class CreateUserUseCase {
-  constructor(private readonly userRepository: InMemoryUserRepository) {}
+  private readonly delegate: CreateUseCase;
 
-  async execute(input: CreateUserInput): Promise<UserCreated> {
-    // Validate
-    if (!input.name || input.name.trim().length === 0) {
-      throw new ApplicationError('Name is required');
-    }
-
-    if (!input.email || !this.isValidEmail(input.email)) {
-      throw new UseCaseError('Valid email is required');
-    }
-
-    // Check if user already exists
-    const existingUser = await this.userRepository.findById(input.email);
-    if (existingUser) {
-      throw new UseCaseError('User with this email already exists');
-    }
-
-    // Create user
-    const id = `user_${Date.now()}`;
-    const user = new User(id, input.name.trim(), input.email, new Date());
-
-    const created = await this.userRepository.save(user);
-
-    return {
-      id: created.getId(),
-      name: created.getName(),
-      email: created.getEmail(),
-      createdAt: created.createdAt
-    };
+  constructor() {
+    this.delegate = new CreateUseCase(new InMemoryUserRepository());
   }
 
-  private isValidEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  async execute(input: CreateUserInput): Promise<
+    | {
+        success: true;
+        value: {
+          user: { id: string; email: string; name: string | null };
+          token: string;
+        };
+      }
+    | { success: false; error: Error }
+  > {
+    return this.delegate.execute({
+      email: input.email,
+      password: input.password,
+      name: input.name
+    });
   }
 }

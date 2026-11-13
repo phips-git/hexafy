@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- AWS SDK types need to be installed by consumers */
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -6,6 +5,13 @@ import {
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client
+} from '@aws-sdk/client-s3';
+import type {
+  DeleteObjectCommandOutput,
+  GetObjectCommandOutput,
+  HeadObjectCommandOutput,
+  ListObjectsV2Output,
+  PutObjectCommandOutput
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { InfrastructureError, NotFoundError } from '@hexafy/core/domain';
@@ -21,6 +27,31 @@ export interface ObjectStorageAwsS3AdapterOptions {
   client: S3Client;
   bucket: string;
 }
+
+type S3Command =
+  | PutObjectCommand
+  | GetObjectCommand
+  | DeleteObjectCommand
+  | HeadObjectCommand
+  | ListObjectsV2Command;
+
+type S3CommandOutput =
+  | PutObjectCommandOutput
+  | GetObjectCommandOutput
+  | DeleteObjectCommandOutput
+  | HeadObjectCommandOutput
+  | ListObjectsV2Output;
+
+type S3StreamBody =
+  | Uint8Array
+  | Buffer
+  | Blob
+  | string
+  | ReadableStream<Uint8Array>
+  | NodeJS.ReadableStream
+  | AsyncIterable<Uint8Array | Buffer | string | ArrayBufferView>
+  | null
+  | undefined;
 
 export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
   constructor(private readonly options: ObjectStorageAwsS3AdapterOptions) {}
@@ -51,15 +82,15 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
   }
 
   async getObject(key: string): Promise<StoredObject> {
-    const response = await this.runOperation(
+    const response = (await this.runOperation(
       new GetObjectCommand({ Bucket: this.options.bucket, Key: key })
-    );
+    )) as GetObjectCommandOutput;
 
-    if (this.isNoSuchKeyException(response as any)) {
+    if (this.isNoSuchKeyException(response)) {
       throw new NotFoundError('Object not found', { context: { key } });
     }
 
-    const bodyBytes = await this.readStream(response.Body);
+    const bodyBytes = await this.readStream(response.Body as S3StreamBody);
 
     return {
       key,
@@ -92,13 +123,13 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
     let continuationToken: string | undefined;
 
     do {
-      const response: any = await this.runOperation(
+      const response = (await this.runOperation(
         new ListObjectsV2Command({
           Bucket: this.options.bucket,
           Prefix: prefix,
           ContinuationToken: continuationToken
         })
-      );
+      )) as ListObjectsV2Output;
 
       for (const content of response.Contents ?? []) {
         if (content.Key && content.Size !== undefined && content.LastModified) {
@@ -132,9 +163,26 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
     return url.toString();
   }
 
-  private async runOperation(command: any): Promise<any> {
+  private async runOperation(
+    command: PutObjectCommand
+  ): Promise<PutObjectCommandOutput>;
+  private async runOperation(
+    command: GetObjectCommand
+  ): Promise<GetObjectCommandOutput>;
+  private async runOperation(
+    command: DeleteObjectCommand
+  ): Promise<DeleteObjectCommandOutput>;
+  private async runOperation(
+    command: HeadObjectCommand
+  ): Promise<HeadObjectCommandOutput>;
+  private async runOperation(
+    command: ListObjectsV2Command
+  ): Promise<ListObjectsV2Output>;
+  private async runOperation(command: S3Command): Promise<S3CommandOutput> {
     try {
-      return await this.options.client.send(command);
+      return (await this.options.client.send(
+        command as never
+      )) as S3CommandOutput;
     } catch (error) {
       throw new InfrastructureError('S3 operation failed', {
         cause: error,
@@ -143,7 +191,7 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
     }
   }
 
-  private getOperationName(command: any): string {
+  private getOperationName(command: S3Command): string {
     if (command instanceof PutObjectCommand) return 'put-object';
     if (command instanceof GetObjectCommand) return 'get-object';
     if (command instanceof DeleteObjectCommand) return 'delete-object';
@@ -152,32 +200,47 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
     return 'unknown';
   }
 
-  private isNoSuchKeyException(error: any): boolean {
-    return error?.$fault === 'client' && error?.Name === 'NoSuchKeyException';
+  private isNoSuchKeyException(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      '$fault' in error &&
+      error.$fault === 'client' &&
+      'Name' in error &&
+      error.Name === 'NoSuchKeyException'
+    );
   }
 
-  private async readStream(body: any): Promise<Uint8Array> {
+  private async readStream(body: S3StreamBody): Promise<Uint8Array> {
     if (!body) return new Uint8Array(0);
     if (body instanceof Uint8Array) return body;
-    if (Buffer.isBuffer(body))
+    if (Buffer.isBuffer(body)) {
       return new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+    }
     if (typeof body === 'string') return new TextEncoder().encode(body);
+    if (body instanceof Blob) {
+      return new Uint8Array(await body.arrayBuffer());
+    }
 
     const chunks: Uint8Array[] = [];
-    if (typeof body.getReader === 'function') {
+    if (typeof body === 'object' && 'getReader' in body) {
       const reader = body.getReader();
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          if (value) chunks.push(value);
+          if (value) {
+            chunks.push(this.toUint8Array(value));
+          }
         }
       } finally {
         reader.releaseLock();
       }
-    } else if (body[Symbol.asyncIterator]) {
-      for await (const chunk of body) {
-        if (chunk) chunks.push(chunk);
+    } else if (typeof body === 'object' && Symbol.asyncIterator in body) {
+      for await (const chunk of body as AsyncIterable<
+        Uint8Array | Buffer | string | ArrayBufferView
+      >) {
+        chunks.push(this.toUint8Array(chunk));
       }
     }
 
@@ -195,5 +258,16 @@ export class ObjectStorageAwsS3Adapter implements ObjectStoragePort {
       offset += chunk.byteLength;
     }
     return result;
+  }
+
+  private toUint8Array(
+    value: Uint8Array | Buffer | string | ArrayBufferView
+  ): Uint8Array {
+    if (value instanceof Uint8Array) return value;
+    if (Buffer.isBuffer(value)) {
+      return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    }
+    if (typeof value === 'string') return new TextEncoder().encode(value);
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   }
 }

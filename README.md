@@ -1,95 +1,58 @@
 # Hexafy
 
-Turn your TypeScript project into hexagonal architecture — with ready-to-use primitives, adapters, and examples.
+Hexafy provides lightweight foundations for building hexagonal architecture applications in TypeScript, including core architectural primitives and framework/domain-specific adapters.
+
+This monorepo stays intentionally minimal, with clear boundaries between domain logic, application use cases, and infrastructure.
 
 ## 📦 Publishable Packages
 
-| Package                  | Description                                                               |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `@hexafy/core`           | Hexagonal architecture primitives (use cases, repositories, unit of work) |
-| `@hexafy/nestjs`         | NestJS adapters for hexagonal architecture                                |
-| `@hexafy/aws-lambda`     | AWS Lambda adapters                                                       |
-| `@hexafy/email`          | Email sending with multiple providers                                     |
-| `@hexafy/object-storage` | File storage with S3, GCS, local adapters                                 |
+| Package                  | Description                                                          |
+| ------------------------ | -------------------------------------------------------------------- |
+| `@hexafy/core`           | Core hexagonal primitives: use cases, services, repositories, errors |
+| `@hexafy/nestjs`         | NestJS adapters for hexagonal applications                           |
+| `@hexafy/aws-lambda`     | AWS Lambda adapters                                                  |
+| `@hexafy/email`          | Email domain package with provider adapters                          |
+| `@hexafy/object-storage` | Object storage package with adapter implementations                  |
 
 ## 📚 Example Applications
 
-- **Example Domain** - Complete domain application in `packages/example-domain/`
-- **NestJS Example** - Full NestJS app in `apps/nestjs/`
-- **AWS Lambda Example** - Lambda app in `apps/aws-lambda/`
+- **Example Domain**: `packages/example-domain/`
+- **NestJS Example App**: `apps/nestjs/`
+- **AWS Lambda Example App**: `apps/aws-lambda/`
 
 ## 🚀 Quick Start
 
-### Installation
-
 ```bash
 bun install
+bun run typecheck
+bun run test
 ```
 
-### Using the Core Package
+For package-level usage and detailed examples, start with:
 
-```typescript
-import { Result, success } from '@hexafy/core/result';
-import { Usecase } from '@hexafy/core/usecase';
+- [`packages/core/README.md`](./packages/core/README.md)
+- [`packages/nestjs/README.md`](./packages/nestjs/README.md)
+- [`packages/aws-lambda/README.md`](./packages/aws-lambda/README.md)
 
-class CreateUserUseCase extends Usecase<{ name: string }, { userId: string }> {
-  protected async executeInternal(input) {
-    const userId = this.dependencies.generateId?.() ?? `user_${Date.now()}`;
-    return { userId };
-  }
-}
-```
-
-## 🏗️ Project Structure
-
-```
-hexafy/
-├── packages/          # All packages
-│   ├── core/          # Core primitives (publishable)
-│   ├── nestjs/        # NestJS adapters (publishable)
-│   ├── aws-lambda/    # AWS adapters (publishable)
-│   ├── email/         # Email package (publishable)
-│   ├── object-storage/# Storage package (publishable)
-│   └── example-domain/# Example app (not published)
-└── apps/              # Framework apps (not published)
-    ├── nestjs/
-    └── aws-lambda/
-```
-
-## 🔧 Scripts
+## 🔧 Common Scripts
 
 ```bash
-bun run typecheck   # Type check all packages
-bun run test        # Run all tests
-bun run format      # Format code
-bun run lint        # Run ESLint via Bun
+bun run typecheck
+bun run test
+bun run lint
+bun run format
 ```
 
-## 📦 Publishing Packages
+## 📦 Publishing
 
-The repository uses Bun for local development and CI validation, while the actual package release flow is managed through the GitHub Actions release workflow and Changesets.
+Release flow is managed through GitHub Actions + Changesets.
 
-Quick commands:
+```bash
+bun run changeset
+```
 
-- `bun run changeset` - Create a changeset for a package
-
-Releases are run from the GitHub Actions **Release** workflow (`RC` → `rc`, `Release` → `latest`).
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for release policy and first-release details.
-
-### Publishable Packages
-
-| Package                  | Scope |
-| ------------------------ | ----- |
-| `@hexafy/core`           | ✅    |
-| `@hexafy/nestjs`         | ✅    |
-| `@hexafy/aws-lambda`     | ✅    |
-| `@hexafy/email`          | ✅    |
-| `@hexafy/object-storage` | ✅    |
-
-Private packages (not published):
-
-- `@hexafy/typescript-config`
-- `@hexafy/example-domain`
+Releases run from the GitHub Actions **Release** workflow (`RC` → `rc`, `Release` → `latest`).
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for release policy details.
 
 ## 📖 Learn More
 

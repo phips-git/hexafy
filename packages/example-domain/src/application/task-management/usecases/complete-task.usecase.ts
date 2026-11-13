@@ -13,7 +13,6 @@ interface CompleteTaskOutput {
   task: Task;
 }
 
-/** Task not found error. */
 class TaskNotFoundError extends Error {
   readonly code = 'NOT_FOUND';
 
@@ -36,22 +35,18 @@ export class CompleteTaskUseCase extends Usecase<
     logger: LoggerPort,
     cancellationToken?: CancellationToken
   ): Promise<CompleteTaskOutput> {
-    // Handle cancellation
     if (cancellationToken?.isCancelled) {
       logger.warn('Task cancelled', { taskId: input.taskId });
       throw new Error('Request cancelled');
     }
 
-    // Find task
     const task = await this.taskPort.findById(input.taskId);
 
-    // Not found - log and throw
     if (!task) {
       logger.warn('Task not found', { taskId: input.taskId });
       throw new TaskNotFoundError(input.taskId);
     }
 
-    // Update task
     const updatedTask = await this.taskPort.update(task.id, {
       status: 'completed'
     });

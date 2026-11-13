@@ -20,7 +20,6 @@ export class AuthenticateUseCase {
     input: AuthenticateUseCaseInput
   ): Promise<UsecaseResult<AuthenticateUseCaseOutput>> {
     try {
-      // In real implementation, validate password hash
       const user = await this.authenticationPort.authenticate(
         input.email,
         input.password

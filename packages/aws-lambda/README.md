@@ -23,7 +23,7 @@ This package provides AWS Lambda-specific infrastructure for hexagonal architect
 
 ```typescript
 import { createLambdaHandler } from '@hexafy/aws-lambda';
-import { UseCaseError } from '@hexafy/core';
+import { ValidationError } from '@hexafy/core/domain';
 
 import { CreateUserUseCase } from './usecases/create-user';
 
@@ -44,7 +44,7 @@ export const handler = createLambdaHandler({
 
   // Format error response
   errorFormatter: (error) => ({
-    statusCode: error instanceof UseCaseError ? 400 : 500,
+    statusCode: error instanceof ValidationError ? 400 : 500,
     body: JSON.stringify({ error: error.message })
   })
 });
@@ -125,7 +125,7 @@ import {
   formatError,
   parseJsonBody
 } from '@hexafy/aws-lambda';
-import { UseCaseError } from '@hexafy/core';
+import { ValidationError } from '@hexafy/core/domain';
 
 export const createUserHandler = createLambdaHandler({
   useCase: new CreateUserUseCase(),

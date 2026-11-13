@@ -126,58 +126,43 @@ curl -X POST http://localhost:3000/users \
 
 Use cases are pure business logic that extend `Usecase`:
 
-````typescript
-import {
-  Usecase,
-  UsecaseExecutionDependencies,
-  LoggerPort
-} from '@hexafy/core';
 ```typescript
-import { Usecase, UsecaseExecutionDependencies, LoggerPort } from '@hexafy/core';
+import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
+import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
 
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
-  constructor(dependencies: UsecaseExecutionDependencies) {
+  constructor(dependencies: UsecaseConfiguration) {
     super(dependencies);
   }
 
-  protected async executeInternal(input: CreateUserInput, logger: LoggerPort): Promise<Result<UserCreated>> {
-    // Domain errors returned as failure()
+  protected async executeInternal(
+    input: CreateUserInput,
+    logger: LoggerPort
+  ): Promise<UserCreated> {
     if (!input.email) {
-      return failure(new UseCaseError('Email is required'));
+      throw new ValidationError('Email is required');
     }
 
-    // Business logic
     logger.info('Creating user', { email: input.email });
-    return success({ userId: 'user_123' });
+    return { userId: 'user_123' };
   }
 }
-````
+```
 
 ### 2. NestJS Integration
 
 Use `@hexafy/nestjs` to integrate with NestJS:
 
 ```typescript
-import {
-  createUsecaseProvider,
-  DomainExceptionFilter,
-  UseCaseFilter
-} from '@hexafy/nestjs';
+import { DomainExceptionFilter } from '@hexafy/nestjs';
 import { Module } from '@nestjs/common';
 
 @Module({
   providers: [
-    // Register use cases as providers
-    createUsecaseProvider(new CreateUserUseCase()),
-
-    // Add exception filters for automatic error handling
+    CreateUserUseCase,
     {
       provide: 'APP_FILTER',
       useClass: DomainExceptionFilter
-    },
-    {
-      provide: 'APP_FILTER',
-      useClass: UseCaseFilter
     }
   ]
 })
@@ -211,8 +196,8 @@ Domain errors are automatically caught and formatted:
 
 ```typescript
 // DomainExceptionFilter handles:
-// - DomainError → 400 Bad Request
-// - UseCaseError → 400 Bad Request
+// - ValidationError → 400 Bad Request
+// - NotFoundError → 400 Bad Request
 
 // Both return consistent error format:
 {

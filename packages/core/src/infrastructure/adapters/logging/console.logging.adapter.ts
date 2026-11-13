@@ -1,4 +1,4 @@
-import type { LoggingPort } from '../../../domain/ports';
+import type { LoggingPort } from '../../../application/ports';
 
 /**
  * Console-based logging adapter for development and debugging.

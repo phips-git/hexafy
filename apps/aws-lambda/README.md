@@ -113,32 +113,28 @@ Use your preferred deployment method (AWS CDK, Serverless Framework, SAM, etc.) 
 
 Use cases implement the `UseCase` interface from `@hexafy/core`:
 
-````typescript
-import {
-  Usecase,
-  UsecaseExecutionDependencies,
-  LoggerPort
-} from '@hexafy/core';
 ```typescript
-import { Usecase, UsecaseExecutionDependencies, LoggerPort, Result } from '@hexafy/core';
+import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
+import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
 
 class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
-  constructor(dependencies: UsecaseExecutionDependencies) {
+  constructor(dependencies: UsecaseConfiguration) {
     super(dependencies);
   }
 
-  protected async executeInternal(input: CreateUserInput, logger: LoggerPort): Promise<Result<UserCreated>> {
-    // Domain errors returned as failure()
+  protected async executeInternal(
+    input: CreateUserInput,
+    logger: LoggerPort
+  ): Promise<UserCreated> {
     if (!input.email) {
-      return failure(new UseCaseError('Email is required'));
+      throw new ValidationError('Email is required');
     }
 
-    // Business logic
     logger.info('Creating user', { email: input.email });
-    return success({ userId: 'user_123' });
+    return { userId: 'user_123' };
   }
 }
-````
+```
 
 ### 2. Lambda Handler Creation
 
@@ -168,9 +164,9 @@ export const handler = createLambdaHandler({
 Repositories implement the `Repository` interface:
 
 ```typescript
-import { Repository, User } from '@hexafy/core';
+import type { RepositoryPort } from '@hexafy/core/domain';
 
-class InMemoryUserRepository extends Repository<User, string> {
+class InMemoryUserRepository implements RepositoryPort<User, string> {
   async findById(id: string): Promise<User | null> {
     // Find by ID
   }

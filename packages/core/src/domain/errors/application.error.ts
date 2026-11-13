@@ -1,63 +1,23 @@
-/**
- * Options for configuring application errors.
- *
- * @param code - An optional error code for programmatic handling
- * @param context - Optional structured context data for debugging
- * @param cause - Optional underlying cause for error chaining
- */
+/** Error metadata used by application and domain errors. */
 export interface ApplicationErrorOptions {
+  /** Machine-readable error code. */
   code?: string;
+  /** Structured debugging context. */
   context?: Record<string, unknown>;
+  /** Underlying cause. */
   cause?: unknown;
 }
 
-/**
- * Details extracted from error configuration.
- *
- * Represents either structured error options (context, cause) or a raw error
- * value.
- */
+/** Error details accepted by application/domain error factories. */
 export type ApplicationErrorDetails =
   Omit<ApplicationErrorOptions, 'code'> | unknown;
 
-/**
- * Base error class for application/domain boundaries.
- *
- * Provides standardized error handling with error codes and context. Consumers
- * may use this class or provide their own errors with a compatible shape.
- *
- * @example
- *   ```typescript
- *   // With custom code
- *   throw new ApplicationError('Invalid operation', { code: 'INVALID_OP' });
- *
- *   // With context
- *   throw new ApplicationError('Payment failed', {
- *     code: 'PAYMENT_ERROR',
- *     context: { amount: 100, currency: 'USD' }
- *   });
- *
- *   // With cause (error chaining)
- *   try {
- *     await someOperation();
- *   } catch (e) {
- *     throw new ApplicationError('Operation failed', { cause: e });
- *   }
- *   ```;
- *
- * @param message - The error message
- * @param options - Optional error configuration
- */
+/** Base error for application and domain boundaries. */
 export class ApplicationError extends Error {
   readonly code: string;
   readonly context: Record<string, unknown> | undefined;
 
-  /**
-   * Constructs a new ApplicationError.
-   *
-   * @param message - The error message
-   * @param options - Optional error configuration (code, context, cause)
-   */
+  /** Creates a new application error. */
   constructor(message: string, options: ApplicationErrorOptions = {}) {
     super(message, { cause: options.cause });
     Object.setPrototypeOf(this, new.target.prototype);
@@ -68,26 +28,7 @@ export class ApplicationError extends Error {
   }
 }
 
-/**
- * Validation error for input validation failures.
- *
- * @example
- *   ```typescript
- *   // Simple validation error
- *   throw new ValidationError('Email is required');
- *
- *   // With validation details
- *   throw new ValidationError('Validation failed', {
- *     context: {
- *       field: 'email',
- *       reason: 'Invalid email format'
- *     }
- *   });
- *   ```;
- *
- * @param message - Optional error message (default: 'Validation failed')
- * @param details - Optional validation details or raw value
- */
+/** Error raised for invalid input or failed validation rules. */
 export class ValidationError extends ApplicationError {
   constructor(
     message = 'Validation failed',
@@ -98,22 +39,7 @@ export class ValidationError extends ApplicationError {
   }
 }
 
-/**
- * Not found error for missing resources.
- *
- * @example
- *   ```typescript
- *   // Standard message
- *   throw new NotFoundError('User');
- *   // → "User not found"
- *
- *   // Custom message
- *   throw new NotFoundError('The specified order was not found');
- *   ```;
- *
- * @param resourceOrMessage - Resource name or custom error message
- * @param details - Optional error details
- */
+/** Error raised when a required resource is missing. */
 export class NotFoundError extends ApplicationError {
   constructor(
     resourceOrMessage = 'Resource',
@@ -125,17 +51,7 @@ export class NotFoundError extends ApplicationError {
   }
 }
 
-/**
- * Conflict error for resource conflicts (e.g., duplicate entries).
- *
- * @example
- *   ```typescript
- *   throw new ConflictError('Email already registered');
- *   ```;
- *
- * @param message - Optional error message (default: 'Conflict detected')
- * @param details - Optional error details
- */
+/** Error raised for conflicting domain or persistence state. */
 export class ConflictError extends ApplicationError {
   constructor(
     message = 'Conflict detected',
@@ -146,17 +62,7 @@ export class ConflictError extends ApplicationError {
   }
 }
 
-/**
- * Unauthorized error for authentication failures.
- *
- * @example
- *   ```typescript
- *   throw new UnauthorizedError('Invalid authentication token');
- *   ```;
- *
- * @param message - Optional error message (default: 'Unauthorized')
- * @param details - Optional error details
- */
+/** Error raised when authentication is missing or invalid. */
 export class UnauthorizedError extends ApplicationError {
   constructor(message = 'Unauthorized', details?: ApplicationErrorDetails) {
     const options = normalizeApplicationErrorDetails(details);
@@ -164,17 +70,7 @@ export class UnauthorizedError extends ApplicationError {
   }
 }
 
-/**
- * Forbidden error for authorization failures.
- *
- * @example
- *   ```typescript
- *   throw new ForbiddenError('Insufficient permissions');
- *   ```;
- *
- * @param message - Optional error message (default: 'Forbidden')
- * @param details - Optional error details
- */
+/** Error raised when the caller lacks permission. */
 export class ForbiddenError extends ApplicationError {
   constructor(message = 'Forbidden', details?: ApplicationErrorDetails) {
     const options = normalizeApplicationErrorDetails(details);
@@ -182,17 +78,7 @@ export class ForbiddenError extends ApplicationError {
   }
 }
 
-/**
- * Invariant error for violated business invariants.
- *
- * @example
- *   ```typescript
- *   throw new InvariantError('Order cannot be modified after shipment');
- *   ```;
- *
- * @param message - Optional error message (default: 'Invariant violated')
- * @param details - Optional error details
- */
+/** Error raised when domain invariants are broken. */
 export class InvariantError extends ApplicationError {
   constructor(
     message = 'Invariant violated',
@@ -203,17 +89,7 @@ export class InvariantError extends ApplicationError {
   }
 }
 
-/**
- * Infrastructure error for external service failures.
- *
- * @example
- *   ```typescript
- *   throw new InfrastructureError('Database connection failed', e);
- *   ```;
- *
- * @param message - Optional error message (default: 'Infrastructure failure')
- * @param details - Optional error details or underlying error
- */
+/** Error raised for external dependency or infrastructure failures. */
 export class InfrastructureError extends ApplicationError {
   constructor(
     message = 'Infrastructure failure',
@@ -231,15 +107,21 @@ function normalizeApplicationErrorDetails(
     return {};
   }
 
-  if (
-    details !== null &&
-    typeof details === 'object' &&
-    ('context' in details || 'cause' in details)
-  ) {
-    return details as Omit<ApplicationErrorOptions, 'code'>;
+  if (isErrorOptions(details)) {
+    return details;
   }
 
   return { cause: details };
+}
+
+function isErrorOptions(
+  value: unknown
+): value is Omit<ApplicationErrorOptions, 'code'> {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    ('context' in value || 'cause' in value)
+  );
 }
 
 function toNotFoundMessage(resourceOrMessage: string): string {

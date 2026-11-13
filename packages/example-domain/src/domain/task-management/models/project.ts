@@ -22,9 +22,9 @@ export type ValidProjectCreationProperties = Brand<
   'ValidProjectCreationProperties'
 >;
 
-export interface ProjectUpdateProperties extends Partial<
+export type ProjectUpdateProperties = Partial<
   Pick<Project, 'name' | 'description'>
-> {}
+>;
 
 export type ValidProjectUpdateProperties = Brand<
   ProjectUpdateProperties,

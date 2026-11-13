@@ -1,13 +1,19 @@
 import type {
-  ProjectId,
-  ProjectUpdateProperties,
-  TaskManagementAuthorizationContext
-} from '@hexafy/task-management/domain';
-import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
+type AuthorizationContext = {
+  tenantId: string;
+  projectId: string | null;
+  role: string;
+};
+
+type ProjectUpdateProperties = {
+  name?: string;
+  description?: string | null;
+};
 
 import { buildLambdaErrorResponse, getUpdateProjectUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
@@ -53,21 +59,21 @@ export const handler = async (
       throw new ValidationApiError('Project ID is required');
     }
 
-    const authorizationContext: TaskManagementAuthorizationContext = {
+    const authorizationContext: AuthorizationContext = {
       tenantId: user.tenantId,
-      projectId: projectId as ProjectId,
+      projectId,
       role: user.role
     };
 
-    const updatePropertiesTyped = {
+    const updatePropertiesTyped: ProjectUpdateProperties = {
       name: updateProperties.name,
-      description: updateProperties.description
+      description: updateProperties.description ?? null
     };
 
     await getUpdateProjectUsecase().execute({
       authorizationContext,
-      projectId: projectId as ProjectId,
-      updateProperties: updatePropertiesTyped as ProjectUpdateProperties
+      projectId,
+      updateProperties: updatePropertiesTyped
     });
 
     return {

@@ -5,7 +5,7 @@ import { SayHelloUseCase } from '../domain/usecases/say-hello.usecase';
 
 const sayHelloUseCase = new SayHelloUseCase({
   generateId: () => `hello_${Date.now()}`,
-  loggerFactory: (name) => consoleLogger
+  loggerFactory: (_name) => consoleLogger
 });
 
 export const handler = createLambdaHandler({

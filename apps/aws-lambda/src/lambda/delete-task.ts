@@ -1,13 +1,14 @@
 import type {
-  ProjectId,
-  TaskId,
-  TaskManagementAuthorizationContext
-} from '@hexafy/task-management/domain';
-import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
+type AuthorizationContext = {
+  tenantId: string;
+  projectId: string | null;
+  role: string;
+};
 
 import { buildLambdaErrorResponse, getDeleteTaskUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
@@ -59,16 +60,16 @@ export const handler = async (
       };
     }
 
-    const authorizationContext: TaskManagementAuthorizationContext = {
+    const authorizationContext: AuthorizationContext = {
       tenantId: user.tenantId,
-      projectId: projectId as ProjectId,
+      projectId,
       role: user.role
     };
 
     await getDeleteTaskUsecase().execute({
       authorizationContext,
-      projectId: projectId as ProjectId,
-      taskId: taskId as TaskId
+      projectId,
+      taskId
     });
 
     return {

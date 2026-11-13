@@ -21,13 +21,12 @@ This package provides NestJS-specific infrastructure for hexagonal architecture.
 ### Basic Module Structure
 
 ```typescript
-import { createUsecaseProvider, DomainModule } from '@hexafy/nestjs';
 import { Module } from '@nestjs/common';
 
 import { CreateUserUseCase } from './usecases/create-user';
 
 @Module({
-  providers: [createUsecaseProvider(new CreateUserUseCase())]
+  providers: [CreateUserUseCase]
 })
 export class UserModule {}
 ```
@@ -35,18 +34,13 @@ export class UserModule {}
 ### With Controllers
 
 ```typescript
-import { createUsecaseProvider } from '@hexafy/nestjs';
 import { Body, Controller, Post } from '@nestjs/common';
 
 import { CreateUserUseCase } from './usecases/create-user';
 
 @Controller('users')
 export class UserController {
-  constructor(
-    private readonly createUserUseCase = createUsecaseProvider(
-      new CreateUserUseCase()
-    )
-  ) {}
+  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
 
   @Post()
   async create(@Body() input) {
@@ -59,25 +53,17 @@ export class UserController {
 ### With Exception Filters
 
 ```typescript
-import {
-  DomainExceptionFilter,
-  DomainModule,
-  UseCaseFilter
-} from '@hexafy/nestjs';
+import { DomainExceptionFilter } from '@hexafy/nestjs';
 import { Module } from '@nestjs/common';
 
 import { CreateUserUseCase } from './usecases/create-user';
 
 @Module({
   providers: [
-    createUsecaseProvider(new CreateUserUseCase()),
+    CreateUserUseCase,
     {
       provide: 'APP_FILTER',
       useClass: DomainExceptionFilter
-    },
-    {
-      provide: 'APP_FILTER',
-      useClass: UseCaseFilter
     }
   ]
 })
@@ -91,12 +77,13 @@ export class UserModule {}
 Create domain modules that isolate business logic:
 
 ```typescript
-import { DomainModule } from '@hexafy/nestjs';
+import { createDomainModule } from '@hexafy/nestjs';
 
-@DomainModule({
-  providers: [CreateUserUseCase, UserService, OrderService]
-})
-export class DomainModule {}
+export const DomainModule = createDomainModule([
+  CreateUserUseCase,
+  UserService,
+  OrderService
+]);
 ```
 
 ### Use Case Provider
@@ -104,19 +91,14 @@ export class DomainModule {}
 Register use cases as injectable providers:
 
 ```typescript
-import { createUsecaseProvider } from '@hexafy/nestjs';
+import { Module } from '@nestjs/common';
 
-// As a provider
 @Module({
-  providers: [createUsecaseProvider(new CreateUserUseCase())]
+  providers: [CreateUserUseCase]
 })
-// Or inject it
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectUseCase(CreateUserUseCase)
-    private readonly useCase: CreateUserUseCase
-  ) {}
+  constructor(private readonly useCase: CreateUserUseCase) {}
 }
 ```
 
@@ -125,11 +107,11 @@ export class UserService {
 Handle domain errors automatically:
 
 ```typescript
-import { DomainExceptionFilter, UseCaseFilter } from '@hexafy/nestjs';
+import { DomainExceptionFilter } from '@hexafy/nestjs';
 
-// These filters automatically convert:
-// - DomainError → 400 Bad Request
-// - UseCaseError → 400 Bad Request
+// This filter automatically converts:
+// - ValidationError → 400 Bad Request
+// - NotFoundError → 400 Bad Request
 ```
 
 ## Examples
@@ -137,12 +119,7 @@ import { DomainExceptionFilter, UseCaseFilter } from '@hexafy/nestjs';
 ### Complete User Module
 
 ```typescript
-import {
-  createUsecaseProvider,
-  DomainExceptionFilter,
-  DomainModule,
-  UseCaseFilter
-} from '@hexafy/nestjs';
+import { DomainExceptionFilter } from '@hexafy/nestjs';
 import { Module } from '@nestjs/common';
 
 import { UserRepository } from './repositories/user.repository';
@@ -150,18 +127,13 @@ import { CreateUserUseCase } from './usecases/create-user';
 import { UserController } from './user.controller';
 
 @Module({
-  imports: [DomainModule],
   controllers: [UserController],
   providers: [
-    createUsecaseProvider(new CreateUserUseCase()),
+    CreateUserUseCase,
     UserRepository,
     {
       provide: 'APP_FILTER',
       useClass: DomainExceptionFilter
-    },
-    {
-      provide: 'APP_FILTER',
-      useClass: UseCaseFilter
     }
   ]
 })
@@ -171,37 +143,24 @@ export class UserModule {}
 ### Layered Architecture
 
 ```typescript
-import { DomainModule as HexDomainModule } from '@hexafy/nestjs';
+import { createDomainModule, createInfrastructureModule } from '@hexafy/nestjs';
 // src/domain.module.ts
 import { Module } from '@nestjs/common';
 
-@HexDomainModule({
-  providers: [
-    // Use cases
-    CreateUserUseCase,
-    UpdateUserUseCase,
+export const DomainModule = createDomainModule([
+  CreateUserUseCase,
+  UpdateUserUseCase,
+  UserService,
+  OrderService
+]);
 
-    // Domain services
-    UserService,
-    OrderService
-  ],
-  exports: [CreateUserUseCase, UpdateUserUseCase]
-})
-export class DomainModule {}
-
-import { DomainModule as HexDomainModule } from '@hexafy/nestjs';
 // src/infrastructure.module.ts
 import { Module } from '@nestjs/common';
 
-@HexDomainModule({
-  imports: [DomainModule],
-  providers: [
-    // Infrastructure
-    DatabaseModule,
-    ExternalApiService
-  ]
-})
-export class InfrastructureModule {}
+export const InfrastructureModule = createInfrastructureModule(
+  [DatabaseModule, ExternalApiService],
+  [DomainModule]
+);
 
 // src/app.module.ts
 import { Module } from '@nestjs/common';
@@ -220,22 +179,18 @@ export class AppModule {}
 ### With Decorators
 
 ```typescript
-import { UseCaseProvider } from '@hexafy/nestjs';
+import { Injectable } from '@nestjs/common';
 
-@UseCaseProvider()
-export class CreateUserUseCase extends Usecase {
-  protected async executeInternal(input) {
+@Injectable()
+export class CreateUserUseCase {
+  async execute(input: CreateUserInput) {
     // Business logic
   }
 }
 
-// Then inject
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectUseCase(CreateUserUseCase)
-    private readonly useCase: CreateUserUseCase
-  ) {}
+  constructor(private readonly useCase: CreateUserUseCase) {}
 }
 ```
 
@@ -244,8 +199,8 @@ export class UserService {
 ```
 @hexafy/nestjs
 ├── module/            # DomainModule, InfrastructureModule
-├── filters/           # DomainExceptionFilter, UseCaseFilter
-└── providers/         # createUsecaseProvider
+├── filters/           # DomainExceptionFilter, InfrastructureExceptionFilter
+└── providers/         # CreateUserUseCase, createDomainModule
 ```
 
 ## Error Handling
@@ -522,7 +477,8 @@ export class AppModule {}
 Extend `ApplicationError` for domain-specific errors:
 
 ```typescript
-import { ApplicationError, type ApplicationErrorDetails } from '@hexafy/nestjs';
+import type { ApplicationErrorDetails } from '@hexafy/core/domain';
+import { ApplicationError } from '@hexafy/nestjs';
 
 class PaymentProcessingError extends ApplicationError {
   constructor(

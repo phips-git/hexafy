@@ -26,7 +26,7 @@ packages/<name>/
 Also see [CODESTYLE.md](./CODESTYLE.md) for naming and code organization patterns.
 
 ```typescript
-import { Usecase } from '@hexafy/core/application';
+import { failure, success, Usecase } from '@hexafy/core/application';
 import type { Entity } from '@hexafy/core/domain';
 ```
 
@@ -35,9 +35,11 @@ import type { Entity } from '@hexafy/core/domain';
 ```typescript
 import {
   AggregateRoot,
+  ApplicationError,
   Entity,
   RepositoryBase,
   UnitOfWorkBase,
+  ValidationError,
   ValueObject
 } from '@hexafy/core/domain';
 import type { Brand, UniqueIdentifier } from '@hexafy/core/domain';
@@ -51,10 +53,12 @@ import type {
   IdentifierPort,
   LoggerPort,
   MetricsPort
-} from '@hexafy/core/domain';
+} from '@hexafy/core/application';
 import {
   ConsoleLoggingAdapter,
-  NoOpMetricsAdapter
+  NoOpLoggingAdapter,
+  NoOpMetricsAdapter,
+  SystemClockAdapter
 } from '@hexafy/core/infrastructure';
 ```
 
@@ -70,7 +74,7 @@ import {
 } from '@hexafy/core/application';
 
 // Create results
-const result = success(value);
+const result = success({ id: 'user_123' });
 const error = failure(new Error('failed'));
 
 // Check result
@@ -96,19 +100,28 @@ if (isSuccess(userResult)) {
 
 ## Exports
 
-Local development uses Bun-native TypeScript sources. The publishable tarball intentionally swaps to `dist/` via `publishConfig.exports`; this avoids shipping `src/*.ts` paths to npm consumers.
+The `@hexafy/core` package exposes its public API through the package subpaths below. In local development, Bun loads the TypeScript source directly; for publishing, the package swaps to `dist/` via `publishConfig.exports`.
 
 ```json
 {
-  "type": "module",
   "exports": {
-    "./domain": "./src/domain.export.ts"
+    "./application": "./src/application/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./infrastructure": "./src/infrastructure/index.ts"
   },
   "publishConfig": {
     "exports": {
+      "./application": {
+        "types": "./dist/application.d.mts",
+        "import": "./dist/application.mjs"
+      },
       "./domain": {
-        "types": "./dist/domain.export.d.ts",
-        "import": "./dist/domain.export.js"
+        "types": "./dist/domain.d.mts",
+        "import": "./dist/domain.mjs"
+      },
+      "./infrastructure": {
+        "types": "./dist/infrastructure.d.mts",
+        "import": "./dist/infrastructure.mjs"
       }
     }
   }

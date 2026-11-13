@@ -20,18 +20,15 @@ export class CreateUseCase {
   async execute(
     input: CreateUseCaseInput
   ): Promise<UsecaseResult<CreateUseCaseOutput>> {
-    // Validate email format
     if (!this.isValidEmail(input.email)) {
       return { success: false, error: new Error('Invalid email format') };
     }
 
-    // Check if user already exists
     const existingUser = await this.userPort.findByEmail(input.email);
     if (existingUser) {
       return { success: false, error: new Error('User already exists') };
     }
 
-    // Create new user
     const user = await this.userPort.save({
       id: `user_${Date.now()}`,
       tenantId: `tenant_${Date.now()}`,
@@ -42,7 +39,6 @@ export class CreateUseCase {
       updatedAt: new Date()
     });
 
-    // Generate token (in real implementation, use JWT library)
     const token = `mock_token_${user.id}`;
 
     return { success: true, value: { user, token } };

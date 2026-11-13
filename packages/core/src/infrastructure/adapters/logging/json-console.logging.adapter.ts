@@ -1,4 +1,4 @@
-import type { LoggingPort } from '../../../domain/ports';
+import type { LoggingPort } from '../../../application/ports';
 
 function createLogEntry(
   level: 'info' | 'debug' | 'warn' | 'error',
@@ -115,7 +115,7 @@ function isPlainObject(value: object): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-export const createConsoleLogger = (component?: string): LoggingPort => ({
+export const JSONConsoleLoggingAdapter = (component?: string): LoggingPort => ({
   info: (message, context) =>
     console.info(createLogEntry('info', message, component, context)),
   debug: (message, context) =>

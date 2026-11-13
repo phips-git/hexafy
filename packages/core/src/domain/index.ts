@@ -14,12 +14,6 @@ export {
   type DomainErrorLike
 } from './errors';
 export type {
-  ClockPort,
-  IdentifierPort,
-  LoggingPort as LoggerPort,
-  MetricsPort
-} from './ports';
-export type {
   AggregateRoot,
   Brand,
   Entity,
