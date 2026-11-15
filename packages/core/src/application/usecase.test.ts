@@ -9,9 +9,10 @@ import type {
 import { UniqueIdentifier } from '../domain/primitives';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
 import {
-  type CancellationToken,
   Usecase,
-  type UsecaseConfiguration
+  UsecaseCancelledError,
+  type UsecaseConfiguration,
+  UsecaseTimeoutError
 } from './index';
 
 class MockClock implements ClockPort {
@@ -72,16 +73,6 @@ class MockLogger implements LoggingPort {
   }
 }
 
-class MockCancellationToken implements CancellationToken {
-  readonly isCancelled: boolean;
-  readonly reason: string | undefined;
-
-  constructor(isCancelled: boolean, reason: string | undefined) {
-    this.isCancelled = isCancelled;
-    this.reason = reason;
-  }
-}
-
 class MockMetrics implements MetricsPort {
   calls: Array<{
     metric: string;
@@ -125,7 +116,7 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
   protected override async executeInternal(
     input: TInput,
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<TOutput> {
     return input as unknown as TOutput;
   }
@@ -139,7 +130,7 @@ class SuccessUseCase extends TestUseCase<string, string> {
   protected override async executeInternal(
     input: string,
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<string> {
     return input.toUpperCase();
   }
@@ -153,7 +144,7 @@ class FailureUseCase extends TestUseCase<string, string> {
   protected override async executeInternal(
     _input: string,
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<string> {
     throw new Error('Intentional failure');
   }
@@ -167,7 +158,7 @@ class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
   protected override async executeInternal(
     input: { delay: number },
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, input.delay));
     return 'completed';
@@ -193,7 +184,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           inputValue: string,
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<string> {
           expect(inputValue).toBe('test-input');
           return inputValue;
@@ -212,7 +203,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           _input: void,
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<string> {
           receivedInput = _input;
           return 'done';
@@ -230,7 +221,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           _input: string,
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<void> {
           return;
         }
@@ -244,17 +235,24 @@ describe('Usecase', () => {
 
   describe('execute() - Error Handling', () => {
     it('returns failure result when use case throws an error', async () => {
-      const useCase = new FailureUseCase();
+      const domainError = new Error('Intentional failure');
+
+      class DomainFailureUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(): Promise<string> {
+          throw domainError;
+        }
+      }
+
+      const useCase = new DomainFailureUseCase();
       const result = await useCase.execute('input');
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error).toBeInstanceOf(Error);
-        expect(result.error?.message).toBe('Intentional failure');
+        expect(result.error).toBe(domainError);
       }
     });
 
-    it('normalizes non-Error objects to Error', async () => {
+    it('normalizes non-Error values to Error', async () => {
       class StringThrowUseCase extends TestUseCase<string, string> {
         protected override async executeInternal(): Promise<string> {
           throw 'String error';
@@ -267,7 +265,7 @@ describe('Usecase', () => {
       expect(result.success).toBe(false);
       if (result.success === false) {
         expect(result.error).toBeInstanceOf(Error);
-        expect(result.error?.message).toBe('String error');
+        expect(result.error.message).toBe('String error');
       }
     });
 
@@ -288,48 +286,68 @@ describe('Usecase', () => {
     });
   });
 
-  describe('CancellationToken', () => {
-    it('returns failure immediately when token is already cancelled', async () => {
-      const useCase = new SuccessUseCase();
-      const token = new MockCancellationToken(
-        true,
-        'User requested cancellation'
-      );
+  describe('AbortSignal and wrapper failures', () => {
+    it('returns UsecaseCancelledError when already aborted', async () => {
+      const useCase = new FailureUseCase();
+      const controller = new AbortController();
+      controller.abort('abort requested');
 
-      const result = await useCase.execute('input', undefined, token);
+      const result = await useCase.execute('input', {
+        signal: controller.signal
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+      }
+    });
+  });
+
+  describe('AbortSignal', () => {
+    it('returns failure immediately when the signal is already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort(new Error('User requested cancellation'));
+
+      const useCase = new SuccessUseCase();
+      const result = await useCase.execute('input', {
+        signal: controller.signal
+      });
 
       expect(result.success).toBe(false);
       if (result.success === false) {
+        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
         expect(result.error?.message).toBe('User requested cancellation');
       }
     });
 
-    it('passes cancellation token to executeInternal', async () => {
-      let receivedToken: CancellationToken | undefined;
+    it('passes the AbortSignal to executeInternal', async () => {
+      let receivedSignal: AbortSignal | undefined;
 
-      class PassTokenUseCase extends TestUseCase<string, string> {
+      class PassSignalUseCase extends TestUseCase<string, string> {
         protected override async executeInternal(
           _input: string,
           _logger: LoggingPort,
-          cancellationToken?: CancellationToken
+          signal?: AbortSignal
         ): Promise<string> {
-          receivedToken = cancellationToken;
+          receivedSignal = signal;
           return _input;
         }
       }
 
-      const useCase = new PassTokenUseCase();
-      const token = new MockCancellationToken(false, undefined);
-      await useCase.execute('input', undefined, token);
+      const controller = new AbortController();
+      const useCase = new PassSignalUseCase();
+      await useCase.execute('input', { signal: controller.signal });
 
-      expect(receivedToken).toBe(token);
+      expect(receivedSignal).toBe(controller.signal);
     });
 
-    it('allows execution when token is not cancelled', async () => {
+    it('allows execution when the signal is not aborted', async () => {
+      const controller = new AbortController();
       const useCase = new SuccessUseCase();
-      const token = new MockCancellationToken(false, undefined);
 
-      const result = await useCase.execute('test', undefined, token);
+      const result = await useCase.execute('test', {
+        signal: controller.signal
+      });
 
       expect(result.success).toBe(true);
       if (result.success === true) {
@@ -350,21 +368,22 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (result.success === false) {
+        expect(result.error).toBeInstanceOf(UsecaseTimeoutError);
         expect(result.error?.message).toContain('timed out');
       }
       expect(metrics.hasMetric('usecase_timeout')).toBe(true);
     });
 
-    it('passes a cancelled token to executeInternal when timeout fires', async () => {
-      let cancellationTokenSeen: CancellationToken | undefined;
+    it('passes an aborted signal to executeInternal when timeout fires', async () => {
+      let signalSeen: AbortSignal | undefined;
 
       class TimeoutAwareUseCase extends TestUseCase<{ delay: number }, string> {
         protected override async executeInternal(
           input: { delay: number },
           _logger: LoggingPort,
-          cancellationToken?: CancellationToken
+          signal?: AbortSignal
         ): Promise<string> {
-          cancellationTokenSeen = cancellationToken;
+          signalSeen = signal;
 
           await new Promise((resolve) => setTimeout(resolve, input.delay));
           return 'completed';
@@ -378,8 +397,30 @@ describe('Usecase', () => {
       const result = await useCase.execute({ delay: 50 });
 
       expect(result.success).toBe(false);
-      expect(cancellationTokenSeen?.isCancelled).toBe(true);
-      expect(cancellationTokenSeen?.reason).toContain('timed out');
+      expect(signalSeen?.aborted).toBe(true);
+      expect(signalSeen?.reason).toBeDefined();
+    });
+
+    it('returns UsecaseCancelledError when caller aborts before timeout', async () => {
+      const controller = new AbortController();
+      const useCase = new AsyncDelayUseCase({
+        timeoutMs: 100
+      });
+
+      setTimeout(() => {
+        controller.abort(new Error('Cancelled by caller'));
+      }, 10);
+
+      const result = await useCase.execute(
+        { delay: 50 },
+        { signal: controller.signal }
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success === false) {
+        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+        expect(result.error.message).toBe('Cancelled by caller');
+      }
     });
   });
 
@@ -393,238 +434,10 @@ describe('Usecase', () => {
       );
     });
 
-    it('rejects invalid retry attempts and delay values during construction', () => {
-      expect(() => new SuccessUseCase({ retry: { attempts: 0 } })).toThrow(
-        'Usecase retry.attempts must be a positive integer.'
+    it('rejects timeoutMs values beyond the safe timer range', () => {
+      expect(() => new SuccessUseCase({ timeoutMs: 2_147_483_648 })).toThrow(
+        'Usecase timeoutMs must be less than or equal to 2147483647.'
       );
-      expect(
-        () => new SuccessUseCase({ retry: { attempts: 1, delayMs: -1 } })
-      ).toThrow(
-        'Usecase retry.delayMs must be a finite number greater than or equal to 0.'
-      );
-      expect(
-        () => new SuccessUseCase({ retry: { attempts: 1, backoffMs: -5 } })
-      ).toThrow(
-        'Usecase retry.backoffMs must be a finite number greater than or equal to 0.'
-      );
-    });
-
-    it('clamps extremely large retry backoff values to a safe maximum', () => {
-      const useCase = new SuccessUseCase();
-      const delayMs = (
-        useCase as unknown as {
-          calculateRetryDelayMs: (
-            config: {
-              delayMs?: number;
-              backoffMs?: number;
-            },
-            attempt: number
-          ) => number;
-        }
-      ).calculateRetryDelayMs(
-        { delayMs: 0, backoffMs: Number.MAX_SAFE_INTEGER },
-        2
-      );
-
-      expect(delayMs).toBe(30000);
-    });
-  });
-
-  describe('Retries', () => {
-    it('does not retry unless the retry policy is explicitly configured', async () => {
-      let attempts = 0;
-
-      class FlakyUseCase extends TestUseCase<string, string> {
-        protected override async executeInternal(
-          _input: string,
-          _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
-        ): Promise<string> {
-          attempts += 1;
-          throw new Error('Temporary failure');
-        }
-      }
-
-      const useCase = new FlakyUseCase();
-      const result = await useCase.execute('input');
-
-      expect(result.success).toBe(false);
-      expect(attempts).toBe(1);
-    });
-
-    it('retries transient failures until success', async () => {
-      const metrics = new MockMetrics();
-      let attempts = 0;
-
-      class FlakyUseCase extends TestUseCase<string, string> {
-        protected override async executeInternal(
-          _input: string,
-          _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
-        ): Promise<string> {
-          attempts += 1;
-          if (attempts < 2) {
-            throw new Error('Temporary failure');
-          }
-
-          return 'success';
-        }
-      }
-
-      const useCase = new FlakyUseCase({
-        metrics,
-        retry: { attempts: 3, delayMs: 0 }
-      });
-
-      const result = await useCase.execute('input');
-
-      expect(result.success).toBe(true);
-      if (result.success === true) {
-        expect(result.value).toBe('success');
-      }
-      expect(attempts).toBe(2);
-      expect(metrics.hasMetric('usecase_retries')).toBe(true);
-    });
-
-    it('stops waiting when cancellation is requested during retry delay', async () => {
-      let attempts = 0;
-      let cancelled = 0;
-
-      const token: CancellationToken = {
-        get isCancelled() {
-          return cancelled > 0;
-        },
-        get reason() {
-          return cancelled > 0 ? 'Retry delay cancelled' : undefined;
-        }
-      };
-
-      class RetryDelayUseCase extends TestUseCase<string, string> {
-        protected override async executeInternal(
-          _input: string,
-          _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
-        ): Promise<string> {
-          attempts += 1;
-          if (attempts === 1) {
-            throw new Error('Temporary failure');
-          }
-
-          return 'success';
-        }
-      }
-
-      const useCase = new RetryDelayUseCase({
-        retry: { attempts: 3, delayMs: 50 }
-      });
-
-      setTimeout(() => {
-        cancelled += 1;
-        setTimeout(() => {
-          cancelled += 1;
-        }, 5);
-      }, 10);
-
-      const result = await useCase.execute('input', undefined, token);
-
-      expect(result.success).toBe(false);
-      if (result.success === false) {
-        expect(result.error.message).toBe('Retry delay cancelled');
-      }
-      expect(attempts).toBe(1);
-    });
-
-    it('retries after a timeout when the timeout is considered transient', async () => {
-      let attempts = 0;
-
-      class TimeoutThenRecoverUseCase extends TestUseCase<string, string> {
-        protected override async executeInternal(
-          _input: string,
-          _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
-        ): Promise<string> {
-          attempts += 1;
-
-          if (attempts === 1) {
-            await new Promise<void>((resolve) => setTimeout(resolve, 25));
-            throw new Error('Execution timed out after 10 ms');
-          }
-
-          return 'recovered';
-        }
-      }
-
-      const useCase = new TimeoutThenRecoverUseCase({
-        timeoutMs: 10,
-        retry: { attempts: 2, delayMs: 0 }
-      });
-
-      const result = await useCase.execute('input');
-
-      expect(result.success).toBe(true);
-      if (result.success === true) {
-        expect(result.value).toBe('recovered');
-      }
-      expect(attempts).toBe(2);
-    });
-
-    it('does not retry validation errors by default', async () => {
-      let attempts = 0;
-
-      class ValidationFailureUseCase extends TestUseCase<string, string> {
-        protected override async executeInternal(
-          _input: string,
-          _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
-        ): Promise<string> {
-          attempts += 1;
-          throw new Error('Validation failed');
-        }
-      }
-
-      const useCase = new ValidationFailureUseCase({
-        retry: { attempts: 3, delayMs: 0 }
-      });
-      const result = await useCase.execute('input');
-
-      expect(result.success).toBe(false);
-      if (result.success === false) {
-        expect(result.error.message).toBe('Validation failed');
-      }
-      expect(attempts).toBe(1);
-    });
-
-    it('uses a custom retry predicate when provided', async () => {
-      let attempts = 0;
-
-      class CustomRetryUseCase extends TestUseCase<string, string> {
-        protected override async executeInternal(
-          _input: string,
-          _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
-        ): Promise<string> {
-          attempts += 1;
-          if (attempts < 3) {
-            throw new Error('Rate limited');
-          }
-
-          return 'success';
-        }
-      }
-
-      const useCase = new CustomRetryUseCase({
-        retry: {
-          attempts: 5,
-          delayMs: 0,
-          shouldRetry: (error) =>
-            error instanceof Error && /Rate limited/.test(error.message)
-        }
-      });
-
-      const result = await useCase.execute('input');
-
-      expect(result.success).toBe(true);
-      expect(attempts).toBe(3);
     });
   });
 
@@ -677,7 +490,7 @@ describe('Usecase', () => {
       const useCase = new SuccessUseCase({ logging: logger });
       const context = { userId: '123', action: 'test' };
 
-      await useCase.execute('hello', context);
+      await useCase.execute('hello', { executionContext: context });
 
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
@@ -727,9 +540,10 @@ describe('Usecase', () => {
     it('records usecase_cancelled increment when cancelled', async () => {
       const metrics = new MockMetrics();
       const useCase = new SuccessUseCase({ metrics });
-      const token = new MockCancellationToken(true, 'Cancelled');
+      const controller = new AbortController();
+      controller.abort(new Error('Cancelled'));
 
-      await useCase.execute('input', undefined, token);
+      await useCase.execute('input', { signal: controller.signal });
 
       expect(metrics.hasMetric('usecase_cancelled')).toBe(true);
       const cancelCall = metrics.calls.find(
@@ -822,7 +636,7 @@ describe('Usecase', () => {
       const useCase = new SuccessUseCase({ logging: logger });
       const context = { userId: 'user-123', requestId: 'req-456' };
 
-      await useCase.execute('test', context);
+      await useCase.execute('test', { executionContext: context });
 
       const logsWithContext = logger.logs.filter((log) => {
         const data = log.data as Record<string, unknown>;
@@ -927,7 +741,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           input: { name: string },
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<{ greeting: string }> {
           return { greeting: `Hello, ${input.name}` };
         }
@@ -1036,11 +850,13 @@ describe('Usecase', () => {
     });
   });
 
-  describe('Error Normalization', () => {
-    it('preserves original error message', async () => {
+  describe('Error passthrough and wrapper failures', () => {
+    it('preserves original error instance from executeInternal', async () => {
+      const originalError = new Error('Custom error message');
+
       class PreservesMessageUseCase extends TestUseCase<string, string> {
         protected override async executeInternal(): Promise<string> {
-          throw new Error('Custom error message');
+          throw originalError;
         }
       }
 
@@ -1049,7 +865,7 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error?.message).toBe('Custom error message');
+        expect(result.error).toBe(originalError);
       }
     });
 

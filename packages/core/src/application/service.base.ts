@@ -8,11 +8,11 @@ import type { ClockPort, LoggingPort, MetricsPort } from './ports';
 /** Configuration for `ServiceBase`. */
 export interface ServiceConfiguration {
   /** Clock implementation. Defaults to the system clock. */
-  clock?: ClockPort;
+  readonly clock?: ClockPort | undefined;
   /** Logger implementation. Defaults to the console logger. */
-  logging?: LoggingPort;
+  readonly logging?: LoggingPort | undefined;
   /** Metrics implementation. Defaults to a no-op adapter. */
-  metrics?: MetricsPort;
+  readonly metrics?: MetricsPort | undefined;
 }
 
 /**
@@ -26,9 +26,9 @@ export abstract class ServiceBase {
   protected readonly logger: LoggingPort;
   protected readonly metrics: MetricsPort;
 
-  constructor(options: ServiceConfiguration = {}) {
-    this.clock = options.clock ?? SystemClockAdapter;
-    this.logger = options.logging ?? ConsoleLoggingAdapter;
-    this.metrics = options.metrics ?? NoOpMetricsAdapter;
+  constructor(configuration: ServiceConfiguration = {}) {
+    this.clock = configuration.clock ?? SystemClockAdapter;
+    this.logger = configuration.logging ?? ConsoleLoggingAdapter;
+    this.metrics = configuration.metrics ?? NoOpMetricsAdapter;
   }
 }

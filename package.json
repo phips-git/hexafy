@@ -6,6 +6,7 @@
     "apps/*",
     "packages/*"
   ],
+  "type": "module",
   "scripts": {
     "lint": "bun lint --fix",
     "changeset": "changeset",

@@ -5,9 +5,13 @@ export type {
   MetricsPort
 } from './ports';
 export { ServiceBase, type ServiceConfiguration } from './service.base';
-export type { CancellationToken, UsecaseResult } from './types';
+export {
+  UsecaseCancelledError,
+  UsecaseTimeoutError,
+  type UsecaseResult
+} from './types';
 export {
   Usecase,
   type UsecaseConfiguration,
-  type UsecaseRetryConfiguration
+  type UsecaseExecutionOptions
 } from './usecase';

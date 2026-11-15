@@ -5,6 +5,32 @@ export interface DomainErrorLike extends Error {
   context?: Record<string, unknown>;
 }
 
+/**
+ * Type guard that checks if a value is a domain error.
+ *
+ * Returns true if the value is:
+ *
+ * - An instance of `ApplicationError`
+ * - Has a name matching a known domain error class
+ * - Has a `code` property with a domain error code
+ */
+export function isDomainError(value: unknown): value is DomainErrorLike {
+  if (!(value instanceof Error)) {
+    return false;
+  }
+
+  if (value instanceof ApplicationError) {
+    return true;
+  }
+
+  if (KNOWN_DOMAIN_ERROR_NAMES.has(value.name)) {
+    return true;
+  }
+
+  const code = readCode(value);
+  return code !== undefined;
+}
+
 const KNOWN_DOMAIN_ERROR_NAMES = new Set<string>([
   'ApplicationError',
   'ValidationError',
@@ -22,23 +48,6 @@ const DOMAIN_ERROR_CODE_ALIASES: Record<string, string> = {
   VALIDATION: 'VALIDATION_ERROR',
   CONFLICT: 'CONFLICT_ERROR'
 };
-
-export function isDomainError(value: unknown): value is DomainErrorLike {
-  if (!(value instanceof Error)) {
-    return false;
-  }
-
-  if (value instanceof ApplicationError) {
-    return true;
-  }
-
-  if (KNOWN_DOMAIN_ERROR_NAMES.has(value.name)) {
-    return true;
-  }
-
-  const code = readCode(value);
-  return code !== undefined;
-}
 
 export function getDomainErrorCode(error: Error): string | undefined {
   const explicitCode = readCode(error);

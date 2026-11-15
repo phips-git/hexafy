@@ -1,6 +1,7 @@
 {
   "name": "@hexafy/nestjs-example",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "bun --bun nest build",
     "clean": "rm -rf dist && git clean -xdf node_modules",
