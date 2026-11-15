@@ -1,11 +1,25 @@
 # Codestyle
 
+These conventions are mandatory for all code changes by agents and contributors.
+
 ## Principles
 
 - **Self-explanatory code** - Clear names, no unnecessary comments
+- **Self-explanatory docs** - Package READMEs must follow the mandatory structure in `PROJECT-STRUCTURE.md#readme-standard-mandatory-for-all-packages`
 - **No `any` types** - Full type safety required
+- **No type-assertion shortcuts** - Avoid `as any`, `as unknown as`, and casting to bypass compiler errors; prefer precise types, `unknown` with guards, and `satisfies`
+- **Type-safe boundaries** - Validate untrusted runtime values at boundaries and narrow them with type guards before usage
 - **Direct imports** - No convenience re-exports
 - **Small functions** - Single responsibility
+- **No alias clutter** - Do not keep deprecated compatibility aliases after renames unless migration support is explicitly required
+
+### Type-safety rules
+
+- Prefer explicit interfaces, type aliases, and helper functions over `as` casts
+- Use `unknown` for untrusted values and validate with `typeof`, `instanceof`, or custom guards before narrowing
+- Use `satisfies` when you want to check a value against a type without widening it
+- Only use a cast when the runtime contract is already known and the cast is expressing a true narrowing, not hiding a type problem
+- If a cast is needed at a boundary (for example JSON parsing or framework payloads), put it behind a small validating function that proves the runtime shape
 
 ## Naming
 
@@ -29,69 +43,30 @@ All errors extend `ApplicationError` with `code` and optional `context`:
 | `InvariantError`      | `INVARIANT_ERROR`      | Business rule violations   |
 | `InfrastructureError` | `INFRASTRUCTURE_ERROR` | External service failures  |
 
-```typescript
-throw new ValidationError('Email required');
-throw new NotFoundError('User');
-throw new ConflictError('Email already registered');
-```
+## Canonical examples (drift-resistant)
 
-## NestJS Integration
+Prefer linking to these files over copying snippets into agent docs:
 
-```typescript
-// Module setup
-import { DomainModule, InfrastructureModule } from '@hexafy/nestjs';
+- `packages/core/README.md` - current public usage examples for core
+- `packages/nestjs/README.md` - current NestJS integration examples
+- `packages/aws-lambda/README.md` - current Lambda integration examples
+- `packages/observability/README.md` - current observability integration examples
+- `packages/core/src/domain/errors/application.error.ts` - canonical error classes and codes
+- `packages/core/src/application/usecase.ts` - canonical `Usecase` contract
+- `packages/core/src/application/service.base.ts` - canonical `ServiceBase` contract
 
-@Module({
-  imports: [
-    DomainModule.forRoot(configService),
-    InfrastructureModule.forRoot(configService)
-  ]
-})
-export class AppModule {}
+### Logging guidance
 
-// Exception filters
-import { DomainExceptionFilter, HttpExceptionFilter } from '@hexafy/nestjs';
-
-@Controller()
-export class UserController {
-  @UseFilters(new DomainExceptionFilter())
-  @Get()
-  async getAll() {
-    // ...
-  }
-}
-```
-
-Also see [PROJECT-STRUCTURE.md](../PROJECT-STRUCTURE.md) for import/export patterns.
-
-### Use Cases
-
-Extend `Usecase` base class:
-
-```typescript
-import { failure, success, Usecase } from '@hexafy/core/application';
-
-class CreateUserUseCase extends Usecase<Input, Output> {
-  async executeInternal(input, logger) {
-    if (!input.email) {
-      return failure(new ValidationError('Email required'));
-    }
-    return success({ userId: '123' });
-  }
-}
-```
+- **Default**: inside `Usecase.executeInternal` and `ServiceBase` code, use the injected `LoggingPort`.
+- **Isolated execution units only**: use observability execution observers for background/fire-and-forget tasks, fan-out batch items, or workflow/job steps that should have their own execution envelope.
+- Avoid double-wrapping the same execution path with both patterns unless you explicitly need separate parent/child execution traces.
 
 ### Errors
 
-- **Domain errors**: Return via `Result` (don't throw)
-- **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.)
+- **Domain errors**: In `Usecase.executeInternal`, throw typed domain errors for expected business failures
+- **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.) at the boundary when they are not part of the business result contract
 
-### Exports
+### Imports and exports
 
-Import from subpaths:
-
-```typescript
-import { Usecase } from '@hexafy/core/application';
-import { Usecase } from '@hexafy/core/domain';
-import { LoggerPort } from '@hexafy/core/infrastructure';
-```
+- Prefer package subpaths that match responsibility (`/application`, `/domain`, `/infrastructure`).
+- Treat package `README.md` export tables and each package `package.json` `exports` field as the source of truth.

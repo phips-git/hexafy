@@ -37,12 +37,12 @@ export type ValidTaskCreationProperties = Brand<
   'ValidTaskCreationProperties'
 >;
 
-export interface TaskUpdateProperties extends Partial<
+export type TaskUpdateProperties = Partial<
   Pick<
     Task,
     'title' | 'description' | 'status' | 'priority' | 'assignedTo' | 'dueDate'
   >
-> {}
+>;
 export type ValidTaskUpdateProperties = Brand<
   TaskUpdateProperties,
   'ValidTaskUpdateProperties'

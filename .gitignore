@@ -18,7 +18,6 @@ logs/
 npm-debug.log*
 .DS_Store
 Thumbs.db
-*.tsbuildinfo
 tmp
 .tmp
 temp

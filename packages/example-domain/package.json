@@ -1,6 +1,7 @@
 {
   "name": "@hexafy/example-domain",
   "private": true,
+  "type": "module",
   "exports": {
     "./application": "./src/application/index.ts",
     "./domain": "./src/domain/index.ts",

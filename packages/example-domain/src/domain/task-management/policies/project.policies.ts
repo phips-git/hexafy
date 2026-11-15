@@ -15,13 +15,12 @@ export class ProjectPolicy {
   static canModifyOwner(
     project: Project,
     newOwnerId: string,
-    currentOwnerId: string
+    _currentOwnerId: string
   ): boolean {
     if (project.ownerId === newOwnerId) {
       return true;
     }
 
-    // Only project owner can transfer ownership
     throw new Error('Only the project owner can transfer ownership');
   }
 }

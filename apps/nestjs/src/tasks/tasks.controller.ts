@@ -1,15 +1,10 @@
 import {
-  type GetAuthenticatedUserOutput,
-  GetAuthenticatedUserUsecase
-} from '@hexafy/auth/application';
-import {
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
-  Inject,
   Param,
   Post,
   Put,
@@ -20,14 +15,15 @@ import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
 import { CreateTaskDto, UpdateTaskDto } from './dtos/create-task.dto';
 import { TasksService } from './tasks.service';
 
+interface AuthenticatedUserLike {
+  id: string;
+  role: string;
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller('projects/:projectId/tasks')
 export class TasksController {
-  constructor(
-    private readonly tasksService: TasksService,
-    @Inject('getAuthenticatedUserUsecase')
-    private readonly getAuthenticatedUserUsecase: GetAuthenticatedUserUsecase
-  ) {}
+  constructor(private readonly tasksService: TasksService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -35,15 +31,11 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Body() createTaskDto: CreateTaskDto
   ): Promise<{ taskId: string }> {
-    const user = await this.getAuthenticatedUserUsecase.execute({
-      headers: { authorization: `Bearer token` }
-    });
-    if (!user) throw new Error('Unauthorized');
-    return this.tasksService.createTask(
-      createTaskDto,
+    return this.tasksService.createTask(createTaskDto, projectId, {
+      tenantId: 'demo-tenant',
       projectId,
-      this.mapUserToAuthContext(user)
-    );
+      role: 'user'
+    });
   }
 
   @Get(':taskId')
@@ -51,14 +43,14 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Param('taskId') taskId: string
   ): Promise<{ task: unknown }> {
-    throw new Error('Not implemented');
+    return { task: await this.tasksService.getTask(projectId, taskId) };
   }
 
   @Get()
   async listTasks(
     @Param('projectId') projectId: string
   ): Promise<{ tasks: unknown[] }> {
-    throw new Error('Not implemented');
+    return { tasks: await this.tasksService.getTasksForProject(projectId) };
   }
 
   @Put(':taskId')
@@ -67,7 +59,11 @@ export class TasksController {
     @Param('taskId') taskId: string,
     @Body() updateTaskDto: UpdateTaskDto
   ): Promise<{ taskId: string }> {
-    throw new Error('Not implemented');
+    return this.tasksService.updateTask(taskId, projectId, updateTaskDto, {
+      tenantId: 'demo-tenant',
+      projectId,
+      role: 'user'
+    });
   }
 
   @Delete(':taskId')
@@ -76,11 +72,14 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Param('taskId') taskId: string
   ): Promise<void> {
-    throw new Error('Not implemented');
+    await this.tasksService.deleteTask(taskId, projectId, {
+      tenantId: 'demo-tenant',
+      projectId,
+      role: 'user'
+    });
   }
 
-  private mapUserToAuthContext(user: GetAuthenticatedUserOutput) {
-    if (!user) throw new Error('User should not be null');
+  private mapUserToAuthContext(user: AuthenticatedUserLike) {
     return {
       tenantId: user.id,
       projectId: '',

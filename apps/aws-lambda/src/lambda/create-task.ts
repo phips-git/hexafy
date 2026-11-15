@@ -1,14 +1,22 @@
 import type {
-  ProjectId,
-  TaskCreationProperties,
-  TaskManagementAuthorizationContext,
-  TaskPriority
-} from '@hexafy/task-management/domain';
-import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
+type AuthorizationContext = {
+  tenantId: string;
+  projectId: string | null;
+  role: string;
+};
+
+type TaskCreationProperties = {
+  title: string;
+  description: string | null;
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string | null;
+  dueDate?: Date | null;
+};
 
 import { buildLambdaErrorResponse, getCreateTaskUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
@@ -55,23 +63,23 @@ export const handler = async (
       throw new ValidationApiError('Project ID is required');
     }
 
-    const authorizationContext: TaskManagementAuthorizationContext = {
+    const authorizationContext: AuthorizationContext = {
       tenantId: user.tenantId,
-      projectId: projectId as ProjectId,
+      projectId,
       role: user.role
     };
 
     const creationProperties: TaskCreationProperties = {
       title,
       description: description ?? null,
-      priority: (priority ?? 0) as unknown as TaskPriority,
+      priority: priority === 2 ? 'high' : priority === 1 ? 'medium' : 'low',
       assignedTo: assignedTo ?? null,
       dueDate: dueDate ? new Date(dueDate) : null
     };
 
     await getCreateTaskUsecase().execute({
       authorizationContext,
-      projectId: projectId as ProjectId,
+      projectId,
       creationProperties
     });
 

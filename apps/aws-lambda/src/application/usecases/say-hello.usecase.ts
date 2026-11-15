@@ -1,9 +1,8 @@
 import {
-  CancellationToken,
-  LoggerPort,
-  OperationCancelledError,
+  type CancellationToken,
+  type LoggingPort,
   Usecase,
-  UsecaseExecutionDependencies
+  type UsecaseConfiguration
 } from '@hexafy/core/application';
 
 interface SayHelloInput {
@@ -14,7 +13,6 @@ interface SayHelloOutput {
   message: string;
 }
 
-/** Business rule error for validation failures. */
 class BusinessRuleError extends Error {
   readonly code: string;
 
@@ -26,24 +24,20 @@ class BusinessRuleError extends Error {
 }
 
 export class SayHelloUseCase extends Usecase<SayHelloInput, SayHelloOutput> {
-  constructor(dependencies: UsecaseExecutionDependencies) {
+  constructor(dependencies: UsecaseConfiguration) {
     super(dependencies);
   }
 
   protected async executeInternal(
     input: SayHelloInput,
-    logger: LoggerPort,
+    logger: LoggingPort,
     cancellationToken?: CancellationToken
   ): Promise<SayHelloOutput> {
-    // Handle cancellation
     if (cancellationToken?.isCancelled) {
       logger.warn('Request cancelled', { name: input.name });
-      throw new OperationCancelledError(
-        cancellationToken.reason ?? 'Request cancelled'
-      );
+      throw new Error(cancellationToken.reason ?? 'Request cancelled');
     }
 
-    // Business validation - log and throw
     if (!input.name || input.name.trim().length === 0) {
       logger.warn('Invalid input', { name: input.name });
       throw new BusinessRuleError('Name is required', 'VALIDATION_ERROR');

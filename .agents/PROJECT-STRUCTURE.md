@@ -1,14 +1,59 @@
 # Project Structure
 
-## Packages
+## New Package Rules
 
-| Package                  | Purpose              |
-| ------------------------ | -------------------- |
-| `@hexafy/core`           | Hexagonal primitives |
-| `@hexafy/nestjs`         | NestJS adapters      |
-| `@hexafy/aws-lambda`     | Lambda adapters      |
-| `@hexafy/email`          | Email domain         |
-| `@hexafy/object-storage` | Object storage       |
+Use these rules when adding any package, with extra checks for companion packages.
+
+1. **Boundary first**: define what belongs in the package and what must stay in existing packages.
+2. **Exports are explicit**: define `exports` and matching `publishConfig.exports` for every public entrypoint.
+3. **Public API quality**: add concise JSDoc for exported classes, functions, and interfaces.
+4. **README minimum**: include purpose, scope/non-goals, install, and one concrete usage example.
+5. **Validation gate**: `test`, `typecheck`, and `build` must pass for the new package before release.
+
+### Companion package rules
+
+For packages that extend core behavior (for example observability adapters):
+
+1. **No contract duplication**: reuse `@hexafy/core` ports/types instead of redefining them.
+2. **Dependency model**: declare `@hexafy/core` as a `peerDependency`; keep a workspace devDependency for local development/tests.
+3. **Separation of concerns**: keep primitives/contracts in core, and policy-heavy adapters in the companion package.
+4. **Integration docs**: show how the companion package plugs into `@hexafy/core` (not standalone-only examples).
+
+## README standard (mandatory for all packages)
+
+All package READMEs in this repository must follow the same structure order as the package family standard.
+Use this as a requirement, not a suggestion.
+The documentation approach is mandatory drift-resistant by default: avoid duplicating mutable API details in multiple docs; reference canonical files where possible.
+
+## Root README
+
+The repository root README should focus on:
+
+- Monorepo context and purpose
+- Package navigation (link to core package README)
+- Development setup and contribution workflow
+
+### Exported artifacts table requirements
+
+The `Exported artifacts and usage` section must cover all public exports from package entrypoints and include:
+
+- explicit export name(s)
+- entrypoint/subpath
+- what it is for
+- when to use it
+- minimal usage guidance
+
+Grouping is allowed only for closely related exports with the same purpose/usage pattern; grouped rows must still name every export explicitly.
+If the package has multiple entrypoints (for example `/application`, `/domain`, `/infrastructure`), the table must cover all exported symbols across them exactly once.
+
+### Companion package alignment requirements
+
+For companion packages (e.g. `@hexafy/observability`, `@hexafy/nestjs`, `@hexafy/aws-lambda`):
+
+- explicitly state dependency on `@hexafy/core`
+- document default usage path with core first, companion second
+- clearly separate default use (`Usecase`/injected ports) vs opt-in companion behavior
+- avoid presenting the companion package as standalone architecture guidance
 
 ## Internal Structure
 
@@ -21,96 +66,14 @@ packages/<name>/
 └── package.json
 ```
 
-## Imports
+## Drift-resistant references
 
-Also see [CODESTYLE.md](./CODESTYLE.md) for naming and code organization patterns.
+Do not duplicate long API snippets here. Use these as source of truth:
 
-```typescript
-import { Usecase } from '@hexafy/core/application';
-import type { Entity } from '@hexafy/core/domain';
-```
+- `packages/*/README.md` - usage patterns and exported-artifact tables
+- `packages/*/package.json` (`exports`, `publishConfig.exports`) - public entrypoints
+- `packages/core/src/application/*` - application contracts (`Usecase`, ports, results)
+- `packages/core/src/domain/*` - domain primitives, repository/unit-of-work, errors
+- `packages/core/src/infrastructure/*` - default adapters
 
-## Domain Primitives
-
-```typescript
-import {
-  AggregateRoot,
-  Entity,
-  RepositoryBase,
-  UnitOfWorkBase,
-  ValueObject
-} from '@hexafy/core/domain';
-import type { Brand, UniqueIdentifier } from '@hexafy/core/domain';
-```
-
-## Ports & Adapters
-
-```typescript
-import type {
-  ClockPort,
-  IdentifierPort,
-  LoggerPort,
-  MetricsPort
-} from '@hexafy/core/domain';
-import {
-  ConsoleLoggingAdapter,
-  NoOpMetricsAdapter
-} from '@hexafy/core/infrastructure';
-```
-
-## Result Handling
-
-```typescript
-import {
-  failure,
-  isFailure,
-  isSuccess,
-  success,
-  unwrap
-} from '@hexafy/core/application';
-
-// Create results
-const result = success(value);
-const error = failure(new Error('failed'));
-
-// Check result
-if (isSuccess(result)) {
-  console.log(result.value);
-} else {
-  console.error(result.error);
-}
-
-// Use with use cases
-const userResult = await userUseCase.execute(input);
-if (isSuccess(userResult)) {
-  // Handle success
-} else {
-  // Handle failure
-}
-```
-
-## See Also
-
-- [AGENTS.md](../AGENTS.md) - Overview of agent configuration
-- [CODESTYLE.md](./CODESTYLE.md) - Coding standards
-
-## Exports
-
-Local development uses Bun-native TypeScript sources. The publishable tarball intentionally swaps to `dist/` via `publishConfig.exports`; this avoids shipping `src/*.ts` paths to npm consumers.
-
-```json
-{
-  "type": "module",
-  "exports": {
-    "./domain": "./src/domain.export.ts"
-  },
-  "publishConfig": {
-    "exports": {
-      "./domain": {
-        "types": "./dist/domain.export.d.ts",
-        "import": "./dist/domain.export.js"
-      }
-    }
-  }
-}
-```
+Also see [AGENTS.md](../AGENTS.md) and [CODESTYLE.md](./CODESTYLE.md).

@@ -36,7 +36,8 @@ export function parseJsonBody<Input>(event: Record<string, unknown>): Input {
 export function parseQueryParameters<
   T extends Record<string, string> = Record<string, string>
 >(event: Record<string, unknown>): T {
-  return (event['queryParameters'] ?? {}) as T;
+  const value = event['queryParameters'] ?? {};
+  return normalizeStringRecord<T>(value, 'queryParameters');
 }
 
 /**
@@ -50,7 +51,37 @@ export function parseQueryParameters<
 export function parsePathParameters<
   T extends Record<string, string> = Record<string, string>
 >(event: Record<string, unknown>): T {
-  return (event['pathParameters'] ?? {}) as T;
+  const value = event['pathParameters'] ?? {};
+  return normalizeStringRecord<T>(value, 'pathParameters');
+}
+
+function normalizeStringRecord<T extends Record<string, string>>(
+  value: unknown,
+  fieldName: string
+): T {
+  if (value === null || value === undefined) {
+    return {} as T;
+  }
+
+  if (typeof value !== 'object') {
+    throw new Error(`${fieldName} must be an object`);
+  }
+
+  const output: Record<string, string> = {};
+
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined || entry === null) {
+      output[key] = '';
+      continue;
+    }
+    if (typeof entry === 'string') {
+      output[key] = entry;
+      continue;
+    }
+    output[key] = String(entry);
+  }
+
+  return output as T;
 }
 
 /** Validate HTTP method */
@@ -58,8 +89,12 @@ export function validateHttpMethod(
   event: Record<string, unknown>,
   allowedMethods: string[]
 ): void {
-  const httpMethod = event['httpMethod'] as string;
-  if (!httpMethod || !allowedMethods.includes(httpMethod.toUpperCase())) {
+  const httpMethod = event['httpMethod'];
+  if (typeof httpMethod !== 'string') {
+    throw new Error('HTTP method is missing');
+  }
+
+  if (!allowedMethods.includes(httpMethod.toUpperCase())) {
     throw new Error(
       `Method not allowed. Allowed: ${allowedMethods.join(', ')}`
     );
@@ -71,10 +106,15 @@ export function validateRequiredHeaders(
   event: Record<string, unknown>,
   requiredHeaders: string[]
 ): void {
-  const headers = event['headers'] as Record<string, string> | undefined;
-  if (!headers) {
+  const headersValue = event['headers'];
+  if (headersValue === undefined || headersValue === null) {
     throw new Error('Missing headers');
   }
+
+  const headers = normalizeStringRecord<Record<string, string>>(
+    headersValue,
+    'headers'
+  );
 
   const missingHeaders = requiredHeaders.filter(
     (header) => !headers[header.toLowerCase()]

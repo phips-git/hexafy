@@ -1,30 +1,11 @@
 import type { UniqueIdentifier } from './unique-identifier.type';
 
 /**
- * Base entity class for domain objects.
+ * Base entity type.
  *
- * Entities are objects defined by their identity rather than their attributes.
- * Two entities with the same ID are considered equal, even if their properties
- * differ. Entities are the building blocks of domain models.
+ * Entities are defined by identity rather than by attribute equality.
  *
- * @example
- *   ```typescript
- *   class User extends Entity<UserId> {
- *     constructor(
- *       id: UserId,
- *       public email: string,
- *       public name: string
- *     ) {
- *       super(id);
- *     }
- *
- *     equals(other: User): boolean {
- *       return this.id === other.id;
- *     }
- *   }
- *   ```;
- *
- * @template Id - The unique identifier type for the entity
+ * @template Id Entity identifier type.
  */
 export abstract class Entity<Id extends UniqueIdentifier = UniqueIdentifier> {
   private readonly _id: Id;

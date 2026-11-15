@@ -1,12 +1,20 @@
 import type {
-  ProjectCreationProperties,
-  TaskManagementAuthorizationContext
-} from '@hexafy/task-management/domain';
-import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
+type AuthorizationContext = {
+  tenantId: string;
+  projectId: string | null;
+  role: string;
+};
+
+type ProjectCreationProperties = {
+  name: string;
+  description: string | null;
+  ownerId?: string;
+};
 
 import { buildLambdaErrorResponse, getCreateProjectUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
@@ -45,7 +53,7 @@ export const handler = async (
       throw new ValidationApiError('Project name is required');
     }
 
-    const authorizationContext: TaskManagementAuthorizationContext = {
+    const authorizationContext: AuthorizationContext = {
       tenantId: user.tenantId,
       projectId: null,
       role: user.role
@@ -53,7 +61,8 @@ export const handler = async (
 
     const creationProperties: ProjectCreationProperties = {
       name,
-      description: description ?? null
+      description: description ?? null,
+      ownerId: user.id
     };
 
     await getCreateProjectUsecase().execute({

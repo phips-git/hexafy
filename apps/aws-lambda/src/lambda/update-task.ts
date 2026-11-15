@@ -1,16 +1,23 @@
 import type {
-  ProjectId,
-  TaskId,
-  TaskManagementAuthorizationContext,
-  TaskPriority,
-  TaskStatus,
-  TaskUpdateProperties
-} from '@hexafy/task-management/domain';
-import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
+
+type AuthorizationContext = {
+  tenantId: string;
+  projectId: string | null;
+  role: string;
+};
+
+type TaskUpdateProperties = {
+  title?: string;
+  description?: string | null;
+  priority?: 'low' | 'medium' | 'high';
+  status?: 'pending' | 'in_progress' | 'completed';
+  assignedTo?: string | null;
+  dueDate?: Date | null;
+};
 
 import { buildLambdaErrorResponse, getUpdateTaskUsecase } from './shared';
 import { authenticateUser } from './shared/auth';
@@ -65,17 +72,28 @@ export const handler = async (
       throw new ValidationApiError('Task ID is required');
     }
 
-    const authorizationContext: TaskManagementAuthorizationContext = {
+    const authorizationContext: AuthorizationContext = {
       tenantId: user.tenantId,
-      projectId: projectId as ProjectId,
+      projectId,
       role: user.role
     };
 
-    const updatePropertiesTyped = {
+    const statusValue = updateProperties.status;
+    const updatePropertiesTyped: TaskUpdateProperties = {
       title: updateProperties.title,
       description: updateProperties.description ?? null,
-      priority: updateProperties.priority as TaskPriority | undefined,
-      status: updateProperties.status as TaskStatus | undefined,
+      priority:
+        updateProperties.priority === 2
+          ? 'high'
+          : updateProperties.priority === 1
+            ? 'medium'
+            : 'low',
+      status:
+        statusValue === 'pending' ||
+        statusValue === 'in_progress' ||
+        statusValue === 'completed'
+          ? statusValue
+          : undefined,
       assignedTo: updateProperties.assignedTo ?? null,
       dueDate: updateProperties.dueDate
         ? new Date(updateProperties.dueDate)
@@ -84,9 +102,9 @@ export const handler = async (
 
     await getUpdateTaskUsecase().execute({
       authorizationContext,
-      projectId: projectId as ProjectId,
-      taskId: taskId as TaskId,
-      updateProperties: updatePropertiesTyped as TaskUpdateProperties
+      projectId,
+      taskId,
+      updateProperties: updatePropertiesTyped
     });
 
     return {

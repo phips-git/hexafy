@@ -2,6 +2,7 @@
   "name": "@hexafy/tsdown-config",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
     "clean": "git clean -xdf node_modules",

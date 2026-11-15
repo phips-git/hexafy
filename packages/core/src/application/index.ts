@@ -1,7 +1,17 @@
-export type { CancellationToken, UsecaseResult } from './types';
+export type {
+  ClockPort,
+  IdentifierPort,
+  LoggingPort,
+  MetricsPort
+} from './ports';
+export { ServiceBase, type ServiceConfiguration } from './service.base';
+export {
+  UsecaseCancelledError,
+  UsecaseTimeoutError,
+  type UsecaseResult
+} from './types';
 export {
   Usecase,
-  type UsecaseExecutionConfiguration,
-  type UsecaseExecutionDependencies
+  type UsecaseConfiguration,
+  type UsecaseExecutionOptions
 } from './usecase';
-export { failure, success, unwrap } from './utils';

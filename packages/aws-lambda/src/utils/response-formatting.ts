@@ -4,8 +4,17 @@
  * Provides standard response formatting with content-type headers
  */
 
+export interface ApiGatewayResponse {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+}
+
 /** Format a success response */
-export function formatSuccess<T>(data: T, statusCode: number = 200): any {
+export function formatSuccess<T>(
+  data: T,
+  statusCode = 200
+): ApiGatewayResponse {
   return {
     statusCode,
     headers: {
@@ -19,7 +28,10 @@ export function formatSuccess<T>(data: T, statusCode: number = 200): any {
 }
 
 /** Format an error response */
-export function formatError(error: Error, statusCode: number = 500): any {
+export function formatError(
+  error: Error,
+  statusCode = 500
+): ApiGatewayResponse {
   return {
     statusCode,
     headers: {
@@ -33,7 +45,7 @@ export function formatError(error: Error, statusCode: number = 500): any {
 }
 
 /** Format a not found response */
-export function formatNotFound(resource?: string): any {
+export function formatNotFound(resource?: string): ApiGatewayResponse {
   return {
     statusCode: 404,
     headers: {
@@ -47,7 +59,7 @@ export function formatNotFound(resource?: string): any {
 }
 
 /** Format a bad request response */
-export function formatBadRequest(message: string): any {
+export function formatBadRequest(message: string): ApiGatewayResponse {
   return {
     statusCode: 400,
     headers: {
@@ -61,7 +73,7 @@ export function formatBadRequest(message: string): any {
 }
 
 /** Format a unauthorized response */
-export function formatUnauthorized(message?: string): any {
+export function formatUnauthorized(message?: string): ApiGatewayResponse {
   return {
     statusCode: 401,
     headers: {
@@ -75,7 +87,7 @@ export function formatUnauthorized(message?: string): any {
 }
 
 /** Format a forbidden response */
-export function formatForbidden(message?: string): any {
+export function formatForbidden(message?: string): ApiGatewayResponse {
   return {
     statusCode: 403,
     headers: {

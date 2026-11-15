@@ -1,173 +1,249 @@
+import type { UniqueIdentifier } from '../domain/primitives';
+import { SystemIdentifierAdapter } from '../infrastructure/adapters';
 import type {
   ClockPort,
   IdentifierPort,
   LoggingPort,
   MetricsPort
-} from '../domain/ports';
-import type { UniqueIdentifier } from '../domain/primitives';
+} from './ports';
+import { ServiceBase } from './service.base';
 import {
-  ConsoleLoggingAdapter,
-  NoOpMetricsAdapter,
-  SystemClockAdapter,
-  SystemIdentifierAdapter
-} from '../infrastructure/adapters';
-import type { CancellationToken, UsecaseResult } from './types';
-import { failure, success } from './utils';
+  UsecaseCancelledError,
+  type UsecaseResult,
+  UsecaseTimeoutError
+} from './types';
 
-/** Configuration for use case execution. */
-export interface UsecaseExecutionConfiguration {
-  clock?: ClockPort;
-  /**
-   * Optional logging instance. If not provided, consoleLogger is used by
-   * default for developer convenience. Set to NOOP_LOGGER to explicitly disable
-   * logging.
-   */
-  logging?: LoggingPort;
-  /**
-   * Optional metrics port for observability. If not provided, NOOP_METRICS is
-   * used (no metrics recorded). Pass a custom implementation to enable metrics
-   * collection.
-   */
-  metrics?: MetricsPort;
-  identifier?: IdentifierPort;
+const MAX_TIMEOUT_MS = 2_147_483_647;
+const USECASE_METRICS = {
+  CANCELLED: 'usecase_cancelled',
+  DURATION: 'usecase_duration',
+  ERRORS: 'usecase_errors',
+  TIMEOUT: 'usecase_timeout'
+} as const;
+
+export interface UsecaseExecutionOptions {
+  readonly executionContext?: Record<string, unknown> | undefined;
+  readonly signal?: AbortSignal | undefined;
 }
 
-/** Alias for UsecaseExecutionConfiguration for backwards compatibility. */
-export type UsecaseExecutionDependencies = UsecaseExecutionConfiguration;
+export interface UsecaseConfiguration {
+  readonly clock?: ClockPort | undefined;
+  readonly logging?: LoggingPort | undefined;
+  readonly metrics?: MetricsPort | undefined;
+  readonly identifier?: IdentifierPort | undefined;
+  readonly timeoutMs?: number | undefined;
+}
 
-/**
- * Abstract base class for all use cases.
- *
- * Provides structured logging, execution IDs, and duration tracking.
- *
- * Simple semantics:
- *
- * - Return a value → success (wrapped automatically)
- * - Throw an error → failure (wrapped automatically)
- *
- * Logging is enabled by default (uses console logger) for developer
- * convenience. To disable logging, explicitly pass NOOP_LOGGER.
- *
- * The framework logs the fact of failure, not the error details. Consumers
- * handle error logging at the call site by inspecting the Result type.
- *
- * @example
- *   ```typescript
- *   // Default: uses consoleLogger (logs to console)
- *   const useCase = new CreateUserUseCase({});
- *   await useCase.execute({ email: 'user@example.com' });
- *   // → Logs to console
- *
- *   // Disable logging (for tests or silent mode)
- *   const silentUseCase = new CreateUserUseCase({
- *     logger: NOOP_LOGGER
- *   });
- *   await silentUseCase.execute({ email: 'user@example.com' });
- *   // → No output
- *
- *   // Custom logger
- *   const useCase = new CreateUserUseCase({
- *     logger: myCustomLogger
- *   });
- *   ```;
- *
- * @template TInput - The input type for the use case
- * @template TOutput - The output type for the use case
- */
-export abstract class Usecase<TInput = void, TOutput = void> {
-  constructor(
-    protected readonly dependencies: UsecaseExecutionConfiguration = {}
-  ) {}
+export abstract class Usecase<
+  TInput = void,
+  TOutput = void
+> extends ServiceBase {
+  constructor(private readonly dependencies: UsecaseConfiguration = {}) {
+    super(dependencies);
+    this.validateConfiguration(dependencies);
+  }
 
-  /**
-   * Abstract method to implement.
-   *
-   * Simple semantics:
-   *
-   * - Return a value → success (wrapped automatically)
-   * - Throw an error → failure (wrapped automatically)
-   *
-   * Use the logger to log business logic and errors as needed.
-   */
   protected abstract executeInternal(
     input: TInput,
     logger: LoggingPort,
-    cancellationToken?: CancellationToken
+    signal?: AbortSignal
   ): Promise<TOutput>;
 
-  /**
-   * Execute the use case.
-   *
-   * @param input - The input data for the use case
-   * @param executionContext - Additional context to include in logs
-   * @param cancellationToken - Optional token for requesting cancellation
-   * @returns Promise resolving to a Result (success or failure)
-   */
   async execute(
     input: TInput,
-    executionContext?: Record<string, unknown>,
-    cancellationToken?: CancellationToken
+    options: UsecaseExecutionOptions = {}
   ): Promise<UsecaseResult<TOutput, Error>> {
-    const startTime = this.getNow();
+    const { executionContext, signal } = options;
+    const startTime = this.clock.now();
     const executionId = this.getExecutionId();
-    const baseContext = { executionId, ...(executionContext ?? {}) };
-    const logger = this.getOrCreateLoggingAdapter();
-    const metrics = this.getOrCreateMetricsAdapter();
+    const context = { executionId, ...(executionContext ?? {}) };
 
-    if (cancellationToken?.isCancelled) {
-      metrics.increment('usecase_cancelled', {
-        executionId: String(executionId)
-      });
-      return failure(
-        new Error(cancellationToken.reason ?? 'Cancellation requested')
-      );
+    if (signal?.aborted) {
+      this.tryRecordMetric(USECASE_METRICS.CANCELLED);
+      return {
+        success: false,
+        error: new UsecaseCancelledError(
+          this.normalizeAbortReason(signal.reason),
+          signal.reason ?? signal
+        )
+      };
     }
 
     try {
-      const result = await this.executeInternal(
-        input,
-        logger,
-        cancellationToken
-      );
+      const result = await this.runAttempt(input, signal);
 
-      const durationMs = this.getNow() - startTime;
-      logger.info('Execution completed', { ...baseContext, durationMs });
-      metrics.histogram('usecase_duration', durationMs);
+      const durationMs = this.clock.now() - startTime;
+      this.tryLog('info', 'Execution completed', {
+        ...context,
+        durationMs
+      });
+      this.tryRecordMetric(USECASE_METRICS.DURATION, durationMs);
 
-      return success(result);
+      return { success: true, value: result };
     } catch (error) {
-      const durationMs = this.getNow() - startTime;
-      logger.error('Execution failed', { ...baseContext, durationMs });
-      metrics.increment('usecase_errors', { executionId: String(executionId) });
+      const durationMs = this.clock.now() - startTime;
+      this.tryLog('error', 'Execution failed', { ...context, durationMs });
+      this.tryRecordMetric(USECASE_METRICS.ERRORS);
 
-      return failure(this.normalizeError(error));
+      if (error instanceof Error) {
+        return { success: false, error };
+      }
+
+      return {
+        success: false,
+        error: new Error(String(error), { cause: error })
+      };
     }
   }
 
-  private getNow(): number {
-    return this.dependencies.clock?.now() ?? SystemClockAdapter.now();
+  private async runAttempt(
+    input: TInput,
+    signal?: AbortSignal
+  ): Promise<TOutput> {
+    const timeoutMs = this.dependencies.timeoutMs;
+    if (timeoutMs === undefined || timeoutMs <= 0) {
+      return this.executeInternal(input, this.logger, signal);
+    }
+
+    const timeoutController = new AbortController();
+    const combinedSignal = this.mergeSignals(signal, timeoutController.signal);
+
+    const timeoutId = setTimeout(() => {
+      timeoutController.abort(
+        new Error(`Execution timed out after ${timeoutMs} ms`)
+      );
+      this.tryRecordMetric(USECASE_METRICS.TIMEOUT);
+    }, timeoutMs);
+
+    try {
+      return await Promise.race([
+        this.executeInternal(input, this.logger, combinedSignal),
+        new Promise<never>((_, reject) => {
+          const onAbort = () => {
+            if (signal?.aborted) {
+              reject(
+                new UsecaseCancelledError(
+                  this.normalizeAbortReason(signal.reason),
+                  signal.reason ?? signal
+                )
+              );
+              return;
+            }
+
+            reject(
+              new UsecaseTimeoutError(
+                this.normalizeAbortReason(timeoutController.signal.reason) ||
+                  `Execution timed out after ${timeoutMs} ms`,
+                timeoutController.signal.reason
+              )
+            );
+          };
+
+          if (combinedSignal.aborted) {
+            onAbort();
+            return;
+          }
+
+          combinedSignal.addEventListener('abort', onAbort, { once: true });
+        })
+      ]);
+    } finally {
+      clearTimeout(timeoutId);
+      timeoutController.abort();
+    }
+  }
+
+  private mergeSignals(
+    primarySignal: AbortSignal | undefined,
+    secondarySignal: AbortSignal
+  ): AbortSignal {
+    if (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal) {
+      return primarySignal
+        ? AbortSignal.any([primarySignal, secondarySignal])
+        : secondarySignal;
+    }
+
+    if (!primarySignal) {
+      return secondarySignal;
+    }
+
+    const controller = new AbortController();
+    const onAbort = () => {
+      controller.abort(primarySignal.reason ?? secondarySignal.reason);
+    };
+
+    if (primarySignal.aborted || secondarySignal.aborted) {
+      onAbort();
+      return controller.signal;
+    }
+
+    primarySignal.addEventListener('abort', onAbort, { once: true });
+    secondarySignal.addEventListener('abort', onAbort, { once: true });
+    return controller.signal;
+  }
+
+  private validateConfiguration(config: UsecaseConfiguration): void {
+    if (config.timeoutMs !== undefined) {
+      if (!Number.isFinite(config.timeoutMs) || config.timeoutMs <= 0) {
+        throw new RangeError(
+          'Usecase timeoutMs must be a finite number greater than 0.'
+        );
+      }
+
+      if (config.timeoutMs > MAX_TIMEOUT_MS) {
+        throw new RangeError(
+          `Usecase timeoutMs must be less than or equal to ${MAX_TIMEOUT_MS}.`
+        );
+      }
+    }
   }
 
   private getExecutionId(): UniqueIdentifier {
     return (
-      this.dependencies.identifier?.generate(this.getNowAdapter()) ??
-      SystemIdentifierAdapter.generate(this.getNowAdapter())
+      this.dependencies.identifier?.generate(this.clock) ??
+      SystemIdentifierAdapter.generate(this.clock)
     );
   }
 
-  private getNowAdapter(): ClockPort {
-    return this.dependencies.clock ?? SystemClockAdapter;
+  private normalizeAbortReason(reason: unknown): string {
+    if (reason instanceof Error) {
+      return reason.message;
+    }
+
+    if (reason === undefined) {
+      return 'Cancellation requested';
+    }
+
+    return String(reason);
   }
 
-  private getOrCreateLoggingAdapter(): LoggingPort {
-    return this.dependencies.logging ?? ConsoleLoggingAdapter;
+  private tryLog(
+    level: 'info' | 'error',
+    message: string,
+    data?: Record<string, unknown>
+  ): void {
+    try {
+      if (level === 'info') {
+        this.logger.info(message, data);
+        return;
+      }
+
+      this.logger.error(message, data);
+    } catch {
+      // Best-effort instrumentation should never break use-case execution
+    }
   }
 
-  private getOrCreateMetricsAdapter(): MetricsPort {
-    return this.dependencies.metrics ?? NoOpMetricsAdapter;
-  }
+  private tryRecordMetric(metric: string, value?: number): void {
+    try {
+      if (typeof value === 'number') {
+        this.metrics.histogram(metric, value);
+        return;
+      }
 
-  private normalizeError(error: unknown): Error {
-    return error instanceof Error ? error : new Error(String(error));
+      this.metrics.increment(metric);
+    } catch {
+      // Best-effort instrumentation should never break use-case execution
+    }
   }
 }

@@ -2,6 +2,7 @@
   "name": "@hexafy/typescript-config",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "clean": "git clean -xdf node_modules",
     "typecheck": "bun check"

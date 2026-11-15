@@ -6,6 +6,7 @@
     "@hexafy/email",
     "@hexafy/nestjs",
     "@hexafy/object-storage",
+    "@hexafy/observability",
     "@hexafy/typescript-config",
     "@hexafy/tsdown-config"
   ]

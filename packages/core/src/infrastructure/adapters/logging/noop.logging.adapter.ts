@@ -1,4 +1,4 @@
-import type { LoggingPort } from '../../../domain/ports';
+import type { LoggingPort } from '../../../application/ports';
 
 /**
  * No-op logging adapter implementing LoggingPort.
@@ -7,7 +7,6 @@ import type { LoggingPort } from '../../../domain/ports';
  *
  * - Production environments with external logging
  * - Testing where logging output is undesirable
- * - Performance-critical paths without logging
  *
  * @see {@link LoggingPort}
  */

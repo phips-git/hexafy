@@ -1,178 +1,173 @@
-import { GetAuthenticatedUserUsecase } from '@hexafy/auth/application';
+import { JSONConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
+import { CreateTaskUseCase } from '@hexafy/example-domain/application';
 import {
-  JwtAuthenticationAdapter,
-  NoOpUserPersistenceAdapter
-} from '@hexafy/auth/infrastructure';
-import {
-  createConsoleLogger,
-  NanoidGeneratorAdapter,
-  SqliteUnitOfWorkAdapter
-} from '@hexafy/core/infrastructure';
-import {
-  CreateProjectUsecase,
-  CreateTaskUsecase,
-  DeleteProjectUsecase,
-  DeleteTaskUsecase,
-  ListTasksUsecase,
-  UpdateProjectUsecase,
-  UpdateTaskUsecase
-} from '@hexafy/task-management/application';
-import {
-  SqliteProjectPersistenceAdapter,
-  SqliteProjectStatsPersistenceAdapter,
-  SqliteTaskPersistenceAdapter
-} from '@hexafy/task-management/infrastructure';
+  InMemoryProjectRepository,
+  InMemoryTaskRepository,
+  InMemoryUserRepository
+} from '@hexafy/example-domain/infrastructure';
 
-import { getDatabase } from './database';
+const taskRepository = new InMemoryTaskRepository();
+const projectRepository = new InMemoryProjectRepository();
+const userRepository = new InMemoryUserRepository();
 
-class Container {
-  private static db: any = undefined;
-  private static projectPersistence:
-    SqliteProjectPersistenceAdapter | undefined = undefined;
-  private static taskPersistence: SqliteTaskPersistenceAdapter | undefined =
-    undefined;
-  private static unitOfWork: SqliteUnitOfWorkAdapter | undefined = undefined;
-  private static projectStatsPersistence:
-    SqliteProjectStatsPersistenceAdapter | undefined = undefined;
-  private static generator: NanoidGeneratorAdapter | undefined = undefined;
+const defaultDependencies = {
+  generateId: () => `demo_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+  loggerFactory: () => JSONConsoleLoggingAdapter('example-domain-demo')
+};
 
-  static getDb() {
-    if (!this.db) {
-      this.db = getDatabase();
-    }
-    return this.db;
+type ProjectCreationInput = {
+  name: string;
+  description: string | null;
+  ownerId?: string;
+};
+
+type TaskCreationInput = {
+  title: string;
+  description: string | null;
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string | null;
+  dueDate?: Date | null;
+};
+
+class UpdateTaskUseCaseAdapter {
+  constructor(private readonly taskRepository: InMemoryTaskRepository) {}
+
+  async execute(input: {
+    taskId: string;
+    projectId: string;
+    updateProperties: Record<string, unknown>;
+  }) {
+    const task = await this.taskRepository.findById(input.taskId);
+    if (!task) throw new Error('Task not found');
+    const updated = await this.taskRepository.update(
+      input.taskId,
+      input.updateProperties as Record<string, unknown>
+    );
+    return { taskId: updated.id };
   }
+}
 
-  static getProjectPersistence() {
-    if (!this.projectPersistence) {
-      this.projectPersistence = new SqliteProjectPersistenceAdapter(
-        this.getDb()
-      );
-    }
-    return this.projectPersistence;
+class DeleteTaskUseCaseAdapter {
+  constructor(private readonly taskRepository: InMemoryTaskRepository) {}
+
+  async execute(input: { taskId: string; projectId: string }) {
+    await this.taskRepository.delete(input.taskId);
   }
+}
 
-  static getTaskPersistence() {
-    if (!this.taskPersistence) {
-      this.taskPersistence = new SqliteTaskPersistenceAdapter(this.getDb());
-    }
-    return this.taskPersistence;
+class CreateProjectUseCaseAdapter {
+  constructor(private readonly projectRepository: InMemoryProjectRepository) {}
+
+  async execute(input: { creationProperties: ProjectCreationInput }) {
+    const project = await this.projectRepository.create({
+      ...input.creationProperties,
+      ownerId: input.creationProperties.ownerId ?? 'demo-user'
+    });
+    return { projectId: project.id };
   }
+}
 
-  static getUnitOfWork() {
-    if (!this.unitOfWork) {
-      this.unitOfWork = new SqliteUnitOfWorkAdapter(this.getDb());
-    }
-    return this.unitOfWork;
+class UpdateProjectUseCaseAdapter {
+  constructor(private readonly projectRepository: InMemoryProjectRepository) {}
+
+  async execute(input: {
+    projectId: string;
+    updateProperties: Record<string, unknown>;
+  }) {
+    const project = await this.projectRepository.findById(input.projectId);
+    if (!project) throw new Error('Project not found');
+    const updated = await this.projectRepository.update(
+      input.projectId,
+      input.updateProperties as Record<string, unknown>
+    );
+    return { projectId: updated.id };
   }
+}
 
-  static getProjectStatsPersistence() {
-    if (!this.projectStatsPersistence) {
-      this.projectStatsPersistence = new SqliteProjectStatsPersistenceAdapter(
-        this.getDb()
-      );
-    }
-    return this.projectStatsPersistence;
-  }
+class DeleteProjectUseCaseAdapter {
+  constructor(private readonly projectRepository: InMemoryProjectRepository) {}
 
-  static getGenerator() {
-    if (!this.generator) {
-      this.generator = new NanoidGeneratorAdapter();
-    }
-    return this.generator;
+  async execute(input: { projectId: string }) {
+    await this.projectRepository.delete(input.projectId);
   }
 }
 
 export function getCreateTaskUsecase() {
-  return new CreateTaskUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('CreateTaskUsecase')
-    },
-    Container.getProjectPersistence(),
-    Container.getUnitOfWork(),
-    Container.getTaskPersistence(),
-    Container.getProjectStatsPersistence()
-  );
+  return {
+    async execute(input: {
+      projectId: string;
+      creationProperties: TaskCreationInput;
+    }) {
+      const usecase = new CreateTaskUseCase(
+        taskRepository,
+        defaultDependencies
+      );
+      const result = await usecase.execute({
+        projectId: input.projectId,
+        title: input.creationProperties.title ?? '',
+        description: input.creationProperties.description ?? null,
+        priority: input.creationProperties.priority ?? 'medium',
+        assignedTo: input.creationProperties.assignedTo ?? null,
+        dueDate: input.creationProperties.dueDate ?? null
+      });
+      if (!result.success) {
+        throw result.error;
+      }
+      return { taskId: result.value.id };
+    }
+  };
 }
 
 export function getUpdateTaskUsecase() {
-  return new UpdateTaskUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('UpdateTaskUsecase')
-    },
-    Container.getTaskPersistence()
-  );
+  return new UpdateTaskUseCaseAdapter(taskRepository);
 }
 
 export function getDeleteTaskUsecase() {
-  return new DeleteTaskUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('DeleteTaskUsecase')
-    },
-    Container.getTaskPersistence(),
-    Container.getUnitOfWork(),
-    Container.getProjectStatsPersistence()
-  );
+  return new DeleteTaskUseCaseAdapter(taskRepository);
 }
 
 export function getListTasksUsecase() {
-  return new ListTasksUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('ListTasksUsecase')
-    },
-    Container.getTaskPersistence()
-  );
+  return {
+    async execute(input: { projectId: string }) {
+      return taskRepository.findByProjectId(input.projectId);
+    }
+  };
 }
 
 export function getCreateProjectUsecase() {
-  return new CreateProjectUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('CreateProjectUsecase')
-    },
-    Container.getProjectPersistence()
-  );
+  return new CreateProjectUseCaseAdapter(projectRepository);
 }
 
 export function getUpdateProjectUsecase() {
-  return new UpdateProjectUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('UpdateProjectUsecase')
-    },
-    Container.getProjectPersistence()
-  );
+  return new UpdateProjectUseCaseAdapter(projectRepository);
 }
 
 export function getDeleteProjectUsecase() {
-  return new DeleteProjectUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('DeleteProjectUsecase')
-    },
-    Container.getProjectPersistence()
-  );
+  return new DeleteProjectUseCaseAdapter(projectRepository);
 }
 
 export function getGetAuthenticatedUserUsecase() {
-  const secret = process.env['JWT_SECRET'] ?? 'dev-secret';
-  const authAdapter = new JwtAuthenticationAdapter({
-    secretOrPrivateKey: secret as any,
-    issuer: 'dev-app',
-    audience: 'dev-api'
-  });
-  const userPersistence = new NoOpUserPersistenceAdapter();
+  return {
+    async execute(input: { headers?: Record<string, string | undefined> }) {
+      const header =
+        input.headers?.authorization ?? input.headers?.Authorization;
+      const token = header?.startsWith('Bearer ') ? header.slice(7) : header;
+      if (!token) {
+        return null;
+      }
 
-  return new GetAuthenticatedUserUsecase(
-    {
-      generateId: Container.getGenerator().generate,
-      loggerFactory: () => createConsoleLogger('GetAuthenticatedUserUsecase')
-    },
-    authAdapter,
-    userPersistence
-  );
+      const user = await userRepository.findByEmail('demo@example.com');
+      return (
+        user ?? {
+          id: 'demo-user',
+          tenantId: 'demo-tenant',
+          email: 'demo@example.com',
+          name: 'Demo User',
+          role: 'user',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      );
+    }
+  };
 }

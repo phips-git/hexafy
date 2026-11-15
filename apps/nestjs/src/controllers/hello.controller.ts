@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 
 import {
-  SayHelloInput,
-  SayHelloOutput,
+  type SayHelloInput,
+  type SayHelloOutput,
   SayHelloUseCase
 } from '../domain/usecases/say-hello.usecase';
 
@@ -14,9 +14,11 @@ export class HelloController {
   @HttpCode(HttpStatus.OK)
   async hello(@Body() input: SayHelloInput): Promise<SayHelloOutput> {
     const result = await this.sayHelloUseCase.execute(input);
+
     if (!result.success) {
       throw result.error;
     }
+
     return result.value;
   }
 }

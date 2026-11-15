@@ -1,4 +1,8 @@
-export * from './clock';
-export * from './identifier';
-export * from './logging';
-export * from './metrics';
+export { SystemClockAdapter } from './clock';
+export { SystemIdentifierAdapter } from './identifier';
+export {
+  ConsoleLoggingAdapter,
+  JSONConsoleLoggingAdapter,
+  NoOpLoggingAdapter
+} from './logging';
+export { NoOpMetricsAdapter } from './metrics';

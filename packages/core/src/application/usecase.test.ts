@@ -5,15 +5,14 @@ import type {
   IdentifierPort,
   LoggingPort,
   MetricsPort
-} from '../domain/ports';
-import type { UniqueIdentifier } from '../domain/types';
+} from '../application/ports';
+import { UniqueIdentifier } from '../domain/primitives';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
 import {
-  type CancellationToken,
-  failure,
-  success,
   Usecase,
-  type UsecaseExecutionConfiguration
+  UsecaseCancelledError,
+  type UsecaseConfiguration,
+  UsecaseTimeoutError
 } from './index';
 
 class MockClock implements ClockPort {
@@ -74,18 +73,6 @@ class MockLogger implements LoggingPort {
   }
 }
 
-class MockCancellationToken implements CancellationToken {
-  readonly isCancelled: boolean;
-  readonly reason?: string;
-
-  constructor(isCancelled: boolean, reason: string | undefined) {
-    this.isCancelled = isCancelled;
-    if (reason !== undefined) {
-      this.reason = reason;
-    }
-  }
-}
-
 class MockMetrics implements MetricsPort {
   calls: Array<{
     metric: string;
@@ -122,56 +109,56 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
   TInput,
   TOutput
 > {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
     input: TInput,
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<TOutput> {
     return input as unknown as TOutput;
   }
 }
 
 class SuccessUseCase extends TestUseCase<string, string> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
     input: string,
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<string> {
     return input.toUpperCase();
   }
 }
 
 class FailureUseCase extends TestUseCase<string, string> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
     _input: string,
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<string> {
     throw new Error('Intentional failure');
   }
 }
 
 class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
-  constructor(config?: UsecaseExecutionConfiguration) {
+  constructor(config?: UsecaseConfiguration) {
     super({ logging: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
     input: { delay: number },
     _logger: LoggingPort,
-    _cancellationToken?: CancellationToken
+    _signal?: AbortSignal
   ): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, input.delay));
     return 'completed';
@@ -197,7 +184,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           inputValue: string,
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<string> {
           expect(inputValue).toBe('test-input');
           return inputValue;
@@ -216,7 +203,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           _input: void,
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<string> {
           receivedInput = _input;
           return 'done';
@@ -234,7 +221,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           _input: string,
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<void> {
           return;
         }
@@ -248,17 +235,24 @@ describe('Usecase', () => {
 
   describe('execute() - Error Handling', () => {
     it('returns failure result when use case throws an error', async () => {
-      const useCase = new FailureUseCase();
+      const domainError = new Error('Intentional failure');
+
+      class DomainFailureUseCase extends TestUseCase<string, string> {
+        protected override async executeInternal(): Promise<string> {
+          throw domainError;
+        }
+      }
+
+      const useCase = new DomainFailureUseCase();
       const result = await useCase.execute('input');
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error).toBeInstanceOf(Error);
-        expect(result.error?.message).toBe('Intentional failure');
+        expect(result.error).toBe(domainError);
       }
     });
 
-    it('normalizes non-Error objects to Error', async () => {
+    it('normalizes non-Error values to Error', async () => {
       class StringThrowUseCase extends TestUseCase<string, string> {
         protected override async executeInternal(): Promise<string> {
           throw 'String error';
@@ -271,7 +265,7 @@ describe('Usecase', () => {
       expect(result.success).toBe(false);
       if (result.success === false) {
         expect(result.error).toBeInstanceOf(Error);
-        expect(result.error?.message).toBe('String error');
+        expect(result.error.message).toBe('String error');
       }
     });
 
@@ -292,53 +286,158 @@ describe('Usecase', () => {
     });
   });
 
-  describe('CancellationToken', () => {
-    it('returns failure immediately when token is already cancelled', async () => {
-      const useCase = new SuccessUseCase();
-      const token = new MockCancellationToken(
-        true,
-        'User requested cancellation'
-      );
+  describe('AbortSignal and wrapper failures', () => {
+    it('returns UsecaseCancelledError when already aborted', async () => {
+      const useCase = new FailureUseCase();
+      const controller = new AbortController();
+      controller.abort('abort requested');
 
-      const result = await useCase.execute('input', undefined, token);
+      const result = await useCase.execute('input', {
+        signal: controller.signal
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+      }
+    });
+  });
+
+  describe('AbortSignal', () => {
+    it('returns failure immediately when the signal is already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort(new Error('User requested cancellation'));
+
+      const useCase = new SuccessUseCase();
+      const result = await useCase.execute('input', {
+        signal: controller.signal
+      });
 
       expect(result.success).toBe(false);
       if (result.success === false) {
+        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
         expect(result.error?.message).toBe('User requested cancellation');
       }
     });
 
-    it('passes cancellation token to executeInternal', async () => {
-      let receivedToken: CancellationToken | undefined;
+    it('passes the AbortSignal to executeInternal', async () => {
+      let receivedSignal: AbortSignal | undefined;
 
-      class PassTokenUseCase extends TestUseCase<string, string> {
+      class PassSignalUseCase extends TestUseCase<string, string> {
         protected override async executeInternal(
           _input: string,
           _logger: LoggingPort,
-          cancellationToken?: CancellationToken
+          signal?: AbortSignal
         ): Promise<string> {
-          receivedToken = cancellationToken;
+          receivedSignal = signal;
           return _input;
         }
       }
 
-      const useCase = new PassTokenUseCase();
-      const token = new MockCancellationToken(false, undefined);
-      await useCase.execute('input', undefined, token);
+      const controller = new AbortController();
+      const useCase = new PassSignalUseCase();
+      await useCase.execute('input', { signal: controller.signal });
 
-      expect(receivedToken).toBe(token);
+      expect(receivedSignal).toBe(controller.signal);
     });
 
-    it('allows execution when token is not cancelled', async () => {
+    it('allows execution when the signal is not aborted', async () => {
+      const controller = new AbortController();
       const useCase = new SuccessUseCase();
-      const token = new MockCancellationToken(false, undefined);
 
-      const result = await useCase.execute('test', undefined, token);
+      const result = await useCase.execute('test', {
+        signal: controller.signal
+      });
 
       expect(result.success).toBe(true);
       if (result.success === true) {
         expect(result.value).toBe('TEST');
       }
+    });
+  });
+
+  describe('Timeouts', () => {
+    it('returns failure when execution exceeds timeoutMs', async () => {
+      const metrics = new MockMetrics();
+      const useCase = new AsyncDelayUseCase({
+        metrics,
+        timeoutMs: 10
+      });
+
+      const result = await useCase.execute({ delay: 50 });
+
+      expect(result.success).toBe(false);
+      if (result.success === false) {
+        expect(result.error).toBeInstanceOf(UsecaseTimeoutError);
+        expect(result.error?.message).toContain('timed out');
+      }
+      expect(metrics.hasMetric('usecase_timeout')).toBe(true);
+    });
+
+    it('passes an aborted signal to executeInternal when timeout fires', async () => {
+      let signalSeen: AbortSignal | undefined;
+
+      class TimeoutAwareUseCase extends TestUseCase<{ delay: number }, string> {
+        protected override async executeInternal(
+          input: { delay: number },
+          _logger: LoggingPort,
+          signal?: AbortSignal
+        ): Promise<string> {
+          signalSeen = signal;
+
+          await new Promise((resolve) => setTimeout(resolve, input.delay));
+          return 'completed';
+        }
+      }
+
+      const useCase = new TimeoutAwareUseCase({
+        timeoutMs: 10
+      });
+
+      const result = await useCase.execute({ delay: 50 });
+
+      expect(result.success).toBe(false);
+      expect(signalSeen?.aborted).toBe(true);
+      expect(signalSeen?.reason).toBeDefined();
+    });
+
+    it('returns UsecaseCancelledError when caller aborts before timeout', async () => {
+      const controller = new AbortController();
+      const useCase = new AsyncDelayUseCase({
+        timeoutMs: 100
+      });
+
+      setTimeout(() => {
+        controller.abort(new Error('Cancelled by caller'));
+      }, 10);
+
+      const result = await useCase.execute(
+        { delay: 50 },
+        { signal: controller.signal }
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success === false) {
+        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+        expect(result.error.message).toBe('Cancelled by caller');
+      }
+    });
+  });
+
+  describe('Configuration validation', () => {
+    it('rejects non-positive timeoutMs values during construction', () => {
+      expect(() => new SuccessUseCase({ timeoutMs: 0 })).toThrow(
+        'Usecase timeoutMs must be a finite number greater than 0.'
+      );
+      expect(() => new SuccessUseCase({ timeoutMs: -1 })).toThrow(
+        'Usecase timeoutMs must be a finite number greater than 0.'
+      );
+    });
+
+    it('rejects timeoutMs values beyond the safe timer range', () => {
+      expect(() => new SuccessUseCase({ timeoutMs: 2_147_483_648 })).toThrow(
+        'Usecase timeoutMs must be less than or equal to 2147483647.'
+      );
     });
   });
 
@@ -352,7 +451,7 @@ describe('Usecase', () => {
       expect(logger.hasLogged('Execution completed')).toBe(true);
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
       expect(completionLog?.data).toHaveProperty('durationMs');
     });
 
@@ -365,7 +464,7 @@ describe('Usecase', () => {
       expect(logger.hasLogged('Execution failed', 'error')).toBe(true);
       const failureLog = logger.logs.find(
         (log) => log.message === 'Execution failed'
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
       expect(failureLog?.data).toHaveProperty('durationMs');
     });
 
@@ -382,11 +481,8 @@ describe('Usecase', () => {
       identifier.generate(); // used to increment the counter
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
-      );
-      expect(completionLog?.data).toHaveProperty(
-        'executionId'
-        // @ts-ignore - accessing via index signature
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
+      expect(completionLog?.data).toHaveProperty('executionId');
     });
 
     it('includes additional executionContext in logs', async () => {
@@ -394,19 +490,13 @@ describe('Usecase', () => {
       const useCase = new SuccessUseCase({ logging: logger });
       const context = { userId: '123', action: 'test' };
 
-      await useCase.execute('hello', context);
+      await useCase.execute('hello', { executionContext: context });
 
       const completionLog = logger.logs.find(
         (log) => log.message === 'Execution completed'
-      );
-      expect(completionLog?.data).toHaveProperty(
-        'userId'
-        // @ts-ignore - accessing via index signature
-      );
-      expect(completionLog?.data).toHaveProperty(
-        'action'
-        // @ts-ignore - accessing via index signature
-      );
+      ) as { data?: Record<string, unknown> } | undefined;
+      expect(completionLog?.data).toHaveProperty('userId');
+      expect(completionLog?.data).toHaveProperty('action');
     });
 
     it('allows disabling logging with NoOpLoggingAdapter', async () => {
@@ -444,21 +534,22 @@ describe('Usecase', () => {
       const errorCall = metrics.calls.find(
         (call) => call.metric === 'usecase_errors'
       );
-      expect(errorCall?.labels).toHaveProperty('executionId');
+      expect(errorCall?.labels).toBeUndefined();
     });
 
     it('records usecase_cancelled increment when cancelled', async () => {
       const metrics = new MockMetrics();
       const useCase = new SuccessUseCase({ metrics });
-      const token = new MockCancellationToken(true, 'Cancelled');
+      const controller = new AbortController();
+      controller.abort(new Error('Cancelled'));
 
-      await useCase.execute('input', undefined, token);
+      await useCase.execute('input', { signal: controller.signal });
 
       expect(metrics.hasMetric('usecase_cancelled')).toBe(true);
       const cancelCall = metrics.calls.find(
         (call) => call.metric === 'usecase_cancelled'
       );
-      expect(cancelCall?.labels).toHaveProperty('executionId');
+      expect(cancelCall?.labels).toBeUndefined();
     });
 
     it('uses NoOpMetricsAdapter by default', async () => {
@@ -545,7 +636,7 @@ describe('Usecase', () => {
       const useCase = new SuccessUseCase({ logging: logger });
       const context = { userId: 'user-123', requestId: 'req-456' };
 
-      await useCase.execute('test', context);
+      await useCase.execute('test', { executionContext: context });
 
       const logsWithContext = logger.logs.filter((log) => {
         const data = log.data as Record<string, unknown>;
@@ -619,7 +710,7 @@ describe('Usecase', () => {
       const logger = new MockLogger();
       const metrics = new MockMetrics();
 
-      const config: UsecaseExecutionConfiguration = {
+      const config: UsecaseConfiguration = {
         clock,
         logging: logger,
         metrics,
@@ -650,7 +741,7 @@ describe('Usecase', () => {
         protected override async executeInternal(
           input: { name: string },
           _logger: LoggingPort,
-          _cancellationToken?: CancellationToken
+          _signal?: AbortSignal
         ): Promise<{ greeting: string }> {
           return { greeting: `Hello, ${input.name}` };
         }
@@ -759,30 +850,13 @@ describe('Usecase', () => {
     });
   });
 
-  describe('Integration with success/failure helpers', () => {
-    it('success() helper wraps value correctly', () => {
-      const result = success('test-value');
-      expect(result.success).toBe(true);
-      if (result.success === true) {
-        expect(result.value).toBe('test-value');
-      }
-    });
+  describe('Error passthrough and wrapper failures', () => {
+    it('preserves original error instance from executeInternal', async () => {
+      const originalError = new Error('Custom error message');
 
-    it('failure() helper wraps error correctly', () => {
-      const error = new Error('test error');
-      const result = failure(error);
-      expect(result.success).toBe(false);
-      if (result.success === false) {
-        expect(result.error).toBe(error);
-      }
-    });
-  });
-
-  describe('Error Normalization', () => {
-    it('preserves original error message', async () => {
       class PreservesMessageUseCase extends TestUseCase<string, string> {
         protected override async executeInternal(): Promise<string> {
-          throw new Error('Custom error message');
+          throw originalError;
         }
       }
 
@@ -791,7 +865,7 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error?.message).toBe('Custom error message');
+        expect(result.error).toBe(originalError);
       }
     });
 

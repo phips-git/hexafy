@@ -1,4 +1,4 @@
-import type { MetricsPort } from '../../../domain/ports';
+import type { MetricsPort } from '../../../application/ports';
 
 /**
  * No-op metrics adapter implementing MetricsPort.

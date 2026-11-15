@@ -1,74 +1,41 @@
-import type {
-  AuthenticationPort,
-  UserPersistencePort
-} from '@hexafy/auth/domain';
 import {
-  JwtAuthenticationAdapter,
-  NoOpUserPersistenceAdapter
-} from '@hexafy/auth/infrastructure';
-import {
-  createConsoleLogger,
-  NanoidGeneratorAdapter,
-  SqliteUnitOfWorkAdapter
-} from '@hexafy/core/infrastructure';
-import type {
-  ProjectPersistencePort,
-  ProjectStatsPersistencePort,
-  TaskPersistencePort
-} from '@hexafy/task-management/domain';
-import {
-  SqliteProjectPersistenceAdapter,
-  SqliteProjectStatsPersistenceAdapter,
-  SqliteTaskPersistenceAdapter
-} from '@hexafy/task-management/infrastructure';
+  InMemoryProjectRepository,
+  InMemoryTaskRepository
+} from '@hexafy/example-domain/infrastructure';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Database from 'better-sqlite3';
 
 export interface PersistencePorts {
-  authenticationPort: AuthenticationPort;
-  userPersistence: UserPersistencePort;
-  taskPersistence: TaskPersistencePort;
-  projectPersistence: ProjectPersistencePort;
-  projectStatsPersistence: ProjectStatsPersistencePort;
-  generator: NanoidGeneratorAdapter;
+  taskPersistence: InMemoryTaskRepository;
+  projectPersistence: InMemoryProjectRepository;
+  projectStatsPersistence: unknown;
+  generator: { generate: () => string };
 }
 
 export const DATABASE_CLIENT = 'DATABASE_CLIENT';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  private database: any = null;
+  private database: Database | null = null;
   private ports: PersistencePorts | null = null;
-  private unitOfWork: SqliteUnitOfWorkAdapter | null = null;
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit(): void {
     const dbPath =
-      this.configService.get<string>('app.dbPath') || '.tmp/task-management.db';
+      this.configService.get<string>('app.dbPath') || '.tmp/example-domain.db';
     this.database = new Database(dbPath);
     this.database.pragma('foreign_keys = ON');
     this.ports = {
-      authenticationPort: new JwtAuthenticationAdapter({
-        secretOrPrivateKey: this.configService.get<string>(
-          'app.jwtSecret'
-        ) as any,
-        issuer: this.configService.get<string>('app.jwtIssuer')!,
-        audience: this.configService.get<string>('app.jwtAudience')!
-      }),
-      userPersistence: new NoOpUserPersistenceAdapter(),
-      taskPersistence: new SqliteTaskPersistenceAdapter(this.database!),
-      projectPersistence: new SqliteProjectPersistenceAdapter(this.database!),
-      projectStatsPersistence: new SqliteProjectStatsPersistenceAdapter(
-        this.database!
-      ),
-      generator: new NanoidGeneratorAdapter()
+      taskPersistence: new InMemoryTaskRepository(),
+      projectPersistence: new InMemoryProjectRepository(),
+      projectStatsPersistence: undefined,
+      generator: {
+        generate: () =>
+          `demo_${Date.now()}_${Math.random().toString(16).slice(2)}`
+      }
     };
-    this.unitOfWork = new SqliteUnitOfWorkAdapter(this.database!);
-    createConsoleLogger('DatabaseService').info('Database initialized', {
-      dbPath
-    });
   }
 
   onModuleDestroy(): void {
@@ -80,8 +47,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     return this.ports;
   }
 
-  getDatabaseAdapter(): SqliteUnitOfWorkAdapter {
-    if (!this.unitOfWork) throw new Error('Database not initialized');
-    return this.unitOfWork;
+  getDatabaseAdapter(): unknown {
+    if (!this.database) throw new Error('Database not initialized');
+    return this.database;
   }
 }
