@@ -1,5 +1,11 @@
 # @hexafy/core
 
+## 1.0.0-rc.5
+
+### Patch Changes
+
+- 0c33abd: Enhance package content
+
 ## 1.0.0-rc.4
 
 ### Patch Changes

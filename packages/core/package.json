@@ -1,6 +1,6 @@
 {
   "name": "@hexafy/core",
-  "version": "1.0.0-rc.4",
+  "version": "1.0.0-rc.5",
   "description": "Hexagonal (ports and adapters) architecture primitives for TypeScript: use cases, domain entities, and infrastructure adapters.",
   "keywords": [
     "clean-architecture",
