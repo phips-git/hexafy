@@ -8,7 +8,6 @@ import type {
 } from './ports';
 import { ServiceBase } from './service.base';
 import type { CancellationToken, UsecaseResult } from './types';
-import { failure, success } from './utils';
 
 const MAX_RETRY_DELAY_MS = 30_000;
 
@@ -82,9 +81,10 @@ export abstract class Usecase<
 
     if (cancellationToken?.isCancelled) {
       this.metrics.increment('usecase_cancelled');
-      return failure(
-        new Error(cancellationToken.reason ?? 'Cancellation requested')
-      );
+      return {
+        success: false,
+        error: new Error(cancellationToken.reason ?? 'Cancellation requested')
+      };
     }
 
     try {
@@ -96,13 +96,13 @@ export abstract class Usecase<
       this.logger.info('Execution completed', { ...baseContext, durationMs });
       this.metrics.histogram('usecase_duration', durationMs);
 
-      return success(result);
+      return { success: true, value: result };
     } catch (error) {
       const durationMs = this.clock.now() - startTime;
       this.logger.error('Execution failed', { ...baseContext, durationMs });
       this.metrics.increment('usecase_errors');
 
-      return failure(this.normalizeError(error));
+      return { success: false, error: this.normalizeError(error) };
     }
   }
 

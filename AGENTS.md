@@ -9,34 +9,25 @@ Use this file as the entry point for agent-facing guidance in this repository.
 - **[.agents/QUICKSTART.md](./.agents/QUICKSTART.md)** - Commands, workflow, build/publish details
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - PR process, changesets, release workflow
 
+All instructions in these referenced documents above are mandatory. Agents must follow them as source of truth.
+
 ## Core Architecture
 
 - **Hexagonal architecture**: Domain is independent; application and infrastructure layers depend on it
 - **Use Cases**: Extend `Usecase<TInput, TOutput>` from `@hexafy/core/application`; use `ServiceBase` for shared application logic
 - **Domain primitives**: `Entity`, `ValueObject`, `AggregateRoot`, `RepositoryBase`, and `UnitOfWorkBase` from `@hexafy/core/domain`
 - **Ports**: Define interfaces in `domain/ports` or application ports, and implement adapters in `infrastructure/adapters`
-- **Errors**: Expected business failures become `UsecaseResult` failures via `failure(...)`; unexpected infrastructure errors should throw at the boundary
-- **Package API**: `@hexafy/core/application` for `Usecase`, `ServiceBase`, `success/failure/unwrap`; `@hexafy/core/domain` for domain types/errors; `@hexafy/core/infrastructure` for adapters
+- **Errors**: See [CODESTYLE.md#errors](./.agents/CODESTYLE.md#errors); in `executeInternal`, throw typed domain errors for expected business failures
+- **Package API**: `@hexafy/core/application` for `Usecase`, `ServiceBase`, `UsecaseResult`; `@hexafy/core/domain` for domain types/errors; `@hexafy/core/infrastructure` for adapters
 
 ## Guidelines
 
 - **Self-explanatory code**: Clear names, no unnecessary comments
-- **Type safety**: No `any` types; use proper generics and type guards (`isSuccess`/`isFailure`)
+- **Type safety**: No `any` types; use proper generics and explicit result checks (`result.success`)
+- **Drift-resistant docs**: Follow the mandatory documentation rules in `.agents/PROJECT-STRUCTURE.md` and prefer canonical references over duplicated API snippets
 - **Direct imports**: Prefer package subpaths (`@hexafy/core/application`, `@hexafy/core/domain`, `@hexafy/core/infrastructure`); avoid convenience re-exports
-- **Result handling**: Always check `result.success` before accessing `result.value`; use `unwrap()` only when failure is unexpected
-- **Cancellation**: Pass `CancellationToken` to long-running use cases
-- **Logging**: Use the provided `LoggingPort` with execution context; log business events, not error details
-
-## Development Commands
-
-```bash
-bun install
-bun run typecheck
-bun run test
-bun run lint --fix
-```
-
-See [QUICKSTART.md](./.agents/QUICKSTART.md) for build/publish workflow and changeset process.
+- **Result handling**: Always check `result.success` before accessing `result.value`
+- **Logging**: See [CODESTYLE.md](./.agents/CODESTYLE.md) (lines 58-62); use injected `LoggingPort` with execution context
 
 ## Domain Adapters
 

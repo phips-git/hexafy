@@ -1,7 +1,7 @@
 /**
  * Discriminated union for a use-case outcome.
  *
- * Use it to model success/failure without exceptions in application code.
+ * `Usecase.execute(...)` returns this contract for success/failure outcomes.
  *
  * @template TSuccess Success value type.
  * @template TFailure Failure type. Defaults to `Error`.

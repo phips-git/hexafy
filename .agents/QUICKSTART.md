@@ -1,13 +1,5 @@
 # Quick Start
 
-## Commands
-
-```bash
-bun install
-bun run typecheck
-bun run test
-```
-
 ## Workflow
 
 1. Create feature branch: `git checkout -b feature/my-feature`
@@ -19,7 +11,7 @@ bun run test
    - `RC` → publish to npm with `rc` tag (release candidates)
    - `Release` → publish to npm with `latest` tag (stable)
 
-## Build & Test
+## Commands
 
 ```bash
 bun install                # Install dependencies
@@ -45,4 +37,4 @@ All packages use `@hexafy/tsdown-config` for bundling:
 - Tree-shakes unused code
 - Preserves `sideEffects: false` for optimal bundling
 
-See [CODESTYLE.md](./CODESTYLE.md) and [../CONTRIBUTING.md](../CONTRIBUTING.md) for more details.
+See [CODESTYLE.md](./CODESTYLE.md), [PROJECT-STRUCTURE.md](./PROJECT-STRUCTURE.md) (new package + companion-package rules), and [../CONTRIBUTING.md](../CONTRIBUTING.md) for more details.

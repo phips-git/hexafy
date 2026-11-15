@@ -10,8 +10,6 @@ import { UniqueIdentifier } from '../domain/primitives';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
 import {
   type CancellationToken,
-  failure,
-  success,
   Usecase,
   type UsecaseConfiguration
 } from './index';
@@ -1035,25 +1033,6 @@ describe('Usecase', () => {
       const useCase = new SuccessUseCase({ logging: logger });
 
       expect(useCase['dependencies'].logging).toBe(logger);
-    });
-  });
-
-  describe('Integration with success/failure helpers', () => {
-    it('success() helper wraps value correctly', () => {
-      const result = success('test-value');
-      expect(result.success).toBe(true);
-      if (result.success === true) {
-        expect(result.value).toBe('test-value');
-      }
-    });
-
-    it('failure() helper wraps error correctly', () => {
-      const error = new Error('test error');
-      const result = failure(error);
-      expect(result.success).toBe(false);
-      if (result.success === false) {
-        expect(result.error).toBe(error);
-      }
     });
   });
 

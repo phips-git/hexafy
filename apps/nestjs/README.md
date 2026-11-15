@@ -1,243 +1,43 @@
 # NestJS Example App
 
-This example demonstrates how to use `@hexafy/core` and `@hexafy/nestjs` to build hexagonal architecture applications with NestJS.
+Reference NestJS application showing how to wire `@hexafy/core` and `@hexafy/nestjs` in a hexagonal architecture setup.
 
-## Architecture
+## Why this app exists
 
-```
-┌─────────────────────────────────────┐
-│         Controllers                 │
-│  (src/controllers/*.ts)             │
-│  • HTTP endpoints                   │
-│  • Request/response handling        │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│         Domain Layer                │
-│  (src/domain/usecases/*.ts)         │
-│  • UseCase implementations          │
-│  • Business logic                   │
-│  • Entities                         │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│      Infrastructure Layer           │
-│  • InMemoryUserRepository           │
-│  • Database adapters (future)       │
-└─────────────────────────────────────┘
-```
+This app demonstrates HTTP controllers, use-case execution, repository adapters, and exception filters in one minimal integration example.
 
-## Example Endpoints
-
-### Say Hello
-
-Returns a greeting based on input.
-
-**Endpoint**: `POST /hello`
-
-**Request**:
-
-```json
-{
-  "name": "World"
-}
-```
-
-**Response** (200 OK):
-
-```json
-{
-  "message": "Hello, World! Welcome to hexagonal architecture."
-}
-```
-
-### Create User
-
-Creates a new user with validation.
-
-**Endpoint**: `POST /users`
-
-**Request**:
-
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com"
-}
-```
-
-**Response** (201 Created):
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "user_1234567890",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-**Error Response** (400 Bad Request):
-
-```json
-{
-  "success": false,
-  "error": "Name is required",
-  "code": "USE_CASE_ERROR"
-}
-```
-
-## Usage
-
-### Start the Server
+## Installation
 
 ```bash
-# Install dependencies
-npm install
-
-# Development mode
-npm run start:dev
-
-# Production mode
-npm run build
-npm run start:prod
+bun install
 ```
 
-### Test Endpoints
+## Quick start
 
 ```bash
-# Say Hello
-curl -X POST http://localhost:3000/hello \
-  -H "Content-Type: application/json" \
-  -d '{"name": "World"}'
-
-# Create User
-curl -X POST http://localhost:3000/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "John Doe", "email": "john@example.com"}'
+bun run start:dev
 ```
 
-## Key Concepts
+## Runtime artifacts and usage
 
-### 1. Domain Layer
+| Artifact                            | What it is for                       | Minimal usage                            |
+| ----------------------------------- | ------------------------------------ | ---------------------------------------- |
+| `POST /hello`                       | Simple use-case invocation example   | Send `{ "name": "World" }`               |
+| `POST /users`                       | User creation flow with validation   | Send `{ "name": "...", "email": "..." }` |
+| `DomainExceptionFilter` integration | Maps domain errors to HTTP responses | Register as global `APP_FILTER`          |
 
-Use cases are pure business logic that extend `Usecase`:
+## How it fits with `@hexafy/core`
 
-```typescript
-import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
-import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
+- Domain/application logic uses `@hexafy/core` use cases and errors
+- Nest-specific wiring uses `@hexafy/nestjs`
+- Controllers stay thin and delegate business logic to use cases
 
-class CreateUserUseCase extends Usecase<CreateUserInput, UserCreated> {
-  constructor(dependencies: UsecaseConfiguration) {
-    super(dependencies);
-  }
+## Recommended usage
 
-  protected async executeInternal(
-    input: CreateUserInput,
-    logger: LoggerPort
-  ): Promise<UserCreated> {
-    if (!input.email) {
-      throw new ValidationError('Email is required');
-    }
+- Use this app as integration reference only
+- Mirror the layering pattern in your own modules
+- Replace in-memory adapters with production adapters in infrastructure layer
 
-    logger.info('Creating user', { email: input.email });
-    return { userId: 'user_123' };
-  }
-}
-```
+## License
 
-### 2. NestJS Integration
-
-Use `@hexafy/nestjs` to integrate with NestJS:
-
-```typescript
-import { DomainExceptionFilter } from '@hexafy/nestjs';
-import { Module } from '@nestjs/common';
-
-@Module({
-  providers: [
-    CreateUserUseCase,
-    {
-      provide: 'APP_FILTER',
-      useClass: DomainExceptionFilter
-    }
-  ]
-})
-export class AppModule {}
-```
-
-### 3. Controllers
-
-Controllers are thin wrappers that call use cases:
-
-```typescript
-import { Body, Controller, Post } from '@nestjs/common';
-
-import { CreateUserUseCase } from '../domain/usecases/create-user.usecase';
-
-@Controller('users')
-export class UsersController {
-  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
-
-  @Post()
-  async createUser(@Body() input: CreateUserInput) {
-    const result = await this.createUserUseCase.execute(input);
-    return { success: true, data: result };
-  }
-}
-```
-
-### 4. Exception Filters
-
-Domain errors are automatically caught and formatted:
-
-```typescript
-// DomainExceptionFilter handles:
-// - ValidationError → 400 Bad Request
-// - NotFoundError → 400 Bad Request
-
-// Both return consistent error format:
-{
-  success: false,
-  error: "Error message",
-  code: "ERROR_CODE"
-}
-```
-
-## Project Structure
-
-```
-src/
-├── app.module.ts              # NestJS module configuration
-├── main.ts                    # Application entry point
-├── controllers/
-│   ├── hello.controller.ts    # Hello endpoint
-│   └── users.controller.ts    # User CRUD endpoints
-└── domain/
-    ├── usecases/
-    │   ├── say-hello.usecase.ts
-    │   └── create-user.usecase.ts
-    └── repositories/
-        └── in-memory-user.repository.ts
-```
-
-## Package Dependencies
-
-- `@hexafy/core` - Hexagonal architecture constructs
-- `@hexafy/nestjs` - NestJS adapters and helpers
-
-## Next Steps
-
-1. **Add a real database** - Replace `InMemoryUserRepository` with a TypeORM/Prisma repository
-2. **Add authentication** - Implement JWT or session-based auth
-3. **Add more use cases** - Create additional use cases for your application
-4. **Add validation** - Use class-validator for request validation
-5. **Add tests** - Write unit and integration tests
-
-## See Also
-
-- [`@hexafy/core` README](../../packages/core/README.md)
-- [`@hexafy/nestjs` README](../../packages/nestjs/README.md)
+MIT

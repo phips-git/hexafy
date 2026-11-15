@@ -1,0 +1,65 @@
+{
+  "name": "@hexafy/observability",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Execution tracing and log aggregation for hexafy use cases",
+  "keywords": [
+    "hexafy",
+    "hexagonal-architecture",
+    "logging",
+    "observability",
+    "telemetry",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "Philipp Teßner-Müller",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phips-git/hexafy.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./application": "./src/application/index.ts",
+    "./infrastructure": "./src/infrastructure/index.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      "./application": {
+        "types": "./dist/application.d.mts",
+        "import": "./dist/application.mjs",
+        "default": "./dist/application.mjs"
+      },
+      "./infrastructure": {
+        "types": "./dist/infrastructure.d.mts",
+        "import": "./dist/infrastructure.mjs",
+        "default": "./dist/infrastructure.mjs"
+      },
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rm -rf dist && git clean -xdf node_modules",
+    "test": "bun test",
+    "typecheck": "bun check"
+  },
+  "devDependencies": {
+    "@hexafy/core": "workspace:*",
+    "@hexafy/tsdown-config": "workspace:*",
+    "@hexafy/typescript-config": "workspace:*",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "@hexafy/core": ">=1.0.0-rc.4 <2"
+  },
+  "engines": {
+    "bun": ">=1.4",
+    "node": ">=22"
+  }
+}

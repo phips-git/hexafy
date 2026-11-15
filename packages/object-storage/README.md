@@ -1,92 +1,84 @@
-# Object Storage
+# @hexafy/object-storage
 
-Hexagonal architecture implementation for object storage operations.
+Object storage domain port and adapters for Hexafy applications, with S3 and no-op implementations.
 
-## Overview
+## Why this package exists
 
-This package provides a domain-driven interface (`ObjectStoragePort`) with concrete adapters:
+This package defines a storage boundary (`ObjectStoragePort`) and provides adapter implementations so application/domain code depends on contracts, not SDK details.
 
-- **`ObjectStorageAwsS3Adapter`** - Production AWS S3 implementation
-- **`ObjectStorageNoopAdapter`** - In-memory implementation for testing
+It provides:
 
-## Usage
+- domain model contracts for stored object metadata
+- a domain storage port for put/get/delete/list/signed-url operations
+- infrastructure adapters for AWS S3 and no-op testing
 
-### Domain Interface (Your App Depends On)
+## Installation
 
-```typescript
+```bash
+npm install @hexafy/object-storage @hexafy/core @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+# or
+bun add @hexafy/object-storage @hexafy/core @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+# or
+yarn add @hexafy/object-storage @hexafy/core @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+```
+
+Use subpath imports only:
+
+- `@hexafy/object-storage/domain`
+- `@hexafy/object-storage/infrastructure`
+
+## Quick start
+
+```ts
 import type { ObjectStoragePort } from '@hexafy/object-storage/domain';
-
-// Inject into services
-class UserService {
-  constructor(private readonly storage: ObjectStoragePort) {}
-
-  async upload(file: Blob) {
-    const metadata = await this.storage.putObject('file.txt', file, {
-      contentType: 'text/plain'
-    });
-  }
-}
-```
-
-### Infrastructure Adapters
-
-```typescript
-import { S3Client } from '@aws-sdk/client-s3';
-import { ObjectStorageAwsS3Adapter } from '@hexafy/object-storage/infrastructure';
-
-const storage = new ObjectStorageAwsS3Adapter({
-  client: new S3Client({
-    region: process.env.AWS_REGION!,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-    }
-  }),
-  bucket: process.env.S3_BUCKET!
-});
-```
-
-### Testing with Noop Adapter
-
-```typescript
 import { ObjectStorageNoopAdapter } from '@hexafy/object-storage/infrastructure';
 
-const storage = new ObjectStorageNoopAdapter();
+const storage: ObjectStoragePort = new ObjectStorageNoopAdapter();
+await storage.putObject('users/u1/avatar.png', new Uint8Array([1, 2, 3]));
 ```
 
-## API Reference
+## Public API at a glance
 
-### ObjectStoragePort
-
-```typescript
-interface ObjectStoragePort {
-  putObject(
-    key: string,
-    body: Uint8Array | Blob,
-    options?: { contentType?: string }
-  ): Promise<ObjectMetadata>;
-
-  getObject(key: string): Promise<StoredObject>;
-  deleteObject(key: string): Promise<void>;
-  objectExists(key: string): Promise<boolean>;
-  listObjects(prefix: string): Promise<ObjectMetadata[]>;
-  createSignedUrl(
-    key: string,
-    options: { method: 'GET' | 'PUT'; expiresInSeconds: number }
-  ): Promise<string>;
-}
+```ts
+import type {
+  CreateSignedUrlOptions,
+  ObjectMetadata,
+  ObjectStoragePort,
+  PutObjectOptions,
+  StoredObject
+} from '@hexafy/object-storage/domain';
+import {
+  ObjectStorageAwsS3Adapter,
+  type ObjectStorageAwsS3AdapterOptions,
+  ObjectStorageNoopAdapter
+} from '@hexafy/object-storage/infrastructure';
 ```
 
-### Models
+## Exported artifacts and usage
 
-```typescript
-interface ObjectMetadata {
-  key: string;
-  size: number;
-  lastModified: Date | null;
-}
+| Export                             | Entry point       | What it is for                     | When to use                                       | Minimal usage                                       |
+| ---------------------------------- | ----------------- | ---------------------------------- | ------------------------------------------------- | --------------------------------------------------- |
+| `ObjectStoragePort`                | `/domain`         | Storage boundary contract          | Application/domain code that needs object storage | Depend on interface and inject adapter              |
+| `PutObjectOptions`                 | `/domain`         | Optional put-object options        | Typing write metadata such as content type        | Pass as third argument to `putObject`               |
+| `CreateSignedUrlOptions`           | `/domain`         | Signed URL generation options      | Controlled GET/PUT signed URL creation            | Pass to `createSignedUrl`                           |
+| `ObjectMetadata`                   | `/domain`         | Object metadata shape              | List and response typing without body bytes       | Use as return/value type                            |
+| `StoredObject`                     | `/domain`         | Object metadata + body bytes       | Full object reads                                 | Use as return/value type                            |
+| `ObjectStorageAwsS3Adapter`        | `/infrastructure` | AWS S3-backed storage adapter      | Production S3-backed storage implementation       | `new ObjectStorageAwsS3Adapter({ client, bucket })` |
+| `ObjectStorageAwsS3AdapterOptions` | `/infrastructure` | Constructor options for S3 adapter | Type-safe S3 adapter configuration                | Provide `{ client, bucket }`                        |
+| `ObjectStorageNoopAdapter`         | `/infrastructure` | In-memory no-op adapter            | Tests and local prototypes without external infra | `new ObjectStorageNoopAdapter()`                    |
 
-interface StoredObject extends ObjectMetadata {
-  body: Uint8Array;
-}
-```
+## How it fits with `@hexafy/core`
+
+- Keep `ObjectStoragePort` dependency in application/domain layers
+- Keep AWS SDK-specific logic inside infrastructure adapters
+- Use this package as a companion boundary package, not as a core-domain replacement
+
+## Recommended usage
+
+- Inject `ObjectStoragePort` into use cases/services
+- Use `ObjectStorageNoopAdapter` in tests
+- Keep storage key naming deterministic and tenant-scoped at app boundaries
+
+## License
+
+MIT

@@ -1,66 +1,53 @@
 # Hexafy
 
-Hexafy provides lightweight foundations for building hexagonal architecture applications in TypeScript, including core architectural primitives and framework/domain-specific adapters.
+Hexafy is a practical package family for building hexagonal TypeScript systems without reinventing the basics: start with `@hexafy/core` primitives for application and domain design, then plug in companion adapters for runtime and domain integrations (for example NestJS, AWS Lambda, observability, email or object storage).
 
-This monorepo stays intentionally minimal, with clear boundaries between domain logic, application use cases, and infrastructure.
+**New to hexagonal architecture?** Start with [`packages/core/README.md`](./packages/core/README.md)
 
-## 📦 Publishable Packages
+## Why this repository exists
 
-| Package                  | Description                                                          |
-| ------------------------ | -------------------------------------------------------------------- |
-| `@hexafy/core`           | Core hexagonal primitives: use cases, services, repositories, errors |
-| `@hexafy/nestjs`         | NestJS adapters for hexagonal applications                           |
-| `@hexafy/aws-lambda`     | AWS Lambda adapters                                                  |
-| `@hexafy/email`          | Email domain package with provider adapters                          |
-| `@hexafy/object-storage` | Object storage package with adapter implementations                  |
+This monorepo keeps the package family aligned around one core architecture model and consistent package structure/docs.
+It also provides example apps for end-to-end integration patterns and is intended to grow with future AI skills and CLI tooling around the Hexafy ecosystem.
 
-## 📚 Example Applications
+## Public packages at a glance
 
-- **Example Domain**: `packages/example-domain/`
-- **NestJS Example App**: `apps/nestjs/`
-- **AWS Lambda Example App**: `apps/aws-lambda/`
+| Package                  | Purpose                                    |
+| ------------------------ | ------------------------------------------ |
+| `@hexafy/core`           | Core architecture primitives and contracts |
+| `@hexafy/observability`  | Execution/logging observability companions |
+| `@hexafy/aws-lambda`     | AWS Lambda adapter layer                   |
+| `@hexafy/nestjs`         | NestJS adapter layer                       |
+| `@hexafy/email`          | Email domain and provider adapters         |
+| `@hexafy/object-storage` | Object-storage domain port + adapters      |
 
-## 🚀 Quick Start
+## Monorepo layout
+
+| Path         | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
+| `packages/*` | Publishable package-family modules (see package READMEs) |
+| `apps/*`     | Integration/example applications                         |
+| `.agents/*`  | Agent-facing engineering and documentation standards     |
+
+## Development
+
+Required stack:
+
+- **Bun** (version from root `package.json` `engines.bun`)
+- **TypeScript** (workspace compiler/tooling)
+- **Changesets** (versioning and release workflow)
+
+Setup:
 
 ```bash
 bun install
-bun run typecheck
-bun run test
 ```
 
-For package-level usage and detailed examples, start with:
+For commands and documentation, use the canonical sources:
 
-- [`packages/core/README.md`](./packages/core/README.md)
-- [`packages/nestjs/README.md`](./packages/nestjs/README.md)
-- [`packages/aws-lambda/README.md`](./packages/aws-lambda/README.md)
+- root [`package.json`](./package.json) (`scripts`)
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [.agents/QUICKSTART.md](./.agents/QUICKSTART.md)
 
-## 🔧 Common Scripts
+## License
 
-```bash
-bun run typecheck
-bun run test
-bun run lint
-bun run format
-```
-
-## 📦 Publishing
-
-Release flow is managed through GitHub Actions + Changesets.
-
-```bash
-bun run changeset
-```
-
-Releases run from the GitHub Actions **Release** workflow (`RC` → `rc`, `Release` → `latest`).
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for release policy details.
-
-## 📖 Learn More
-
-- Core: [`packages/core/README.md`](./packages/core/README.md)
-- Example Domain: [`packages/example-domain/README.md`](./packages/example-domain/README.md)
-- NestJS App: [`apps/nestjs/README.md`](./apps/nestjs/README.md)
-- Lambda App: [`apps/aws-lambda/README.md`](./apps/aws-lambda/README.md)
-
-## 📄 License
-
-MIT — See [LICENSE](./LICENSE)
+MIT

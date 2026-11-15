@@ -1,200 +1,96 @@
 # @hexafy/example-domain
 
-A complete domain example demonstrating how to use `@hexafy/core` to build hexagonal architecture applications.
+Reference domain package showing how to structure a real hexagonal domain on top of `@hexafy/core`.
 
-## Overview
+## Why this package exists
 
-This package shows a practical implementation of hexagonal architecture with:
+This package is a learning/reference implementation for the Hexafy package family.  
+It demonstrates how to organize application, domain, and infrastructure layers with realistic auth and task-management flows.
 
-- **Authentication domain** - User management and authentication
-- **Task Management domain** - Projects and tasks with business rules
-- **Domain-driven design** - Aggregate roots, value objects, domain events
-- **Repository pattern** - With both ports (interfaces) and adapters (implementations)
-- **Use cases** - Application layer with dependency injection
+It provides:
 
-## Package Structure
+- application use cases for auth and task management
+- domain models, ports, policies, and validators
+- in-memory adapters for local development/testing
 
-```
-example-domain/
-├── src/
-│   ├── domain/                  # Domain layer (business logic)
-│   │   ├── auth/
-│   │   │   ├── models/          # User, UserId (value objects)
-│   │   │   └── ports/           # UserPort, AuthenticationPort (interfaces)
-│   │   └── task-management/
-│   │       ├── models/          # Task, Project, Tenant
-│   │       ├── policies/        # Business rules (TaskStatusPolicy, etc.)
-│   │       ├── ports/           # TaskPort, ProjectPort (interfaces)
-│   │       └── validators/      # Domain validators
-│   ├── application/             # Application layer (use cases)
-│   │   ├── auth/
-│   │   │   └── usecases/        # CreateUseCase, AuthenticateUseCase
-│   │   └── task-management/
-│   │       └── usecases/        # CreateTaskUseCase, CompleteTaskUseCase
-│   └── infrastructure/          # Infrastructure layer
-│       ├── auth/
-│       │   └── adapters/        # InMemoryUserRepository
-│       └── task-management/
-│           └── adapters/        # InMemoryTaskRepository
-```
-
-## Dependencies
-
-This package depends on `@hexafy/core` and demonstrates:
-
-- Using `Usecase` base class for cross-cutting concerns
-- `Result` type for functional error handling
-- Domain errors (`DomainError`, `ValidationError`, etc.)
-- Repository pattern with `RepositoryBase`
-- `AggregateRoot` for DDD aggregates
-- `Brand` type for type-safe IDs
-
-## Usage
-
-### Importing from the example
-
-```typescript
-// Use cases
-import { CreateUseCase } from '@hexafy/example-domain/application';
-// Domain models
-import { User } from '@hexafy/example-domain/domain';
-import {
-  Task,
-  TaskStatus
-} from '@hexafy/example-domain/domain/task-management';
-// Infrastructure
-import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
-```
-
-### Using with @hexafy/core primitives
-
-```typescript
-import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
-import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
-
-interface CreateUserInput {
-  email: string;
-  password: string;
-  name?: string;
-}
-
-class CreateUserUseCase extends Usecase<CreateUserInput, User> {
-  constructor(
-    private readonly userRepository: UserPort,
-    dependencies: UsecaseConfiguration
-  ) {
-    super(dependencies);
-  }
-
-  protected async executeInternal(
-    input: CreateUserInput,
-    logger: LoggerPort // Logger always available (NOOP if not configured)
-  ): Promise<User> {
-    // Validate
-    if (!input.email.includes('@')) {
-      throw new ValidationError('Invalid email format');
-    }
-
-    // Business logic
-    const user = await this.userRepository.save({
-      id: this.dependencies.generateId?.() ?? `user_${Date.now()}`,
-      email: input.email,
-      name: input.name ?? null,
-      role: 'member',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-
-    logger.info('User created', { userId: user.id });
-    return user;
-  }
-}
-```
-
-## Architecture
-
-### Domain Layer
-
-Pure business logic, no external dependencies:
-
-- **Models** - Entities (`User`, `Task`), Value Objects (`UserId`, `ProjectId`)
-- **Ports** - Repository interfaces (what the domain needs)
-- **Policies** - Business rules (`TaskStatusPolicy`)
-- **Validators** - Domain validation (`TaskValidators`)
-
-### Application Layer
-
-Orchestrates use cases:
-
-- **Use Cases** - Business operations (`CreateTaskUseCase`)
-- Uses `Usecase` base class for automatic logging, execution IDs, error handling
-
-### Infrastructure Layer
-
-Implements domain ports:
-
-- **Repositories** - `InMemoryUserRepository` implements `UserPort`
-- **Adapters** - Can be extended with SQLite, TypeORM, etc.
-
-## Running the Example
+## Installation
 
 ```bash
-# Install dependencies
 bun install
-
-# Type check
-bun run typecheck
-
-# Run the example entry point
-bun run example
 ```
 
-## Key Concepts Demonstrated
+This package is workspace-private and intended as an internal example.
 
-### 1. Domain-Driven Design
+Use subpath imports:
 
-```typescript
-class Task extends AggregateRoot<TaskId> {
-  complete(): void {
-    TaskStatusPolicy.validateTransition(this, TaskStatus.COMPLETED);
-    this.status = TaskStatus.COMPLETED;
-    this.incrementVersion();
-  }
-}
+- `@hexafy/example-domain/application`
+- `@hexafy/example-domain/domain`
+- `@hexafy/example-domain/infrastructure`
+
+## Quick start
+
+```ts
+import { CreateUseCase } from '@hexafy/example-domain/application';
+import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
+
+const users = new InMemoryUserRepository();
+const usecase = new CreateUseCase(users);
 ```
 
-### 2. Repository Pattern
+## Public API at a glance
 
-```typescript
-// Port (interface)
-interface TaskPort {
-  findById(id: string): Promise<Task | null>;
-  findByProjectId(projectId: string): Promise<Task[]>;
-}
-
-// Adapter (implementation)
-class InMemoryTaskRepository implements TaskPort {
-  // Implementation
-}
+```ts
+import {
+  AuthenticateUseCase,
+  CompleteTaskUseCase,
+  CreateTaskUseCase,
+  CreateUseCase
+} from '@hexafy/example-domain/application';
+import {
+  AuthenticationPort,
+  Project,
+  ProjectPort,
+  Task,
+  TaskPort,
+  User,
+  UserPort
+} from '@hexafy/example-domain/domain';
+import {
+  InMemoryAuthenticationAdapter,
+  InMemoryProjectRepository,
+  InMemoryTaskRepository,
+  InMemoryUserRepository
+} from '@hexafy/example-domain/infrastructure';
 ```
 
-### 3. Use Case with Cross-Cutting Concerns
+## Exported artifacts and usage
 
-```typescript
-class CreateTaskUseCase extends Usecase<CreateTaskInput, Task> {
-  // Automatic: logging, execution IDs, duration tracking
-  // Manual: business logic only
-}
-```
+| Export                                                                                                                                           | Entry point       | What it is for                                    | When to use                                        | Minimal usage                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- | ------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| `CreateUseCase`, `AuthenticateUseCase`, `CreateTaskUseCase`, `CompleteTaskUseCase`                                                               | `/application`    | Reference use-case implementations                | Learning and internal example composition          | Instantiate with in-memory adapters            |
+| `User`, `UserId`, `TenantId`, `UserRole`                                                                                                         | `/domain`         | Auth bounded-context model contracts              | Auth/domain typing                                 | Use in auth use-case/port contracts            |
+| `AuthenticationPort`, `UserPort`                                                                                                                 | `/domain`         | Auth persistence/authentication boundaries        | Invert auth infrastructure dependencies            | Implement in infrastructure adapters           |
+| `AuthorizationContext`, `extractTenantId`, `extractUserId`                                                                                       | `/domain`         | Authorization context model and helper extractors | Tenant/user context-aware task flows               | Use in task authorization checks               |
+| `Task`, `TaskId`, `TaskListItem`, `TaskCreationProperties`, `ValidTaskCreationProperties`, `TaskUpdateProperties`, `ValidTaskUpdateProperties`   | `/domain`         | Task aggregate model and mutation typing          | Task creation/update flows                         | Use as task use-case IO/types                  |
+| `TaskPriority`, `TaskStatus`                                                                                                                     | `/domain`         | Task lifecycle enums/constants                    | Constrained task state and priority values         | Use constants/types in policies and validation |
+| `Project`, `ProjectId`, `ProjectCreationProperties`, `ValidProjectCreationProperties`, `ProjectUpdateProperties`, `ValidProjectUpdateProperties` | `/domain`         | Project aggregate model and mutation typing       | Project creation/update flows                      | Use as project use-case IO/types               |
+| `Tenant`, `TenantCreationProperties`, `ValidTenantCreationProperties`                                                                            | `/domain`         | Tenant model contracts                            | Multi-tenant task-management flows                 | Use in tenant-aware operations                 |
+| `TaskStatusPolicy`, `ProjectPolicy`                                                                                                              | `/domain`         | Business rule policy objects                      | State transition and authorization rules           | Call from use-case/domain operations           |
+| `TaskValidators`, `ProjectValidators`                                                                                                            | `/domain`         | Input/state validation helpers                    | Guard creation/update operations                   | Validate before persistence                    |
+| `TaskPort`, `ProjectPort`, `ProjectStats`, `ProjectStatsPort`                                                                                    | `/domain`         | Task/project persistence boundaries               | Invert task-management infrastructure dependencies | Implement in infrastructure adapters           |
+| `InMemoryUserRepository`, `InMemoryAuthenticationAdapter`, `InMemoryTaskRepository`, `InMemoryProjectRepository`                                 | `/infrastructure` | In-memory adapter implementations                 | Local tests and example app wiring                 | Construct and inject into use cases            |
 
-### 4. Type-Safe IDs with Brand
+## How it fits with `@hexafy/core`
 
-```typescript
-import type { Brand } from '@hexafy/core/domain';
+- Uses `@hexafy/core` as the base for use-case lifecycle, typing, and error contracts
+- Demonstrates companion package integration patterns without redefining core primitives
+- Serves as a reference for package-family layering conventions
 
-export type TaskId = Brand<string, 'TaskId'>;
-export type UserId = Brand<string, 'UserId'>;
-```
+## Recommended usage
+
+- Treat this package as a reference implementation, not production-ready domain logic
+- Reuse the structure and dependency flow in real packages
+- Swap in-memory adapters for real adapters at infrastructure boundaries
 
 ## License
 

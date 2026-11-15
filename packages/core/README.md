@@ -1,22 +1,46 @@
 # @hexafy/core
 
-Hexafy provides a lightweight foundation for hexagonal architecture in TypeScript, helping teams build cleaner, more testable business logic without reinventing the basics.
-
-If you’re new to hexagonal architecture, see the Key concepts section below.
+Core hexagonal architecture primitives for TypeScript: use cases, domain building blocks, and infrastructure ports/adapters.
 
 ## Why this package exists
 
-Hexafy gives you the core building blocks for hexagonal architecture applications without forcing a framework or a large app scaffold.
+`@hexafy/core` is the foundation of the Hexafy package family.  
+It keeps business logic framework-agnostic and provides a small, explicit API for:
 
-It keeps responsibilities explicit and gives you:
+- application orchestration (`Usecase`, `ServiceBase`)
+- use-case outcome contract (`UsecaseResult`)
+- domain errors and primitives (`ApplicationError`, `Entity`, `AggregateRoot`, `ValueObject`)
+- cross-cutting ports and default adapters (logging, metrics, clock, identifier)
 
-- `Usecase` for commands and queries with execution tracking and result wrapping
-- `ServiceBase` for shared application logic and lightweight entry points
-- `UsecaseResult` helpers: `success`, `failure`, `unwrap`, `isSuccess`, and `isFailure`
-- domain errors such as `ValidationError`, `NotFoundError`, `ConflictError`, `ForbiddenError`, and `ApplicationError`
-- repository and unit-of-work base abstractions
-- ports and adapters for clocks, identifiers, logging, and metrics
-- domain primitives such as `Entity`, `AggregateRoot`, `ValueObject`, and `UniqueIdentifier`
+## Architecture overview
+
+This package implements [hexagonal (ports-and-adapters) architecture](https://alistair.cockburn.us/hexagonal-architecture/) to keep your business logic independent of frameworks, databases, and external services.
+
+### Dependencies flow
+
+```mermaid
+graph LR
+    subgraph Infrastructure
+        I[Infrastructure<br/>Adapters]
+    end
+    
+    subgraph Application
+        A[Application<br/>Usecase, Ports]
+    end
+    
+    subgraph Domain
+        D[Domain<br/>Entity, Errors]
+    end
+    
+    I --> A
+    A --> D
+    
+    style Domain fill:#e1f5fe
+    style Application fill:#fff3e0
+    style Infrastructure fill:#f3e5f5
+```
+
+**Rule:** Dependencies flow inward. Infrastructure depends on Application (implements ports), Application depends on Domain (uses primitives). Domain has no dependencies.
 
 ## Installation
 
@@ -28,11 +52,15 @@ bun add @hexafy/core
 yarn add @hexafy/core
 ```
 
-## Quick start
+## Quick start and recommended usage
 
 ```ts
-import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
-import { type LoggerPort, ValidationError } from '@hexafy/core/domain';
+import {
+  type LoggingPort,
+  Usecase,
+  type UsecaseConfiguration
+} from '@hexafy/core/application';
+import { ValidationError } from '@hexafy/core/domain';
 
 interface CreateUserInput {
   email: string;
@@ -52,260 +80,72 @@ class CreateUserUseCase extends Usecase<CreateUserInput, User> {
 
   protected async executeInternal(
     input: CreateUserInput,
-    logger: LoggerPort
+    logger: LoggingPort
   ): Promise<User> {
     if (!input.email.includes('@')) {
       throw new ValidationError('Invalid email');
     }
 
     logger.info('User created', { email: input.email });
-
-    return {
-      id: 'user_123',
-      email: input.email,
-      name: input.name
-    };
+    return { id: 'user_123', email: input.email, name: input.name };
   }
 }
 
-const result = await new CreateUserUseCase().execute({
-  email: 'john@example.com',
+// Usage
+const useCase = new CreateUserUseCase();
+const result = await useCase.execute({
+  email: 'user@example.com',
   name: 'John'
 });
 
 if (result.success) {
-  console.log(result.value);
+  console.log('User:', result.value);
 } else {
-  console.error(result.error.message);
+  console.error('Failed:', result.error);
 }
 ```
 
-## Public API at a glance
+**Best practices:**
 
-Use the package through the public entry points below:
+- Keep business rules in domain/application layers; framework details in infrastructure adapters
+- Use `Usecase` for operation boundaries and `ServiceBase` for reusable services
+- In `executeInternal`, return plain output for success; throw typed domain errors for business failures
+- Handle outcomes via `result.success` at `execute()` call sites
+- Import from explicit subpaths (`@hexafy/core/application`, `/domain`, `/infrastructure`); avoid barrel re-exports
 
-```ts
-import {
-  type CancellationToken,
-  failure,
-  ServiceBase,
-  success,
-  Usecase,
-  type UsecaseConfiguration,
-  type UsecaseResult,
-  type UsecaseRetryConfiguration
-} from '@hexafy/core/application';
-import {
-  AggregateRoot,
-  ApplicationError,
-  Entity,
-  RepositoryBase,
-  type RepositoryPort,
-  UnitOfWorkBase,
-  ValidationError,
-  ValueObject
-} from '@hexafy/core/domain';
-import {
-  ConsoleLoggingAdapter,
-  NoOpLoggingAdapter,
-  NoOpMetricsAdapter,
-  SystemClockAdapter,
-  SystemIdentifierAdapter
-} from '@hexafy/core/infrastructure';
-```
+## Public API
 
-The package intentionally keeps the API small and framework-agnostic. Domain rules stay in the domain layer; application orchestration stays in `Usecase` and `ServiceBase`; infrastructure concerns stay at the edges.
+The package exposes three subpath entry points:
 
-## Recommended project layout
+- `@hexafy/core/application` - `Usecase`, `ServiceBase`, `UsecaseResult`, ports, and configuration
+- `@hexafy/core/domain` - Domain primitives, errors, repository ports
+- `@hexafy/core/infrastructure` - Default adapters (logging, clock, metrics, identifier)
 
-A practical default for projects using this package looks like this:
+See the [Exported artifacts and usage](#exported-artifacts-and-usage) table below for complete details.
 
-```text
-src/
-  domain/
-    user/
-      models/
-        user.ts
-        user-id.ts
-      policies/
-        user.policies.ts
-      validators/
-        user.validators.ts
-      ports/
-        user-repository.port.ts
+## Exported artifacts and usage
 
-  application/
-    user/
-      usecases/
-        create-user.usecase.ts
-        authenticate.usecase.ts
+| Export                                                                                                                                                     | Entry point       | What it is for                                                           | When to use                                        | Minimal usage                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------- | -------------------------------------------------- |
+| `Usecase`, `UsecaseConfiguration`, `UsecaseRetryConfiguration`                                                                                             | `/application`    | Execution lifecycle, retries, timeouts, cancellation                     | One business operation with result contract        | `class X extends Usecase<I, O> { ... }`            |
+| `ServiceBase`, `ServiceConfiguration`                                                                                                                      | `/application`    | Shared app logic without full use-case lifecycle                         | Reusable services used by multiple use cases       | `class PricingService extends ServiceBase { ... }` |
+| `UsecaseResult`                                                                                                                                            | `/application`    | Typed success/failure result contract returned by `Usecase.execute(...)` | Handling use-case outcomes at call sites           | `const result = await usecase.execute(input)`      |
+| `CancellationToken`                                                                                                                                        | `/application`    | Cooperative cancellation contract                                        | Request/job cancellation-aware operations          | Pass token to `.execute(...)`                      |
+| `ClockPort`, `IdentifierPort`, `LoggingPort`, `MetricsPort`                                                                                                | `/application`    | Boundary contracts for cross-cutting concerns                            | Invert infrastructure dependencies in app layer    | Depend on interfaces, inject adapters              |
+| `ApplicationError`                                                                                                                                         | `/domain`         | Base application error class                                             | Custom error hierarchies and error handling        | `class MyError extends ApplicationError { ... }`   |
+| Domain error classes (`ValidationError`, `NotFoundError`, `ConflictError`, `UnauthorizedError`, `ForbiddenError`, `InvariantError`, `InfrastructureError`) | `/domain`         | Standardized, typed error model                                          | Expected business and boundary failures            | `throw new ValidationError('...')`                 |
+| `isDomainError`, `getDomainErrorCode`, `DomainErrorLike`                                                                                                   | `/domain`         | Domain-error narrowing and metadata extraction                           | Adapter-level error mapping and formatting         | `if (isDomainError(err)) { ... }`                  |
+| `ApplicationErrorOptions`, `ApplicationErrorDetails`                                                                                                       | `/domain`         | Error construction metadata typing                                       | Custom error subclasses and factories              | Pass options to `ApplicationError` subclass        |
+| `Entity`, `AggregateRoot`, `ValueObject`, `UniqueIdentifier`, `Brand`                                                                                      | `/domain`         | DDD-oriented domain primitives and type branding                         | Rich domain model boundaries                       | Extend primitives in domain models                 |
+| `RepositoryBase`, `RepositoryPort`                                                                                                                         | `/domain`         | Persistence abstraction contracts/bases                                  | Domain persistence ports and adapters              | Implement `RepositoryPort` in infrastructure       |
+| `UnitOfWorkBase`                                                                                                                                           | `/domain`         | Transaction boundary abstraction                                         | Multi-step persistence transactions                | Extend in persistence adapters                     |
+| `SystemClockAdapter`, `SystemIdentifierAdapter`                                                                                                            | `/infrastructure` | Default clock and id providers                                           | Production defaults without custom implementations | Inject adapter constants in config                 |
+| `ConsoleLoggingAdapter`, `JSONConsoleLoggingAdapter`, `NoOpLoggingAdapter`                                                                                 | `/infrastructure` | Built-in logging adapters                                                | Console logging, JSON logging, or silent logging   | Use in `UsecaseConfiguration.logging`              |
+| `NoOpMetricsAdapter`                                                                                                                                       | `/infrastructure` | No-op metrics implementation                                             | Disable metrics while keeping port contract        | Inject as default metrics adapter                  |
 
-  infrastructure/
-    user/
-      adapters/
-        in-memory-user.repository.ts
-        postgres-user.repository.ts
-```
+## How it fits in the Hexafy package family
 
-This keeps the domain model and rules together, while the application layer focuses on orchestration and the infrastructure layer holds concrete implementations. It is a practical pattern, not a rigid requirement.
-
-## Core pattern
-
-The package follows a simple flow:
-
-- a command or query enters through a `Usecase` or `ServiceBase`
-- business logic runs against domain objects and ports
-- success returns a value
-- expected failures become domain errors and are surfaced through `UsecaseResult`
-- infrastructure details stay outside the application layer
-
-This is intentionally conservative: no framework lock-in, no hidden side effects, and no implicit business behavior beyond the execution lifecycle.
-
-## `Usecase` vs `ServiceBase`
-
-Usecases stay conservative by default: timeout and retry are opt-in execution policies for slow or flaky boundary calls, not implicit business logic behavior.
-
-```ts
-const result = await new CreateUserUseCase({
-  timeoutMs: 2000,
-  retry: {
-    attempts: 3,
-    delayMs: 150,
-    backoffMs: 150,
-    shouldRetry: (error) =>
-      error instanceof Error && /timeout|temporar|429|503/i.test(error.message)
-  }
-}).execute({ email: 'john@example.com', name: 'John' });
-```
-
-### Cancellation, timeouts, and retries
-
-`Usecase.execute(input, context?, cancellationToken?)` supports cooperative cancellation for request-scoped flows. Use it when the surrounding runtime already knows a request is aborted or timed out.
-
-```ts
-import { type CancellationToken, Usecase } from '@hexafy/core/application';
-
-const controller = new AbortController();
-const token: CancellationToken = {
-  isCancelled: controller.signal.aborted,
-  reason: controller.signal.reason ?? undefined
-};
-
-const result = await new RefreshUserSession({
-  timeoutMs: 1500,
-  retry: { attempts: 3, delayMs: 100, backoffMs: 200 }
-}).execute({ userId: 'user_123' }, { requestId: 'req_42' }, token);
-```
-
-Best practices:
-
-- prefer adapter-native timeout and cancellation for HTTP, DB, and queue clients
-- keep `retry` small and explicit
-- retry only safe or idempotent operations
-- fail fast on validation and domain errors
-
-`timeoutMs` and `retry` are opt-in execution policies for slow or flaky boundary calls, not business logic.
-
-### `Usecase`
-
-Use `Usecase` for a single operation that needs:
-
-- execution IDs and duration tracking
-- a uniform result contract
-- cancellation support
-- structured logging and metrics
-
-```ts
-import { Usecase } from '@hexafy/core/application';
-import { ValidationError } from '@hexafy/core/domain';
-
-class CreateUser extends Usecase<{ email: string }, { userId: string }> {
-  protected async executeInternal(input: { email: string }) {
-    if (!input.email.includes('@')) {
-      throw new ValidationError('Invalid email');
-    }
-
-    return { userId: 'u_123' };
-  }
-}
-```
-
-### `ServiceBase`
-
-Use `ServiceBase` when you want reusable application logic without the full operation lifecycle.
-
-```ts
-import { ServiceBase } from '@hexafy/core/application';
-
-class PricingService extends ServiceBase {
-  constructor(private readonly productRepo: ProductRepository) {
-    super();
-  }
-
-  async totalFor(cart: Cart): Promise<Money> {
-    return Money.zero();
-  }
-}
-```
-
-## Result handling
-
-The package prefers explicit results over unstructured exceptions for expected business failures.
-
-```ts
-import { failure, success } from '@hexafy/core/application';
-
-const ok = success({ id: '1' });
-const bad = failure(new Error('Something went wrong'));
-
-if (ok.success) {
-  console.log(ok.value.id);
-}
-```
-
-## Package layout
-
-The public entry points are intentionally small:
-
-```ts
-import {
-  failure,
-  ServiceBase,
-  success,
-  Usecase
-} from '@hexafy/core/application';
-import {
-  ApplicationError,
-  Entity,
-  type LoggerPort,
-  RepositoryBase,
-  type RepositoryPort,
-  ValidationError
-} from '@hexafy/core/domain';
-import {
-  ConsoleLoggingAdapter,
-  NoOpLoggingAdapter,
-  NoOpMetricsAdapter
-} from '@hexafy/core/infrastructure';
-```
-
-## Recommended usage
-
-- keep domain rules and validation close to the domain or use case
-- let infrastructure throw unexpected exceptions at the boundary
-- use domain errors for expected business failures
-- keep adapters at the edges of the system
-- prefer explicit ports over framework-specific abstractions
-
-## Key concepts
-
-- **Domain**: business rules, entities, policies, validation, and core logic
-- **Application**: use cases and orchestration logic that coordinates domain behavior
-- **Infrastructure**: implementations for persistence, HTTP, logging, external APIs, and other technical concerns
-- **Port**: a contract that the application or domain depends on
-- **Adapter**: the concrete implementation of a port
-- **Use case**: a single application operation, such as creating a user or authenticating a session
-- **Boundary**: the explicit separation between business logic and external concerns
+`@hexafy/core` is the dependency root. Companion packages (for example `@hexafy/observability`, `@hexafy/nestjs`, `@hexafy/aws-lambda`, `@hexafy/object-storage`) extend behavior around these core contracts and should not duplicate them.
 
 ## License
 

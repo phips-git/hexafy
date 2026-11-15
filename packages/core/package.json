@@ -1,13 +1,16 @@
 {
   "name": "@hexafy/core",
   "version": "1.0.0-rc.4",
-  "description": "Core hexagonal architecture constructs for TypeScript",
+  "description": "Hexagonal (ports and adapters) architecture primitives for TypeScript: use cases, domain entities, and infrastructure adapters.",
   "keywords": [
     "clean-architecture",
-    "ddd",
+    "domain-driven-design",
     "hexagonal-architecture",
+    "ports-adapter",
+    "ports-and-adapters",
     "typescript",
-    "use-case"
+    "use-case",
+    "use-case-pattern"
   ],
   "license": "MIT",
   "author": "Philipp Teßner-Müller",
@@ -54,7 +57,7 @@
   "devDependencies": {
     "@hexafy/tsdown-config": "workspace:*",
     "@hexafy/typescript-config": "workspace:*",
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2"
   },
   "engines": {
     "bun": ">=1.3",
