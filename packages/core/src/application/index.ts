@@ -11,7 +11,7 @@ export {
   type UsecaseResult
 } from './types';
 export {
-  Usecase,
-  type UsecaseConfiguration,
-  type UsecaseExecutionOptions
-} from './usecase';
+  UseCase as Usecase,
+  type UseCaseConfiguration as UsecaseConfiguration,
+  type UseCaseExecutionOptions as UsecaseExecutionOptions
+} from './use-case';

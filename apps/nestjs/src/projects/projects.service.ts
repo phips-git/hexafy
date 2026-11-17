@@ -95,7 +95,7 @@ export class ProjectsService {
     _authorizationContext: AuthorizationContext
   ): Promise<{ projectId: string }> {
     const persistencePorts = this.databaseService.getPersistencePorts();
-    const usecase = new CreateProjectUseCaseAdapter(
+    const useCase = new CreateProjectUseCaseAdapter(
       persistencePorts.projectPersistence as {
         create: (data: {
           name: string;
@@ -104,7 +104,7 @@ export class ProjectsService {
         }) => Promise<ProjectRecord>;
       }
     );
-    const result = await usecase.execute({
+    const result = await useCase.execute({
       creationProperties: {
         name: dto.name,
         description: dto.description ?? null,
@@ -120,7 +120,7 @@ export class ProjectsService {
     _authorizationContext: AuthorizationContext
   ): Promise<{ projectId: string }> {
     const persistencePorts = this.databaseService.getPersistencePorts();
-    const usecase = new UpdateProjectUseCaseAdapter(
+    const useCase = new UpdateProjectUseCaseAdapter(
       persistencePorts.projectPersistence as {
         findById: (id: string) => Promise<ProjectRecord | null>;
         update: (
@@ -129,7 +129,7 @@ export class ProjectsService {
         ) => Promise<ProjectRecord>;
       }
     );
-    const result = await usecase.execute({
+    const result = await useCase.execute({
       projectId: id,
       updateProperties: {
         name: dto.name,
@@ -144,11 +144,11 @@ export class ProjectsService {
     _authorizationContext: AuthorizationContext
   ): Promise<void> {
     const persistencePorts = this.databaseService.getPersistencePorts();
-    const usecase = new DeleteProjectUseCaseAdapter(
+    const useCase = new DeleteProjectUseCaseAdapter(
       persistencePorts.projectPersistence as {
         delete: (id: string) => Promise<void>;
       }
     );
-    await usecase.execute({ projectId: id });
+    await useCase.execute({ projectId: id });
   }
 }

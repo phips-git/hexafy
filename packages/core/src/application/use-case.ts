@@ -14,19 +14,19 @@ import {
 } from './types';
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
-const USECASE_METRICS = {
-  CANCELLED: 'usecase_cancelled',
-  DURATION: 'usecase_duration',
-  ERRORS: 'usecase_errors',
-  TIMEOUT: 'usecase_timeout'
+const USE_CASE_METRICS = {
+  CANCELLED: 'use_case_cancelled',
+  DURATION: 'use_case_duration',
+  ERRORS: 'use_case_errors',
+  TIMEOUT: 'use_case_timeout'
 } as const;
 
-export interface UsecaseExecutionOptions {
+export interface UseCaseExecutionOptions {
   readonly executionContext?: Record<string, unknown> | undefined;
   readonly signal?: AbortSignal | undefined;
 }
 
-export interface UsecaseConfiguration {
+export interface UseCaseConfiguration {
   readonly clock?: ClockPort | undefined;
   readonly logging?: LoggingPort | undefined;
   readonly metrics?: MetricsPort | undefined;
@@ -34,11 +34,11 @@ export interface UsecaseConfiguration {
   readonly timeoutMs?: number | undefined;
 }
 
-export abstract class Usecase<
+export abstract class UseCase<
   TInput = void,
   TOutput = void
 > extends ServiceBase {
-  constructor(private readonly dependencies: UsecaseConfiguration = {}) {
+  constructor(private readonly dependencies: UseCaseConfiguration = {}) {
     super(dependencies);
     this.validateConfiguration(dependencies);
   }
@@ -51,7 +51,7 @@ export abstract class Usecase<
 
   async execute(
     input: TInput,
-    options: UsecaseExecutionOptions = {}
+    options: UseCaseExecutionOptions = {}
   ): Promise<UsecaseResult<TOutput, Error>> {
     const { executionContext, signal } = options;
     const startTime = this.clock.now();
@@ -59,7 +59,7 @@ export abstract class Usecase<
     const context = { executionId, ...(executionContext ?? {}) };
 
     if (signal?.aborted) {
-      this.tryRecordMetric(USECASE_METRICS.CANCELLED);
+      this.tryRecordMetric(USE_CASE_METRICS.CANCELLED);
       return {
         success: false,
         error: new UsecaseCancelledError(
@@ -77,13 +77,13 @@ export abstract class Usecase<
         ...context,
         durationMs
       });
-      this.tryRecordMetric(USECASE_METRICS.DURATION, durationMs);
+      this.tryRecordMetric(USE_CASE_METRICS.DURATION, durationMs);
 
       return { success: true, value: result };
     } catch (error) {
       const durationMs = this.clock.now() - startTime;
       this.tryLog('error', 'Execution failed', { ...context, durationMs });
-      this.tryRecordMetric(USECASE_METRICS.ERRORS);
+      this.tryRecordMetric(USE_CASE_METRICS.ERRORS);
 
       if (error instanceof Error) {
         return { success: false, error };
@@ -112,7 +112,7 @@ export abstract class Usecase<
       timeoutController.abort(
         new Error(`Execution timed out after ${timeoutMs} ms`)
       );
-      this.tryRecordMetric(USECASE_METRICS.TIMEOUT);
+      this.tryRecordMetric(USE_CASE_METRICS.TIMEOUT);
     }, timeoutMs);
 
     try {
@@ -182,7 +182,7 @@ export abstract class Usecase<
     return controller.signal;
   }
 
-  private validateConfiguration(config: UsecaseConfiguration): void {
+  private validateConfiguration(config: UseCaseConfiguration): void {
     if (config.timeoutMs !== undefined) {
       if (!Number.isFinite(config.timeoutMs) || config.timeoutMs <= 0) {
         throw new RangeError(

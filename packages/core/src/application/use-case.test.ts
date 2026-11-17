@@ -371,7 +371,7 @@ describe('Usecase', () => {
         expect(result.error).toBeInstanceOf(UsecaseTimeoutError);
         expect(result.error?.message).toContain('timed out');
       }
-      expect(metrics.hasMetric('usecase_timeout')).toBe(true);
+      expect(metrics.hasMetric('use_case_timeout')).toBe(true);
     });
 
     it('passes an aborted signal to executeInternal when timeout fires', async () => {
@@ -511,33 +511,33 @@ describe('Usecase', () => {
   });
 
   describe('Metrics', () => {
-    it('records usecase_duration histogram on success', async () => {
+    it('records use_case_duration histogram on success', async () => {
       const metrics = new MockMetrics();
       const useCase = new SuccessUseCase({ metrics });
 
       await useCase.execute('hello');
 
-      expect(metrics.hasMetric('usecase_duration')).toBe(true);
+      expect(metrics.hasMetric('use_case_duration')).toBe(true);
       const durationCall = metrics.calls.find(
-        (call) => call.metric === 'usecase_duration'
+        (call) => call.metric === 'use_case_duration'
       );
       expect(durationCall?.value).toBeGreaterThanOrEqual(0);
     });
 
-    it('records usecase_errors increment on failure', async () => {
+    it('records use_case_errors increment on failure', async () => {
       const metrics = new MockMetrics();
       const useCase = new FailureUseCase({ metrics });
 
       await useCase.execute('input');
 
-      expect(metrics.hasMetric('usecase_errors')).toBe(true);
+      expect(metrics.hasMetric('use_case_errors')).toBe(true);
       const errorCall = metrics.calls.find(
-        (call) => call.metric === 'usecase_errors'
+        (call) => call.metric === 'use_case_errors'
       );
       expect(errorCall?.labels).toBeUndefined();
     });
 
-    it('records usecase_cancelled increment when cancelled', async () => {
+    it('records use_case_cancelled increment when cancelled', async () => {
       const metrics = new MockMetrics();
       const useCase = new SuccessUseCase({ metrics });
       const controller = new AbortController();
@@ -545,9 +545,9 @@ describe('Usecase', () => {
 
       await useCase.execute('input', { signal: controller.signal });
 
-      expect(metrics.hasMetric('usecase_cancelled')).toBe(true);
+      expect(metrics.hasMetric('use_case_cancelled')).toBe(true);
       const cancelCall = metrics.calls.find(
-        (call) => call.metric === 'usecase_cancelled'
+        (call) => call.metric === 'use_case_cancelled'
       );
       expect(cancelCall?.labels).toBeUndefined();
     });
@@ -677,7 +677,7 @@ describe('Usecase', () => {
       const duration = Date.now() - startTime;
 
       const durationCall = metrics.calls.find(
-        (call) => call.metric === 'usecase_duration'
+        (call) => call.metric === 'use_case_duration'
       );
       expect(durationCall?.value).toBeGreaterThan(0);
       expect(durationCall?.value).toBeLessThan(duration + 50);
@@ -690,7 +690,7 @@ describe('Usecase', () => {
       await useCase.execute('immediate');
 
       const durationCall = metrics.calls.find(
-        (call) => call.metric === 'usecase_duration'
+        (call) => call.metric === 'use_case_duration'
       );
       expect(durationCall?.value).toBeGreaterThanOrEqual(0);
     });

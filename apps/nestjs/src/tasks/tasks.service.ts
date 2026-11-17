@@ -74,12 +74,12 @@ export class TasksService {
     authorizationContext: AuthorizationContextLite
   ): Promise<{ taskId: string }> {
     const persistencePorts = this.databaseService.getPersistencePorts();
-    const usecase = new CreateTaskUseCase(
+    const useCase = new CreateTaskUseCase(
       persistencePorts.taskPersistence,
       this.getUsecaseDependencies()
     );
 
-    const output = await usecase.execute({
+    const output = await useCase.execute({
       projectId,
       title: dto.title,
       description: dto.description ?? null,
@@ -106,10 +106,10 @@ export class TasksService {
     _authorizationContext: AuthorizationContextLite
   ): Promise<{ taskId: string }> {
     const persistencePorts = this.databaseService.getPersistencePorts();
-    const usecase = new UpdateTaskUseCaseAdapter(
+    const useCase = new UpdateTaskUseCaseAdapter(
       persistencePorts.taskPersistence
     );
-    const output = await usecase.execute({
+    const output = await useCase.execute({
       taskId,
       projectId,
       updateProperties: {
@@ -130,10 +130,10 @@ export class TasksService {
     _authorizationContext: AuthorizationContextLite
   ): Promise<void> {
     const persistencePorts = this.databaseService.getPersistencePorts();
-    const usecase = new DeleteTaskUseCaseAdapter(
+    const useCase = new DeleteTaskUseCaseAdapter(
       persistencePorts.taskPersistence
     );
-    await usecase.execute({ taskId, projectId });
+    await useCase.execute({ taskId, projectId });
   }
 
   async getTask(_projectId: string, taskId: string): Promise<unknown> {

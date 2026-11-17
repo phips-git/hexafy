@@ -2,5 +2,5 @@ export {
   CreateUserUseCase,
   InMemoryUserRepository,
   User
-} from './create-user.usecase';
-export { SayHelloUseCase } from './say-hello.usecase';
+} from './create-user.use-case';
+export { SayHelloUseCase } from './say-hello.use-case';

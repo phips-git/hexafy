@@ -1,16 +1,14 @@
 import type { User } from '@hexafy/example-domain/domain';
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 
-import { getGetAuthenticatedUserUsecase } from './usecase-factory';
-
 export type { User as AuthenticatedUser };
 
 export async function authenticateUser(
   event: APIGatewayProxyEvent
 ): Promise<User | null> {
   try {
-    const usecase = getGetAuthenticatedUserUsecase();
-    const user = await usecase.execute({
+    const useCase = getGetAuthenticatedUserUsecase();
+    const user = await useCase.execute({
       headers: toStringHeaders(event.headers ?? {})
     });
 

@@ -52,7 +52,7 @@ Prefer linking to these files over copying snippets into agent docs:
 - `packages/aws-lambda/README.md` - current Lambda integration examples
 - `packages/observability/README.md` - current observability integration examples
 - `packages/core/src/domain/errors/application.error.ts` - canonical error classes and codes
-- `packages/core/src/application/usecase.ts` - canonical `Usecase` contract
+- `packages/core/src/application/use-case.ts` - canonical `Usecase` contract
 - `packages/core/src/application/service.base.ts` - canonical `ServiceBase` contract
 
 ### Logging guidance

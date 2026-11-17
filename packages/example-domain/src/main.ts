@@ -1,11 +1,11 @@
 import {
   AuthenticateUseCase,
   CreateUseCase
-} from './application/auth/usecases';
+} from './application/auth/use-cases';
 import {
   CompleteTaskUseCase,
   CreateTaskUseCase
-} from './application/task-management/usecases';
+} from './application/task-management/use-cases';
 import {
   InMemoryAuthenticationAdapter,
   InMemoryUserRepository

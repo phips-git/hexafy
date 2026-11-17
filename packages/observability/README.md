@@ -58,7 +58,7 @@ class CreateUserUseCase extends Usecase<{ name: string }, { id: string }> {
   }
 }
 
-const usecase = new CreateUserUseCase({
+const useCase = new CreateUserUseCase({
   logging: new CorrelationLoggerAdapter(ConsoleLoggingAdapter, {
     correlationIdFactory: () => crypto.randomUUID()
   })
@@ -132,7 +132,7 @@ class CreateUserUseCase extends Usecase<{ name: string }, { id: string }> {
   }
 }
 
-const usecase = new CreateUserUseCase({ logging });
+const useCase = new CreateUserUseCase({ logging });
 ```
 
 ### Isolated path: separate execution envelope for detached units

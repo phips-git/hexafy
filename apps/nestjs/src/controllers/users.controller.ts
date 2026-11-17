@@ -4,7 +4,7 @@ import {
   type CreateUserInput,
   CreateUserUseCase,
   type UserCreated
-} from '../domain/usecases/create-user.usecase';
+} from '../domain/use-cases/create-user.use-case';
 
 interface CreateResponse {
   success: true;

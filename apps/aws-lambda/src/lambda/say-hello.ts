@@ -1,7 +1,7 @@
 import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
 import { consoleLogger } from '@hexafy/core';
 
-import { SayHelloUseCase } from '../domain/usecases/say-hello.usecase';
+import { SayHelloUseCase } from '../domain/use-cases/say-hello.use-case';
 
 const sayHelloUseCase = new SayHelloUseCase({
   generateId: () => `hello_${Date.now()}`,

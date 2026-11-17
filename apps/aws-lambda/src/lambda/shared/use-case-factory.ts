@@ -98,11 +98,11 @@ export function getCreateTaskUsecase() {
       projectId: string;
       creationProperties: TaskCreationInput;
     }) {
-      const usecase = new CreateTaskUseCase(
+      const useCase = new CreateTaskUseCase(
         taskRepository,
         defaultDependencies
       );
-      const result = await usecase.execute({
+      const result = await useCase.execute({
         projectId: input.projectId,
         title: input.creationProperties.title ?? '',
         description: input.creationProperties.description ?? null,

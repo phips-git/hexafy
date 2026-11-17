@@ -34,7 +34,7 @@ import { CreateUseCase } from '@hexafy/example-domain/application';
 import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
 
 const users = new InMemoryUserRepository();
-const usecase = new CreateUseCase(users);
+const useCase = new CreateUseCase(users);
 ```
 
 ## Public API at a glance

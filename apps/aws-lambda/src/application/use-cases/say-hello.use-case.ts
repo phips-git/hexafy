@@ -1,5 +1,4 @@
 import {
-  type CancellationToken,
   type LoggingPort,
   Usecase,
   type UsecaseConfiguration
@@ -30,14 +29,8 @@ export class SayHelloUseCase extends Usecase<SayHelloInput, SayHelloOutput> {
 
   protected async executeInternal(
     input: SayHelloInput,
-    logger: LoggingPort,
-    cancellationToken?: CancellationToken
+    logger: LoggingPort
   ): Promise<SayHelloOutput> {
-    if (cancellationToken?.isCancelled) {
-      logger.warn('Request cancelled', { name: input.name });
-      throw new Error(cancellationToken.reason ?? 'Request cancelled');
-    }
-
     if (!input.name || input.name.trim().length === 0) {
       logger.warn('Invalid input', { name: input.name });
       throw new BusinessRuleError('Name is required', 'VALIDATION_ERROR');
