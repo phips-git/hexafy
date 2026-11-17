@@ -117,9 +117,86 @@ if (result.success) {
 - Keep business rules in domain/application layers; framework details in infrastructure adapters
 - Use `Usecase` for operation boundaries and `ServiceBase` for reusable services
 - In `executeInternal`, return plain output for success; throw typed domain errors for business failures
-- Treat `AbortSignal` as the cancellation boundary for long-running operations
 - Handle outcomes via `result.success` at `execute()` call sites
+- For long-running operations, periodically check `signal?.throwIfAborted()` to support cancellation
 - Import from explicit subpaths (`@hexafy/core/application`, `/domain`, `/infrastructure`)
+
+## Cancellation and timeouts
+
+Use case execution supports cancellation via `AbortSignal` and automatic timeouts via `timeoutMs` configuration.
+
+### Cancellation
+
+Pass an `AbortSignal` to cancel long-running operations:
+
+```ts
+const controller = new AbortController();
+
+// Start execution with cancellation support
+const result = await useCase.execute(input, { signal: controller.signal });
+
+// Cancel the operation from elsewhere
+controller.abort();
+
+// Or abort with a custom reason
+controller.abort(new Error('User requested cancellation'));
+```
+
+When cancelled, `execute()` returns a `UsecaseCancelledError`:
+
+```ts
+if (!result.success && result.error instanceof UsecaseCancelledError) {
+  // Handle cancellation (e.g., return 499 to client)
+}
+```
+
+**Tip**: For long-running `executeInternal` implementations, periodically check for cancellation:
+
+```ts
+protected async executeInternal(
+  input: TransferInput,
+  logger: LoggingPort,
+  signal?: AbortSignal
+): Promise<void> {
+  // Check cancellation at safe points
+  signal?.throwIfAborted();
+  
+  // ... long-running work
+  
+  signal?.throwIfAborted();
+  // ... more work
+}
+```
+
+### Timeouts
+
+Configure a timeout in the use case constructor:
+
+```ts
+const useCase = new TransferFundsUseCase({
+  timeoutMs: 10000 // 10 second timeout
+});
+
+const result = await useCase.execute(input);
+
+if (result.error instanceof UsecaseTimeoutError) {
+  // Handle timeout
+}
+```
+
+The timeout is implemented via `setTimeout` + `AbortController`. When the timeout expires, the use case returns a `UsecaseTimeoutError`.
+
+### Combining cancellation and timeouts
+
+Both work together: if you pass a `signal` and configure `timeoutMs`, the use case responds to either cancellation source:
+
+```ts
+const controller = new AbortController();
+const useCase = new LongRunningUseCase({ timeoutMs: 5000 });
+
+const result = await useCase.execute(input, { signal: controller.signal });
+// Returns UsecaseTimeoutError after 5s OR UsecaseCancelledError if controller.abort() is called
+```
 
 ## Error handling model
 

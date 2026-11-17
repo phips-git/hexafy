@@ -110,7 +110,7 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
   TOutput
 > {
   constructor(config?: UsecaseConfiguration) {
-    super({ logging: NoOpLoggingAdapter, ...config });
+    super({ logger: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
@@ -124,7 +124,7 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
 
 class SuccessUseCase extends TestUseCase<string, string> {
   constructor(config?: UsecaseConfiguration) {
-    super({ logging: NoOpLoggingAdapter, ...config });
+    super({ logger: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
@@ -138,7 +138,7 @@ class SuccessUseCase extends TestUseCase<string, string> {
 
 class FailureUseCase extends TestUseCase<string, string> {
   constructor(config?: UsecaseConfiguration) {
-    super({ logging: NoOpLoggingAdapter, ...config });
+    super({ logger: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
@@ -152,7 +152,7 @@ class FailureUseCase extends TestUseCase<string, string> {
 
 class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
   constructor(config?: UsecaseConfiguration) {
-    super({ logging: NoOpLoggingAdapter, ...config });
+    super({ logger: NoOpLoggingAdapter, ...config });
   }
 
   protected override async executeInternal(
@@ -444,7 +444,7 @@ describe('Usecase', () => {
   describe('Logging', () => {
     it('logs execution completion with duration on success', async () => {
       const logger = new MockLogger();
-      const useCase = new SuccessUseCase({ logging: logger });
+      const useCase = new SuccessUseCase({ logger });
 
       await useCase.execute('hello');
 
@@ -457,7 +457,7 @@ describe('Usecase', () => {
 
     it('logs execution failure with duration on error', async () => {
       const logger = new MockLogger();
-      const useCase = new FailureUseCase({ logging: logger });
+      const useCase = new FailureUseCase({ logger });
 
       await useCase.execute('input');
 
@@ -472,7 +472,7 @@ describe('Usecase', () => {
       const identifier = new MockIdentifier();
       const logger = new MockLogger();
       const useCase = new SuccessUseCase({
-        logging: logger,
+        logger,
         identifier
       });
 
@@ -487,7 +487,7 @@ describe('Usecase', () => {
 
     it('includes additional executionContext in logs', async () => {
       const logger = new MockLogger();
-      const useCase = new SuccessUseCase({ logging: logger });
+      const useCase = new SuccessUseCase({ logger });
       const context = { userId: '123', action: 'test' };
 
       await useCase.execute('hello', { executionContext: context });
@@ -500,7 +500,7 @@ describe('Usecase', () => {
     });
 
     it('allows disabling logging with NoOpLoggingAdapter', async () => {
-      const useCase = new SuccessUseCase({ logging: NoOpLoggingAdapter });
+      const useCase = new SuccessUseCase({ logger: NoOpLoggingAdapter });
       const result = await useCase.execute('hello');
 
       expect(result.success).toBe(true);
@@ -582,7 +582,7 @@ describe('Usecase', () => {
       const logger = new MockLogger();
       const useCase = new SuccessUseCase({
         identifier,
-        logging: logger
+        logger
       });
 
       await useCase.execute('test');
@@ -607,7 +607,7 @@ describe('Usecase', () => {
       const logger = new MockLogger();
       const useCase = new SuccessUseCase({
         clock,
-        logging: logger
+        logger
       });
 
       await useCase.execute('test');
@@ -633,7 +633,7 @@ describe('Usecase', () => {
   describe('Execution Context', () => {
     it('includes execution context in logs', async () => {
       const logger = new MockLogger();
-      const useCase = new SuccessUseCase({ logging: logger });
+      const useCase = new SuccessUseCase({ logger });
       const context = { userId: 'user-123', requestId: 'req-456' };
 
       await useCase.execute('test', { executionContext: context });
@@ -650,7 +650,7 @@ describe('Usecase', () => {
 
     it('allows empty execution context', async () => {
       const logger = new MockLogger();
-      const useCase = new SuccessUseCase({ logging: logger });
+      const useCase = new SuccessUseCase({ logger });
 
       await useCase.execute('test', {});
 
@@ -659,7 +659,7 @@ describe('Usecase', () => {
 
     it('handles undefined execution context', async () => {
       const logger = new MockLogger();
-      const useCase = new SuccessUseCase({ logging: logger });
+      const useCase = new SuccessUseCase({ logger });
 
       await useCase.execute('test');
 
@@ -712,7 +712,7 @@ describe('Usecase', () => {
 
       const config: UsecaseConfiguration = {
         clock,
-        logging: logger,
+        logger,
         metrics,
         identifier
       };
@@ -844,9 +844,9 @@ describe('Usecase', () => {
 
     it('stores configuration for later use', () => {
       const logger = new MockLogger();
-      const useCase = new SuccessUseCase({ logging: logger });
+      const useCase = new SuccessUseCase({ logger });
 
-      expect(useCase['dependencies'].logging).toBe(logger);
+      expect(useCase['dependencies'].logger).toBe(logger);
     });
   });
 

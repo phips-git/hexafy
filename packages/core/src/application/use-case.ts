@@ -21,19 +21,43 @@ const USE_CASE_METRICS = {
   TIMEOUT: 'use_case_timeout'
 } as const;
 
+/**
+ * Options for executing a use case.
+ *
+ * Use `signal` to cancel long-running operations. The use case will respond to
+ * cancellation by returning a `UsecaseCancelledError`.
+ */
 export interface UseCaseExecutionOptions {
   readonly executionContext?: Record<string, unknown> | undefined;
   readonly signal?: AbortSignal | undefined;
 }
 
+/**
+ * Configuration for use case behavior.
+ *
+ * Configure cross-cutting concerns like timeouts, logger, and metrics. All
+ * ports have sensible defaults (console logger, system clock, no-op metrics).
+ */
 export interface UseCaseConfiguration {
   readonly clock?: ClockPort | undefined;
-  readonly logging?: LoggingPort | undefined;
+  readonly logger?: LoggingPort | undefined;
   readonly metrics?: MetricsPort | undefined;
   readonly identifier?: IdentifierPort | undefined;
   readonly timeoutMs?: number | undefined;
 }
 
+/**
+ * Abstract base class for use cases (application logic).
+ *
+ * Use cases define single-responsibility business operations with:
+ *
+ * - Automatic timeout support via `timeoutMs` configuration
+ * - Cancellation support via `AbortSignal`
+ * - Consistent error handling and metrics
+ * - Execution context for observability
+ *
+ * Subclasses implement `executeInternal` with business logic.
+ */
 export abstract class UseCase<
   TInput = void,
   TOutput = void
@@ -96,11 +120,34 @@ export abstract class UseCase<
     }
   }
 
+  private validateConfiguration(config: UseCaseConfiguration): void {
+    if (config.timeoutMs !== undefined) {
+      if (!Number.isFinite(config.timeoutMs) || config.timeoutMs <= 0) {
+        throw new RangeError(
+          'Usecase timeoutMs must be a finite number greater than 0.'
+        );
+      }
+
+      if (config.timeoutMs > MAX_TIMEOUT_MS) {
+        throw new RangeError(
+          `Usecase timeoutMs must be less than or equal to ${MAX_TIMEOUT_MS}.`
+        );
+      }
+    }
+  }
+
+  private getExecutionId(): UniqueIdentifier {
+    return (
+      this.dependencies.identifier?.generate(this.clock) ??
+      SystemIdentifierAdapter.generate(this.clock)
+    );
+  }
+
   private async runAttempt(
     input: TInput,
     signal?: AbortSignal
   ): Promise<TOutput> {
-    const timeoutMs = this.dependencies.timeoutMs;
+    const { timeoutMs } = this.dependencies;
     if (timeoutMs === undefined || timeoutMs <= 0) {
       return this.executeInternal(input, this.logger, signal);
     }
@@ -153,6 +200,18 @@ export abstract class UseCase<
     }
   }
 
+  private normalizeAbortReason(reason: unknown): string {
+    if (reason instanceof Error) {
+      return reason.message;
+    }
+
+    if (reason === undefined) {
+      return 'Cancellation requested';
+    }
+
+    return String(reason);
+  }
+
   private mergeSignals(
     primarySignal: AbortSignal | undefined,
     secondarySignal: AbortSignal
@@ -182,41 +241,6 @@ export abstract class UseCase<
     return controller.signal;
   }
 
-  private validateConfiguration(config: UseCaseConfiguration): void {
-    if (config.timeoutMs !== undefined) {
-      if (!Number.isFinite(config.timeoutMs) || config.timeoutMs <= 0) {
-        throw new RangeError(
-          'Usecase timeoutMs must be a finite number greater than 0.'
-        );
-      }
-
-      if (config.timeoutMs > MAX_TIMEOUT_MS) {
-        throw new RangeError(
-          `Usecase timeoutMs must be less than or equal to ${MAX_TIMEOUT_MS}.`
-        );
-      }
-    }
-  }
-
-  private getExecutionId(): UniqueIdentifier {
-    return (
-      this.dependencies.identifier?.generate(this.clock) ??
-      SystemIdentifierAdapter.generate(this.clock)
-    );
-  }
-
-  private normalizeAbortReason(reason: unknown): string {
-    if (reason instanceof Error) {
-      return reason.message;
-    }
-
-    if (reason === undefined) {
-      return 'Cancellation requested';
-    }
-
-    return String(reason);
-  }
-
   private tryLog(
     level: 'info' | 'error',
     message: string,
@@ -230,7 +254,7 @@ export abstract class UseCase<
 
       this.logger.error(message, data);
     } catch {
-      // Best-effort instrumentation should never break use-case execution
+      // Best-effort instrumentation should never break use case execution
     }
   }
 
@@ -243,7 +267,7 @@ export abstract class UseCase<
 
       this.metrics.increment(metric);
     } catch {
-      // Best-effort instrumentation should never break use-case execution
+      // Best-effort instrumentation should never break use case execution
     }
   }
 }
