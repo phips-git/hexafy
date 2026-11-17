@@ -1,12 +1,30 @@
 import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
-import { ConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
+import { Usecase } from '@hexafy/core/application';
+import { ValidationError } from '@hexafy/core/domain';
 
-import { SayHelloUseCase } from '../application';
+export interface SayHelloInput {
+  name: string;
+}
 
-const sayHelloUseCase = new SayHelloUseCase({
-  identifier: () => `hello_${Date.now()}`,
-  loggerFactory: () => ConsoleLoggingAdapter
-});
+export interface SayHelloOutput {
+  message: string;
+}
+
+class SayHelloUseCase extends Usecase<SayHelloInput, SayHelloOutput> {
+  protected async executeInternal(
+    input: SayHelloInput
+  ): Promise<SayHelloOutput> {
+    if (!input.name || input.name.trim().length === 0) {
+      throw new ValidationError('Name is required');
+    }
+
+    return {
+      message: `Hello, ${input.name.trim()}! Welcome to hexagonal architecture.`
+    };
+  }
+}
+
+const sayHelloUseCase = new SayHelloUseCase();
 
 export const handler = createLambdaHandler({
   useCase: sayHelloUseCase,

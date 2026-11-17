@@ -1,159 +1,58 @@
-import type { UsecaseConfiguration } from '@hexafy/core/application';
-import { JSONConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
-import { CreateTaskUseCase } from '@hexafy/example-domain/application';
-import type { AuthorizationContext } from '@hexafy/example-domain/domain';
 import { Injectable } from '@nestjs/common';
 
-import { CreateTaskDto, UpdateTaskDto } from './dtos/create-task.dto';
-
-export interface AuthorizationContextLite {
-  readonly tenantId: string;
-  readonly projectId: string;
-  readonly role: string;
-}
-
-type TaskRecord = {
-  id: string;
-  title?: string;
-  description?: string | null;
-  status?: string;
-  priority?: string;
-  assignedTo?: string | null;
-  dueDate?: Date | null;
-};
-
-class UpdateTaskUseCaseAdapter {
-  constructor(
-    private readonly taskPort: {
-      findById: (id: string) => Promise<TaskRecord | null>;
-      update: (
-        id: string,
-        data: Record<string, unknown>
-      ) => Promise<TaskRecord>;
-    }
-  ) {}
-
-  async execute(input: {
-    taskId: string;
-    projectId: string;
-    updateProperties: Record<string, unknown>;
-  }) {
-    const task = await this.taskPort.findById(input.taskId);
-    if (!task) throw new Error('Task not found');
-    return this.taskPort.update(input.taskId, input.updateProperties);
-  }
-}
-
-class DeleteTaskUseCaseAdapter {
-  constructor(
-    private readonly taskPort: { delete: (id: string) => Promise<void> }
-  ) {}
-
-  async execute(input: { taskId: string; projectId: string }) {
-    await this.taskPort.delete(input.taskId);
-  }
-}
+import { CompleteTaskUseCase } from '../domain/use-cases/complete-task.use-case';
+import { CreateTaskUseCase } from '../domain/use-cases/create-task.use-case';
+import { ListTasksUseCase } from '../domain/use-cases/list-tasks.use-case';
 
 @Injectable()
 export class TasksService {
   constructor(
-    private readonly databaseService: import('../infrastructure/database.service').DatabaseService
+    private readonly createTaskUseCase: CreateTaskUseCase,
+    private readonly completeTaskUseCase: CompleteTaskUseCase,
+    private readonly listTasksUseCase: ListTasksUseCase
   ) {}
 
-  private getUsecaseDependencies(): UsecaseConfiguration {
-    return {
-      generateId: () =>
-        this.databaseService.getPersistencePorts().generator.generate(),
-      loggerFactory: (name: string) => JSONConsoleLoggingAdapter(name)
-    };
-  }
-
   async createTask(
-    dto: CreateTaskDto,
+    title: string,
+    description: string | null,
     projectId: string,
-    authorizationContext: AuthorizationContextLite
-  ): Promise<{ taskId: string }> {
-    const persistencePorts = this.databaseService.getPersistencePorts();
-    const useCase = new CreateTaskUseCase(
-      persistencePorts.taskPersistence,
-      this.getUsecaseDependencies()
-    );
-
-    const output = await useCase.execute({
+    priority?: 'low' | 'medium' | 'high',
+    assignedTo?: string | null,
+    dueDate?: Date | null
+  ) {
+    const result = await this.createTaskUseCase.execute({
+      title,
+      description,
       projectId,
-      title: dto.title,
-      description: dto.description ?? null,
-      priority: dto.priority ?? 'medium',
-      assignedTo: dto.assignedTo ?? null,
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      authorizationContext: this.mapToExampleDomainContext(authorizationContext)
+      priority,
+      assignedTo,
+      dueDate
     });
 
-    if (!output.success) {
-      throw output.error;
+    if (!result.success) {
+      throw result.error;
     }
 
-    return { taskId: String(output.value.id) };
+    return result.value;
   }
 
-  async updateTask(
-    taskId: string,
-    projectId: string,
-    dto: UpdateTaskDto,
-    _authorizationContext: AuthorizationContextLite
-  ): Promise<{ taskId: string }> {
-    const persistencePorts = this.databaseService.getPersistencePorts();
-    const useCase = new UpdateTaskUseCaseAdapter(
-      persistencePorts.taskPersistence
-    );
-    const output = await useCase.execute({
-      taskId,
-      projectId,
-      updateProperties: {
-        title: dto.title,
-        description: dto.description,
-        status: dto.status,
-        priority: dto.priority,
-        assignedTo: dto.assignedTo,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null
-      }
-    });
-    return { taskId: output.id };
+  async completeTask(taskId: string) {
+    const result = await this.completeTaskUseCase.execute({ taskId });
+
+    if (!result.success) {
+      throw result.error;
+    }
+
+    return result.value;
   }
 
-  async deleteTask(
-    taskId: string,
-    projectId: string,
-    _authorizationContext: AuthorizationContextLite
-  ): Promise<void> {
-    const persistencePorts = this.databaseService.getPersistencePorts();
-    const useCase = new DeleteTaskUseCaseAdapter(
-      persistencePorts.taskPersistence
-    );
-    await useCase.execute({ taskId, projectId });
-  }
+  async listTasks(projectId: string) {
+    const result = await this.listTasksUseCase.execute({ projectId });
 
-  async getTask(_projectId: string, taskId: string): Promise<unknown> {
-    const persistencePorts = this.databaseService.getPersistencePorts();
-    return await persistencePorts.taskPersistence.findById(taskId);
-  }
+    if (!result.success) {
+      throw result.error;
+    }
 
-  async getTasksForProject(projectId: string): Promise<unknown[]> {
-    const persistencePorts = this.databaseService.getPersistencePorts();
-    return await persistencePorts.taskPersistence.findByProjectId(projectId);
-  }
-
-  private mapToExampleDomainContext(
-    context: AuthorizationContextLite
-  ): AuthorizationContext {
-    return {
-      tenantId: context.tenantId,
-      userId: context.projectId,
-      projectId: context.projectId,
-      taskId: undefined
-    };
+    return result.value;
   }
 }

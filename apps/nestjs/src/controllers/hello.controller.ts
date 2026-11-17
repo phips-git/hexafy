@@ -4,7 +4,7 @@ import {
   type SayHelloInput,
   type SayHelloOutput,
   SayHelloUseCase
-} from '../domain/use-cases/say-hello.use-case';
+} from './domain/use-cases/say-hello.use-case';
 
 @Controller('hello')
 export class HelloController {

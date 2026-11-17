@@ -1,89 +1,79 @@
 import {
   Body,
   Controller,
-  Delete,
-  Get,
   HttpCode,
   HttpStatus,
   Param,
-  Post,
-  Put,
-  UseGuards
+  Post
 } from '@nestjs/common';
 
-import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
-import { CreateTaskDto, UpdateTaskDto } from './dtos/create-task.dto';
-import { TasksService } from './tasks.service';
+import { CompleteTaskUseCase } from '../domain/use-cases/complete-task.use-case';
+import { CreateTaskUseCase } from '../domain/use-cases/create-task.use-case';
+import { ListTasksUseCase } from '../domain/use-cases/list-tasks.use-case';
+import { CreateTaskDto, TaskResponse } from './dtos/task.dto';
 
-interface AuthenticatedUserLike {
-  id: string;
-  role: string;
-}
-
-@UseGuards(JwtAuthGuard)
-@Controller('projects/:projectId/tasks')
+@Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly createTaskUseCase: CreateTaskUseCase,
+    private readonly completeTaskUseCase: CompleteTaskUseCase,
+    private readonly listTasksUseCase: ListTasksUseCase
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createTask(
-    @Param('projectId') projectId: string,
-    @Body() createTaskDto: CreateTaskDto
-  ): Promise<{ taskId: string }> {
-    return this.tasksService.createTask(createTaskDto, projectId, {
-      tenantId: 'demo-tenant',
-      projectId,
-      role: 'user'
+  async createTask(@Body() input: CreateTaskDto): Promise<TaskResponse> {
+    const result = await this.createTaskUseCase.execute({
+      title: input.title,
+      description: input.description ?? null,
+      projectId: input.projectId,
+      priority: input.priority ?? 'medium',
+      assignedTo: input.assignedTo ?? null,
+      dueDate: input.dueDate ? new Date(input.dueDate) : null
     });
-  }
 
-  @Get(':taskId')
-  async getTask(
-    @Param('projectId') projectId: string,
-    @Param('taskId') taskId: string
-  ): Promise<{ task: unknown }> {
-    return { task: await this.tasksService.getTask(projectId, taskId) };
-  }
+    if (!result.success) {
+      throw result.error;
+    }
 
-  @Get()
-  async listTasks(
-    @Param('projectId') projectId: string
-  ): Promise<{ tasks: unknown[] }> {
-    return { tasks: await this.tasksService.getTasksForProject(projectId) };
-  }
-
-  @Put(':taskId')
-  async updateTask(
-    @Param('projectId') projectId: string,
-    @Param('taskId') taskId: string,
-    @Body() updateTaskDto: UpdateTaskDto
-  ): Promise<{ taskId: string }> {
-    return this.tasksService.updateTask(taskId, projectId, updateTaskDto, {
-      tenantId: 'demo-tenant',
-      projectId,
-      role: 'user'
-    });
-  }
-
-  @Delete(':taskId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteTask(
-    @Param('projectId') projectId: string,
-    @Param('taskId') taskId: string
-  ): Promise<void> {
-    await this.tasksService.deleteTask(taskId, projectId, {
-      tenantId: 'demo-tenant',
-      projectId,
-      role: 'user'
-    });
-  }
-
-  private mapUserToAuthContext(user: AuthenticatedUserLike) {
     return {
-      tenantId: user.id,
-      projectId: '',
-      role: user.role
+      id: result.value.id,
+      title: result.value.title,
+      status: result.value.status,
+      priority: result.value.priority,
+      createdAt: new Date().toISOString()
     };
+  }
+
+  @Post(':taskId/complete')
+  @HttpCode(HttpStatus.OK)
+  async completeTask(@Param('taskId') taskId: string) {
+    const result = await this.completeTaskUseCase.execute({ taskId });
+
+    if (!result.success) {
+      throw result.error;
+    }
+
+    return {
+      id: result.value.id,
+      status: result.value.status
+    };
+  }
+
+  @Get('project/:projectId')
+  @HttpCode(HttpStatus.OK)
+  async listTasks(@Param('projectId') projectId: string) {
+    const result = await this.listTasksUseCase.execute({ projectId });
+
+    if (!result.success) {
+      throw result.error;
+    }
+
+    return result.value.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority
+    }));
   }
 }

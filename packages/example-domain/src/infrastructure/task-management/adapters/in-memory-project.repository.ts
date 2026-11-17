@@ -1,14 +1,19 @@
+import type { Brand } from '@hexafy/core/domain';
+
 import type {
   Project,
   ProjectCreationProperties
 } from '../../domain/task-management/models/project';
 import type { ProjectPort } from '../../domain/task-management/ports';
 
+type BrandedProjectId = Brand<string, 'ProjectId'>;
+type BrandedUserId = Brand<string, 'UserId'>;
+
 export class InMemoryProjectRepository implements ProjectPort {
-  private readonly projects: Map<string, Project> = new Map();
+  private readonly projects: Map<BrandedProjectId, Project> = new Map();
 
   async findById(id: string): Promise<Project | null> {
-    return this.projects.get(id) ?? null;
+    return this.projects.get(id as BrandedProjectId) ?? null;
   }
 
   async findByOwnerId(ownerId: string): Promise<Project[]> {
@@ -18,11 +23,14 @@ export class InMemoryProjectRepository implements ProjectPort {
   }
 
   async create(data: ProjectCreationProperties): Promise<Project> {
+    const projectId = `project_${Date.now()}` as BrandedProjectId;
+    const ownerId = data.ownerId as BrandedUserId;
+
     const project: Project = {
-      id: `project_${Date.now()}`,
+      id: projectId,
       name: data.name,
       description: data.description,
-      ownerId: data.ownerId,
+      ownerId: ownerId,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -32,7 +40,7 @@ export class InMemoryProjectRepository implements ProjectPort {
   }
 
   async update(id: string, data: Partial<Project>): Promise<Project> {
-    const existing = this.projects.get(id);
+    const existing = this.projects.get(id as BrandedProjectId);
     if (!existing) {
       throw new Error('Project not found');
     }
@@ -43,11 +51,11 @@ export class InMemoryProjectRepository implements ProjectPort {
       updatedAt: new Date()
     };
 
-    this.projects.set(id, updated);
+    this.projects.set(updated.id, updated);
     return updated;
   }
 
   async delete(id: string): Promise<void> {
-    this.projects.delete(id);
+    this.projects.delete(id as BrandedProjectId);
   }
 }

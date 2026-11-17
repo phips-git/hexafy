@@ -1,19 +1,10 @@
-import type { Brand } from '@hexafy/core/domain';
+import type { TenantId as TenantIdFromAuth } from '../../auth/models';
 
-import type { UserId } from '../../auth/models';
-
-export type TenantId = Brand<string, 'TenantId'>;
+export { TenantIdFromAuth };
 
 export interface Tenant {
-  readonly id: TenantId;
+  readonly id: TenantIdFromAuth;
   readonly name: string;
-  readonly ownerId: UserId;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
-
-export type TenantCreationProperties = Pick<Tenant, 'name' | 'ownerId'>;
-export type ValidTenantCreationProperties = Brand<
-  TenantCreationProperties,
-  'ValidTenantCreationProperties'
->;

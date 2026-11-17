@@ -1,10 +1,8 @@
 import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
-import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
 
 import { CreateUserUseCase } from '../application/use-cases/create-user.use-case';
 
-const userRepository = new InMemoryUserRepository();
-const createUserUseCase = new CreateUserUseCase(userRepository);
+const createUserUseCase = new CreateUserUseCase();
 
 export const handler = createLambdaHandler({
   useCase: createUserUseCase,

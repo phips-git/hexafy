@@ -1,3 +1,4 @@
+import type { UsecaseResult } from '@hexafy/core/application';
 import { CreateUseCase } from '@hexafy/example-domain/application';
 import { InMemoryUserRepository } from '@hexafy/example-domain/infrastructure';
 import { Injectable } from '@nestjs/common';
@@ -9,10 +10,12 @@ export interface CreateUserInput {
 }
 
 export interface UserCreated {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+  token: string;
 }
 
 @Injectable()
@@ -23,20 +26,27 @@ export class CreateUserUseCase {
     this.delegate = new CreateUseCase(new InMemoryUserRepository());
   }
 
-  async execute(input: CreateUserInput): Promise<
-    | {
-        success: true;
-        value: {
-          user: { id: string; email: string; name: string | null };
-          token: string;
-        };
-      }
-    | { success: false; error: Error }
-  > {
-    return this.delegate.execute({
+  async execute(input: CreateUserInput): Promise<UsecaseResult<UserCreated>> {
+    const result = await this.delegate.execute({
       email: input.email,
       password: input.password,
       name: input.name
     });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    return {
+      success: true,
+      value: {
+        user: {
+          id: result.value.user.id,
+          email: result.value.user.email,
+          name: result.value.user.name
+        },
+        token: result.value.token
+      }
+    };
   }
 }

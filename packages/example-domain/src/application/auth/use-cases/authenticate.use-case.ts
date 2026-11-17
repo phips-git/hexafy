@@ -1,24 +1,25 @@
-import type { UsecaseResult } from '@hexafy/core/application';
-
 import type { User } from '../../domain/auth/models';
 import type { AuthenticationPort } from '../../domain/auth/ports';
 
-interface AuthenticateUseCaseInput {
+export type AuthenticateUseCaseInput = {
   email: string;
   password: string;
-}
+};
 
-interface AuthenticateUseCaseOutput {
+export type AuthenticateUseCaseOutput = {
   user: User;
   token: string;
-}
+};
 
 export class AuthenticateUseCase {
   constructor(private readonly authenticationPort: AuthenticationPort) {}
 
   async execute(
     input: AuthenticateUseCaseInput
-  ): Promise<UsecaseResult<AuthenticateUseCaseOutput>> {
+  ): Promise<
+    | { success: true; value: AuthenticateUseCaseOutput }
+    | { success: false; error: Error }
+  > {
     try {
       const user = await this.authenticationPort.authenticate(
         input.email,

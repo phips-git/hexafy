@@ -2,13 +2,15 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 
 import {
   type CreateUserInput,
-  CreateUserUseCase,
-  type UserCreated
-} from '../domain/use-cases/create-user.use-case';
+  CreateUserUseCase
+} from './domain/use-cases/create-user.use-case';
 
 interface CreateResponse {
   success: true;
-  data: UserCreated;
+  data: {
+    user: { id: string; email: string; name: string | null };
+    token: string;
+  };
 }
 
 @Controller('users')

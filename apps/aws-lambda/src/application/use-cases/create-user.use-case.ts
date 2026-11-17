@@ -10,9 +10,8 @@ export interface CreateUserInput {
 
 export interface UserCreated {
   id: string;
-  name: string;
   email: string;
-  createdAt: Date;
+  name: string | null;
 }
 
 export class CreateUserUseCase {
@@ -22,16 +21,24 @@ export class CreateUserUseCase {
     this.delegate = new CreateUseCase(new InMemoryUserRepository());
   }
 
-  async execute(input: CreateUserInput): Promise<
-    UsecaseResult<{
-      user: { id: string; email: string; name: string | null };
-      token: string;
-    }>
-  > {
-    return this.delegate.execute({
+  async execute(input: CreateUserInput): Promise<UsecaseResult<UserCreated>> {
+    const result = await this.delegate.execute({
       email: input.email,
       password: input.password,
       name: input.name
     });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    return {
+      success: true,
+      value: {
+        id: result.value.user.id,
+        email: result.value.user.email,
+        name: result.value.user.name
+      }
+    };
   }
 }

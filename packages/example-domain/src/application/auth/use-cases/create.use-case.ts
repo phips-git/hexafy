@@ -1,25 +1,31 @@
-import type { UsecaseResult } from '@hexafy/core/application';
-
-import type { User } from '../../domain/auth/models';
+import type {
+  TenantId,
+  User,
+  UserId,
+  UserRole
+} from '../../domain/auth/models';
 import type { UserPort } from '../../domain/auth/ports';
 
-interface CreateUseCaseInput {
+export type CreateUseCaseInput = {
   email: string;
   password: string;
-  name?: string;
-}
+  name?: string | null;
+};
 
-interface CreateUseCaseOutput {
+export type CreateUseCaseOutput = {
   user: User;
   token: string;
-}
+};
 
 export class CreateUseCase {
   constructor(private readonly userPort: UserPort) {}
 
   async execute(
     input: CreateUseCaseInput
-  ): Promise<UsecaseResult<CreateUseCaseOutput>> {
+  ): Promise<
+    | { success: true; value: CreateUseCaseOutput }
+    | { success: false; error: Error }
+  > {
     if (!this.isValidEmail(input.email)) {
       return { success: false, error: new Error('Invalid email format') };
     }
@@ -29,19 +35,23 @@ export class CreateUseCase {
       return { success: false, error: new Error('User already exists') };
     }
 
-    const user = await this.userPort.save({
-      id: `user_${Date.now()}`,
-      tenantId: `tenant_${Date.now()}`,
+    const userId = `user_${Date.now()}` as UserId;
+    const tenantId = `tenant_${Date.now()}` as TenantId;
+
+    const user: User = {
+      id: userId,
+      tenantId,
       email: input.email,
       name: input.name ?? null,
-      role: 'member' as const,
+      role: (input.name ? 'member' : 'guest') as UserRole,
       createdAt: new Date(),
       updatedAt: new Date()
-    });
+    };
 
-    const token = `mock_token_${user.id}`;
+    const savedUser = await this.userPort.save(user);
+    const token = `mock_token_${savedUser.id}`;
 
-    return { success: true, value: { user, token } };
+    return { success: true, value: { user: savedUser, token } };
   }
 
   private isValidEmail(email: string): boolean {

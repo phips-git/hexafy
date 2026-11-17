@@ -1,24 +1,11 @@
-import { Global, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
-import {
-  DATABASE_CLIENT,
-  DatabaseService
-} from '../infrastructure/database.service';
+import { CreateProjectUseCase } from '../domain/use-cases/create-project.use-case';
 import { ProjectsController } from './projects.controller';
-import { ProjectsService } from './projects.service';
 
-@Global()
 @Module({
   controllers: [ProjectsController],
-  providers: [
-    DatabaseService,
-    ProjectsService,
-    {
-      provide: DATABASE_CLIENT,
-      useFactory: (dbService: DatabaseService) => dbService,
-      inject: [DatabaseService]
-    }
-  ],
-  exports: [ProjectsService, DatabaseService]
+  providers: [CreateProjectUseCase],
+  exports: [CreateProjectUseCase]
 })
 export class ProjectsModule {}

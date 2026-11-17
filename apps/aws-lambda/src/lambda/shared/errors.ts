@@ -1,49 +1,35 @@
-export class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    message: string,
-    public readonly code?: string
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+export class UnauthorizedError extends Error {
+  readonly code = 'UNAUTHORIZED';
 
-export class UnauthorizedError extends ApiError {
-  constructor(message = 'Unauthorized', code = 'UNAUTHORIZED') {
-    super(401, message, code);
+  constructor(message = 'Unauthorized') {
+    super(message);
     this.name = 'UnauthorizedError';
   }
 }
 
-export class ValidationApiError extends ApiError {
-  constructor(
-    message: string,
-    public readonly details?: unknown,
-    code = 'VALIDATION_ERROR'
-  ) {
-    super(400, message, code);
+export class ValidationApiError extends Error {
+  readonly code = 'VALIDATION_ERROR';
+
+  constructor(message: string) {
+    super(message);
     this.name = 'ValidationApiError';
   }
 }
 
-export class NotFoundError extends ApiError {
-  constructor(resource: string, code = 'NOT_FOUND') {
-    super(404, `${resource} not found`, code);
+export class NotFoundError extends Error {
+  readonly code = 'NOT_FOUND';
+
+  constructor(resource: string) {
+    super(`${resource} not found`);
     this.name = 'NotFoundError';
   }
 }
 
-export class ConflictError extends ApiError {
-  constructor(message: string, code = 'CONFLICT') {
-    super(409, message, code);
-    this.name = 'ConflictError';
-  }
-}
+export class ConflictError extends Error {
+  readonly code = 'CONFLICT';
 
-export class InternalServerApiError extends ApiError {
-  constructor(message = 'Internal server error', code = 'INTERNAL_ERROR') {
-    super(500, message, code);
-    this.name = 'InternalServerApiError';
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConflictError';
   }
 }

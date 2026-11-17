@@ -1,34 +1,35 @@
-import type {
-  UsecaseConfiguration,
-  UsecaseResult
-} from '@hexafy/core/application';
+import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
 
-import type {
-  Task,
-  TaskCreationProperties
-} from '../../domain/task-management/models/task';
+import type { Task } from '../../domain/task-management/models/task';
 import type { TaskPort } from '../../domain/task-management/ports';
 
-interface CreateTaskUseCaseInput extends TaskCreationProperties {
+export type CreateTaskUseCaseInput = {
+  title: string;
+  description: string | null;
+  priority: 'low' | 'medium' | 'high';
+  assignedTo: string | null;
+  dueDate: Date | null;
   projectId: string;
-}
+};
 
-export class CreateTaskUseCase {
+export class CreateTaskUseCase extends Usecase<CreateTaskUseCaseInput, Task> {
   constructor(
     private readonly taskPort: TaskPort,
-    private readonly dependencies: UsecaseConfiguration
-  ) {}
+    config: UsecaseConfiguration = {}
+  ) {
+    super(config);
+  }
 
-  async execute(input: CreateTaskUseCaseInput): Promise<UsecaseResult<Task>> {
+  protected async executeInternal(
+    input: CreateTaskUseCaseInput,
+    logger: LoggerPort
+  ): Promise<Task> {
     if (!input.title || input.title.trim().length === 0) {
-      return { success: false, error: new Error('Title is required') };
+      throw new Error('Title is required');
     }
 
     if (input.title.length > 200) {
-      return {
-        success: false,
-        error: new Error('Title must be less than 200 characters')
-      };
+      throw new Error('Title must be less than 200 characters');
     }
 
     const task = await this.taskPort.create({
@@ -43,6 +44,7 @@ export class CreateTaskUseCase {
       updatedAt: new Date()
     });
 
-    return { success: true, value: task };
+    logger.info('Task created', { taskId: task.id });
+    return task;
   }
 }

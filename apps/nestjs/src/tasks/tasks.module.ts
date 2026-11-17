@@ -1,13 +1,13 @@
-import { Global, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
-import { DatabaseService } from '../infrastructure/database.service';
+import { CompleteTaskUseCase } from '../domain/use-cases/complete-task.use-case';
+import { CreateTaskUseCase } from '../domain/use-cases/create-task.use-case';
+import { ListTasksUseCase } from '../domain/use-cases/list-tasks.use-case';
 import { TasksController } from './tasks.controller';
-import { TasksService } from './tasks.service';
 
-@Global()
 @Module({
   controllers: [TasksController],
-  providers: [DatabaseService, TasksService],
-  exports: [TasksService]
+  providers: [CreateTaskUseCase, CompleteTaskUseCase, ListTasksUseCase],
+  exports: [CreateTaskUseCase, CompleteTaskUseCase, ListTasksUseCase]
 })
 export class TasksModule {}
