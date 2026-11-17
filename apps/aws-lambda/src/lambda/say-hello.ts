@@ -1,11 +1,11 @@
 import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
-import { consoleLogger } from '@hexafy/core';
+import { ConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
 
-import { SayHelloUseCase } from '../domain/use-cases/say-hello.use-case';
+import { SayHelloUseCase } from '../application';
 
 const sayHelloUseCase = new SayHelloUseCase({
-  generateId: () => `hello_${Date.now()}`,
-  loggerFactory: (_name) => consoleLogger
+  identifier: () => `hello_${Date.now()}`,
+  loggerFactory: () => ConsoleLoggingAdapter
 });
 
 export const handler = createLambdaHandler({

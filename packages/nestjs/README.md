@@ -74,7 +74,7 @@ import {
 | `HttpUnauthorizedError`         | `.`         | Explicit 401 error type                                 | Auth failures in guards/interceptors                 | `throw new HttpUnauthorizedError()`                            |
 | `HttpForbiddenError`            | `.`         | Explicit 403 error type                                 | Authorization failures                               | `throw new HttpForbiddenError()`                               |
 | `HttpExceptionFilter`           | `.`         | Maps HTTP auth/forbidden errors to 401/403 responses    | Global HTTP auth exception mapping                   | Register as `APP_FILTER`                                       |
-| `DomainExceptionFilter`         | `.`         | Maps domain/application errors to 400 responses         | Uniform use-case validation/business error responses | Register as `APP_FILTER`                                       |
+| `DomainExceptionFilter`         | `.`         | Maps domain/application errors to 400 responses         | Uniform use case validation/business error responses | Register as `APP_FILTER`                                       |
 | `InfrastructureExceptionFilter` | `.`         | Maps infrastructure errors to 500 responses             | Uniform server-error boundary mapping                | Register as `APP_FILTER`                                       |
 
 ## How it fits with `@hexafy/core`
@@ -87,7 +87,7 @@ import {
 
 - Keep controllers thin: input mapping + use case invocation only
 - Register filters globally for consistent error responses
-- Keep adapters in infrastructure modules and use-case providers in domain modules
+- Keep adapters in infrastructure modules and use case providers in domain modules
 
 ## License
 

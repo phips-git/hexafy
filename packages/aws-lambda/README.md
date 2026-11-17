@@ -4,7 +4,7 @@ AWS Lambda adapter utilities for running `@hexafy/core` use cases behind API Gat
 
 ## Why this package exists
 
-`@hexafy/core` defines use-case execution and domain contracts.  
+`@hexafy/core` defines use case execution and domain contracts.  
 `@hexafy/aws-lambda` maps Lambda/API Gateway input-output to those contracts so handlers stay thin and consistent.
 
 It provides:
@@ -62,7 +62,7 @@ import {
 
 | Export                                                             | Entry point | What it is for                                        | When to use                                              | Minimal usage                                        |
 | ------------------------------------------------------------------ | ----------- | ----------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
-| `createLambdaHandler`                                              | `.`         | Creates Lambda handlers from `Usecase` instances      | API Gateway + use-case orchestration                     | `createLambdaHandler({ useCase, inputTransformer })` |
+| `createLambdaHandler`                                              | `.`         | Creates Lambda handlers from `Usecase` instances      | API Gateway + use case orchestration                     | `createLambdaHandler({ useCase, inputTransformer })` |
 | `HandlerConfig`                                                    | `.`         | Configuration type for handler factory                | Strongly typed handler configuration                     | Type config objects or generics                      |
 | `APIGatewayEvent`, `APIGatewayResponse`, `APIGatewayErrorResponse` | `.`         | Event/response contracts used by the handler factory  | Explicit event-output typing                             | Use as function parameter/return types               |
 | `formatJsonResponse`                                               | `.`         | Default success response formatter for handler output | Standard JSON success payloads                           | `responseFormatter: formatJsonResponse`              |

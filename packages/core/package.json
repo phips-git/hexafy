@@ -9,8 +9,8 @@
     "ports-adapter",
     "ports-and-adapters",
     "typescript",
-    "use-case",
-    "use-case-pattern"
+    "use case",
+    "use case pattern"
   ],
   "license": "MIT",
   "author": "Philipp Teßner-Müller",

@@ -1,5 +1,5 @@
 /**
- * Discriminated union for a use-case outcome.
+ * Discriminated union for a use case outcome.
  *
  * `Usecase.execute(...)` returns this contract for success/failure outcomes.
  *

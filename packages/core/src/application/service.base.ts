@@ -18,8 +18,9 @@ export interface ServiceConfiguration {
 /**
  * Base class for application services.
  *
- * Use this for logic that needs shared infrastructure ports without the
- * use-case execution lifecycle.
+ * Use this for logic that needs shared infrastructure ports without the use
+ * case execution lifecycle. Subclasses can leverage injected ports for
+ * time-based operations, logging, and metrics.
  */
 export abstract class ServiceBase {
   protected readonly clock: ClockPort;

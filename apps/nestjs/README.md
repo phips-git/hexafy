@@ -4,7 +4,7 @@ Reference NestJS application showing how to wire `@hexafy/core` and `@hexafy/nes
 
 ## Why this app exists
 
-This app demonstrates HTTP controllers, use-case execution, repository adapters, and exception filters in one minimal integration example.
+This app demonstrates HTTP controllers, use case execution, repository adapters, and exception filters in one minimal integration example.
 
 ## Installation
 
@@ -22,7 +22,7 @@ bun run start:dev
 
 | Artifact                            | What it is for                       | Minimal usage                            |
 | ----------------------------------- | ------------------------------------ | ---------------------------------------- |
-| `POST /hello`                       | Simple use-case invocation example   | Send `{ "name": "World" }`               |
+| `POST /hello`                       | Simple use case invocation example   | Send `{ "name": "World" }`               |
 | `POST /users`                       | User creation flow with validation   | Send `{ "name": "...", "email": "..." }` |
 | `DomainExceptionFilter` integration | Maps domain errors to HTTP responses | Register as global `APP_FILTER`          |
 
