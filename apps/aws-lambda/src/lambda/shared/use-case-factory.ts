@@ -1,115 +1,90 @@
-import { JSONConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
-import { CreateTaskUseCase } from '@hexafy/example-domain/application';
+import type { UseCaseConfiguration } from '@hexafy/core/application';
+import {
+  JSONConsoleLoggingAdapter,
+  NoOpMetricsAdapter,
+  SystemClockAdapter,
+  SystemIdentifierAdapter
+} from '@hexafy/core/infrastructure';
+import {
+  CreateProjectUseCase,
+  CreateTaskUseCase,
+  type CreateTaskUseCaseInput
+} from '@hexafy/example-domain/application';
+import type { ProjectId, UserId } from '@hexafy/example-domain/domain';
 import {
   InMemoryProjectRepository,
   InMemoryTaskRepository,
   InMemoryUserRepository
 } from '@hexafy/example-domain/infrastructure';
 
-const taskRepository = new InMemoryTaskRepository();
-const projectRepository = new InMemoryProjectRepository();
 const userRepository = new InMemoryUserRepository();
+const DEFAULT_OWNER_ID = 'demo-user' as UserId;
 
-const defaultDependencies = {
-  generateId: () => `demo_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-  loggerFactory: () => JSONConsoleLoggingAdapter('example-domain-demo')
+const DEFAULT_CONFIG: UseCaseConfiguration = {
+  logger: JSONConsoleLoggingAdapter('aws-lambda'),
+  clock: SystemClockAdapter,
+  identifier: SystemIdentifierAdapter,
+  metrics: NoOpMetricsAdapter
 };
 
-type ProjectCreationInput = {
-  name: string;
-  description: string | null;
-  ownerId?: string;
-};
+export function getCreateProjectUseCase() {
+  const projectRepository = new InMemoryProjectRepository();
 
-type TaskCreationInput = {
-  title: string;
-  description: string | null;
-  priority?: 'low' | 'medium' | 'high';
-  assignedTo?: string | null;
-  dueDate?: Date | null;
-};
+  return {
+    async execute(input: {
+      creationProperties: {
+        name: string;
+        description: string | null;
+        ownerId?: string;
+      };
+    }) {
+      const useCase = new CreateProjectUseCase(
+        projectRepository,
+        DEFAULT_CONFIG
+      );
+      const ownerId = input.creationProperties.ownerId ?? DEFAULT_OWNER_ID;
 
-class UpdateTaskUseCaseAdapter {
-  constructor(private readonly taskRepository: InMemoryTaskRepository) {}
+      const result = await useCase.execute({
+        name: input.creationProperties.name,
+        description: input.creationProperties.description,
+        ownerId: ownerId as UserId
+      });
 
-  async execute(input: {
-    taskId: string;
-    projectId: string;
-    updateProperties: Record<string, unknown>;
-  }) {
-    const task = await this.taskRepository.findById(input.taskId);
-    if (!task) throw new Error('Task not found');
-    const updated = await this.taskRepository.update(
-      input.taskId,
-      input.updateProperties as Record<string, unknown>
-    );
-    return { taskId: updated.id };
-  }
+      if (!result.success) {
+        throw result.error;
+      }
+
+      return { projectId: result.value.id };
+    }
+  };
 }
 
-class DeleteTaskUseCaseAdapter {
-  constructor(private readonly taskRepository: InMemoryTaskRepository) {}
+export function getCreateTaskUseCase() {
+  const taskRepository = new InMemoryTaskRepository();
 
-  async execute(input: { taskId: string; projectId: string }) {
-    await this.taskRepository.delete(input.taskId);
-  }
-}
-
-class CreateProjectUseCaseAdapter {
-  constructor(private readonly projectRepository: InMemoryProjectRepository) {}
-
-  async execute(input: { creationProperties: ProjectCreationInput }) {
-    const project = await this.projectRepository.create({
-      ...input.creationProperties,
-      ownerId: input.creationProperties.ownerId ?? 'demo-user'
-    });
-    return { projectId: project.id };
-  }
-}
-
-class UpdateProjectUseCaseAdapter {
-  constructor(private readonly projectRepository: InMemoryProjectRepository) {}
-
-  async execute(input: {
-    projectId: string;
-    updateProperties: Record<string, unknown>;
-  }) {
-    const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new Error('Project not found');
-    const updated = await this.projectRepository.update(
-      input.projectId,
-      input.updateProperties as Record<string, unknown>
-    );
-    return { projectId: updated.id };
-  }
-}
-
-class DeleteProjectUseCaseAdapter {
-  constructor(private readonly projectRepository: InMemoryProjectRepository) {}
-
-  async execute(input: { projectId: string }) {
-    await this.projectRepository.delete(input.projectId);
-  }
-}
-
-export function getCreateTaskUsecase() {
   return {
     async execute(input: {
       projectId: string;
-      creationProperties: TaskCreationInput;
+      creationProperties: {
+        title: string;
+        description?: string | null;
+        priority?: 'low' | 'medium' | 'high';
+        assignedTo?: string | null;
+        dueDate?: Date | null;
+      };
     }) {
-      const useCase = new CreateTaskUseCase(
-        taskRepository,
-        defaultDependencies
-      );
-      const result = await useCase.execute({
-        projectId: input.projectId,
-        title: input.creationProperties.title ?? '',
+      const useCase = new CreateTaskUseCase(taskRepository, DEFAULT_CONFIG);
+
+      const createInput: CreateTaskUseCaseInput = {
+        projectId: input.projectId as ProjectId,
+        title: input.creationProperties.title,
         description: input.creationProperties.description ?? null,
         priority: input.creationProperties.priority ?? 'medium',
-        assignedTo: input.creationProperties.assignedTo ?? null,
+        assignedTo: (input.creationProperties.assignedTo ?? null) as UserId,
         dueDate: input.creationProperties.dueDate ?? null
-      });
+      };
+
+      const result = await useCase.execute(createInput);
       if (!result.success) {
         throw result.error;
       }
@@ -118,39 +93,74 @@ export function getCreateTaskUsecase() {
   };
 }
 
-export function getUpdateTaskUsecase() {
-  return new UpdateTaskUseCaseAdapter(taskRepository);
+export function getUpdateTaskUseCase() {
+  return {
+    async execute(input: {
+      taskId: string;
+      updateProperties: Record<string, unknown>;
+    }) {
+      const taskRepository = new InMemoryTaskRepository();
+      const task = await taskRepository.findById(input.taskId);
+      if (!task) throw new Error('Task not found');
+      const updated = await taskRepository.update(
+        input.taskId,
+        input.updateProperties
+      );
+      return { taskId: updated.id };
+    }
+  };
 }
 
-export function getDeleteTaskUsecase() {
-  return new DeleteTaskUseCaseAdapter(taskRepository);
+export function getDeleteTaskUseCase() {
+  return {
+    async execute(input: { taskId: string }) {
+      const taskRepository = new InMemoryTaskRepository();
+      await taskRepository.delete(input.taskId);
+    }
+  };
 }
 
-export function getListTasksUsecase() {
+export function getListTasksUseCase() {
   return {
     async execute(input: { projectId: string }) {
+      const taskRepository = new InMemoryTaskRepository();
       return taskRepository.findByProjectId(input.projectId);
     }
   };
 }
 
-export function getCreateProjectUsecase() {
-  return new CreateProjectUseCaseAdapter(projectRepository);
+export function getDeleteProjectUseCase() {
+  return {
+    async execute(input: { projectId: string }) {
+      const projectRepository = new InMemoryProjectRepository();
+      await projectRepository.delete(input.projectId);
+    }
+  };
 }
 
-export function getUpdateProjectUsecase() {
-  return new UpdateProjectUseCaseAdapter(projectRepository);
+export function getUpdateProjectUseCase() {
+  return {
+    async execute(input: {
+      projectId: string;
+      updateProperties: Record<string, unknown>;
+    }) {
+      const projectRepository = new InMemoryProjectRepository();
+      const project = await projectRepository.findById(input.projectId);
+      if (!project) throw new Error('Project not found');
+      const updated = await projectRepository.update(
+        input.projectId,
+        input.updateProperties
+      );
+      return { projectId: updated.id };
+    }
+  };
 }
 
-export function getDeleteProjectUsecase() {
-  return new DeleteProjectUseCaseAdapter(projectRepository);
-}
-
-export function getGetAuthenticatedUserUsecase() {
+export function getGetAuthenticatedUserUseCase() {
   return {
     async execute(input: { headers?: Record<string, string | undefined> }) {
       const header =
-        input.headers?.authorization ?? input.headers?.Authorization;
+        input.headers?.['authorization'] ?? input.headers?.['Authorization'];
       const token = header?.startsWith('Bearer ') ? header.slice(7) : header;
       if (!token) {
         return null;
@@ -163,7 +173,7 @@ export function getGetAuthenticatedUserUsecase() {
           tenantId: 'demo-tenant',
           email: 'demo@example.com',
           name: 'Demo User',
-          role: 'user',
+          role: 'user' as const,
           createdAt: new Date(),
           updatedAt: new Date()
         }

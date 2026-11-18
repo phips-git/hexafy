@@ -14,11 +14,11 @@ All instructions in these referenced documents above are mandatory. Agents must 
 ## Core Architecture
 
 - **Hexagonal architecture**: Domain is independent; application and infrastructure layers depend on it
-- **Use Cases**: Extend `Usecase<TInput, TOutput>` from `@hexafy/core/application`; use `ServiceBase` for shared application logic
+- **Use Cases**: Extend `UseCase<TInput, TOutput>` from `@hexafy/core/application`; use `ServiceBase` for shared application logic
 - **Domain primitives**: `Entity`, `ValueObject`, `AggregateRoot`, `RepositoryBase`, and `UnitOfWorkBase` from `@hexafy/core/domain`
 - **Ports**: Define interfaces in `domain/ports` or application ports, and implement adapters in `infrastructure/adapters`
 - **Errors**: See [CODESTYLE.md#errors](./.agents/CODESTYLE.md#errors); in `executeInternal`, throw typed domain errors for expected business failures
-- **Package API**: `@hexafy/core/application` for `Usecase`, `ServiceBase`, `UsecaseResult`; `@hexafy/core/domain` for domain types/errors; `@hexafy/core/infrastructure` for adapters
+- **Package API**: `@hexafy/core/application` for `UseCase`, `ServiceBase`, `UseCaseResult`; `@hexafy/core/domain` for domain types/errors; `@hexafy/core/infrastructure` for adapters
 
 ## Guidelines
 

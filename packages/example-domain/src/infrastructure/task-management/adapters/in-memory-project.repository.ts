@@ -1,10 +1,7 @@
 import type { Brand } from '@hexafy/core/domain';
 
-import type {
-  Project,
-  ProjectCreationProperties
-} from '../../domain/task-management/models/project';
-import type { ProjectPort } from '../../domain/task-management/ports';
+import type { ProjectPort } from '../../../application/ports';
+import type { Project, ProjectCreationProperties } from '../../../domain';
 
 type BrandedProjectId = Brand<string, 'ProjectId'>;
 type BrandedUserId = Brand<string, 'UserId'>;
@@ -24,13 +21,12 @@ export class InMemoryProjectRepository implements ProjectPort {
 
   async create(data: ProjectCreationProperties): Promise<Project> {
     const projectId = `project_${Date.now()}` as BrandedProjectId;
-    const ownerId = data.ownerId as BrandedUserId;
 
     const project: Project = {
       id: projectId,
       name: data.name,
       description: data.description,
-      ownerId: ownerId,
+      ownerId: data.ownerId as BrandedUserId,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -39,7 +35,10 @@ export class InMemoryProjectRepository implements ProjectPort {
     return project;
   }
 
-  async update(id: string, data: Partial<Project>): Promise<Project> {
+  async update(
+    id: string,
+    data: Partial<ProjectCreationProperties>
+  ): Promise<Project> {
     const existing = this.projects.get(id as BrandedProjectId);
     if (!existing) {
       throw new Error('Project not found');

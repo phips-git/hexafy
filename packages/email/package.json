@@ -21,11 +21,17 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./application": "./src/application.export.ts",
     "./domain": "./src/domain.export.ts",
     "./infrastructure": "./src/infrastructure.export.ts"
   },
   "publishConfig": {
     "exports": {
+      "./application": {
+        "types": "./dist/application.d.mts",
+        "import": "./dist/application.mjs",
+        "default": "./dist/application.mjs"
+      },
       "./domain": {
         "types": "./dist/domain.d.mts",
         "import": "./dist/domain.mjs",

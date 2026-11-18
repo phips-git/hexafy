@@ -1,11 +1,11 @@
 import type { Brand } from '@hexafy/core/domain';
 
+import type { TaskPort } from '../../../application/ports';
 import type {
   Task,
   TaskCreationProperties,
   TaskUpdateProperties
-} from '../../domain/task-management/models/task';
-import type { TaskPort } from '../../domain/task-management/ports';
+} from '../../../domain';
 
 type BrandedTaskId = Brand<string, 'TaskId'>;
 

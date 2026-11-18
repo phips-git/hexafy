@@ -52,18 +52,18 @@ Prefer linking to these files over copying snippets into agent docs:
 - `packages/aws-lambda/README.md` - current Lambda integration examples
 - `packages/observability/README.md` - current observability integration examples
 - `packages/core/src/domain/errors/application.error.ts` - canonical error classes and codes
-- `packages/core/src/application/use-case.ts` - canonical `Usecase` contract
+- `packages/core/src/application/use-case.ts` - canonical `UseCase` contract
 - `packages/core/src/application/service.base.ts` - canonical `ServiceBase` contract
 
 ### Logging guidance
 
-- **Default**: inside `Usecase.executeInternal` and `ServiceBase` code, use the injected `LoggingPort`.
+- **Default**: inside `UseCase.executeInternal` and `ServiceBase` code, use the injected `LoggingPort`.
 - **Isolated execution units only**: use observability execution observers for background/fire-and-forget tasks, fan-out batch items, or workflow/job steps that should have their own execution envelope.
 - Avoid double-wrapping the same execution path with both patterns unless you explicitly need separate parent/child execution traces.
 
 ### Errors
 
-- **Domain errors**: In `Usecase.executeInternal`, throw typed domain errors for expected business failures
+- **Domain errors**: In `UseCase.executeInternal`, throw typed domain errors for expected business failures
 - **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.) at the boundary when they are not part of the business result contract
 
 ### Imports and exports

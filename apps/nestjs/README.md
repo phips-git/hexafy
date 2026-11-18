@@ -1,122 +1,78 @@
 # NestJS Example App
 
-Reference NestJS application showing how to wire `@hexafy/core` and `@hexafy/example-domain` in a hexagonal architecture setup.
+Reference NestJS application demonstrating hexagonal architecture with `@hexafy/core`, `@hexafy/nestjs`, and `@hexafy/example-domain`.
 
-## Why this app exists
-
-This app demonstrates HTTP controllers, use case execution, repository adapters, and proper layering in one minimal integration example.
-
-## Installation
+## Quick Start
 
 ```bash
 bun install
-```
-
-## Quick start
-
-```bash
 bun run start:dev
 ```
 
 ## API Endpoints
 
-| Method | Endpoint                    | Description                   | Request Body                                                 |
-| ------ | --------------------------- | ----------------------------- | ------------------------------------------------------------ |
-| `POST` | `/hello`                    | Simple greeting use case      | `{"name": "World"}`                                          |
-| `POST` | `/users`                    | User creation with validation | `{"name": "...", "email": "...", "password": "..."}`         |
-| `POST` | `/projects`                 | Create a new project          | `{"name": "...", "description": "..."}`                      |
-| `POST` | `/tasks`                    | Create a new task             | `{"title": "...", "projectId": "...", "priority": "medium"}` |
-| `POST` | `/tasks/:taskId/complete`   | Mark a task as completed      | -                                                            |
-| `GET`  | `/tasks/project/:projectId` | List all tasks for a project  | -                                                            |
+| Method | Endpoint              | Description           | Input                          |
+| ------ | --------------------- | --------------------- | ------------------------------ |
+| `POST` | `/hello`              | Greeting              | `{name: string}`               |
+| `POST` | `/users`              | User creation         | `{name, email, password}`      |
+| `POST` | `/projects`           | Project creation      | `{name, description}`          |
+| `POST` | `/tasks`              | Task creation         | `{title, projectId, priority}` |
+| `POST` | `/tasks/:id/complete` | Complete task         | -                              |
+| `GET`  | `/tasks/project/:id`  | List tasks by project | -                              |
 
-## Architecture Overview
+## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Controllers   │────▶│   Use Cases      │────▶│  Repositories   │
-│  (HTTP layer)   │     │  (Application)   │     │ (Infrastructure)│
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-        │                       │                       │
-        │                       ▼                       │
-        │              ┌──────────────────┐            │
-        └─────────────▶│ @hexafy/core     │◀───────────┘
-                       │   (UseCase base) │
-                       └──────────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Controllers  │────▶│  Use Cases   │────▶│ Repositories │
+│   (HTTP)     │     │(Application) │     │(Infrastructure)│
+└──────────────┘     └──────────────┘     └──────────────┘
 ```
 
-## Layer Details
+Controllers delegate all business logic to use cases from `@hexafy/example-domain`.
 
-### Controllers
+## Project Structure
 
-- Handle HTTP requests and responses
-- Validate incoming data via DTOs
-- Delegate business logic to use cases
-- Located in `src/controllers/`, `src/projects/`, `src/tasks/`
+```
+src/
+├── app.module.ts          # Module wiring
+├── main.ts                # Entry point
+├── controllers/           # HTTP controllers
+│   ├── hello.controller.ts     # Greeting endpoint
+│   └── users.controller.ts     # User endpoint
+├── projects/              # Project controller
+│   └── projects.controller.ts
+└── tasks/                 # Task controller
+    └── tasks.controller.ts
+```
 
-### Use Cases
+## Key Patterns
 
-- Contain business logic
-- Extend `@hexafy/core/application/Usecase` for built-in features (timeout, cancellation, metrics)
-- Wrap `@hexafy/example-domain` use cases for demonstration
-- Located in `src/domain/use-cases/`
+- **Thin controllers**: Controllers delegate to use cases, contain no business logic
+- **Shared use cases**: All use cases come from `@hexafy/example-domain`
+- **Dependency injection**: NestJS providers wire use cases with repositories
+- **In-memory adapters**: Ready for production swap (PostgreSQL, MongoDB, etc.)
 
-### Infrastructure
-
-- In-memory repositories implementing domain ports
-- Demonstrates port/adapter pattern
-- Ready to swap for production implementations (PostgreSQL, MongoDB, etc.)
-
-## How it fits with `@hexafy/core`
-
-- **Domain/Application logic**: Uses `@hexafy/core` use cases and errors (`Usecase`, `ValidationError`, `NotFoundError`)
-- **Example domain**: Integrates `@hexafy/example-domain` for auth and task management
-- **NestJS wiring**: Uses `@hexafy/nestjs` for integration patterns
-- **Controllers stay thin**: All business logic is delegated to use cases
-
-## Example Usage
-
-### Create a user
+## Usage Example
 
 ```bash
+# Create a user
 curl -X POST http://localhost:3000/users \
   -H "Content-Type: application/json" \
-  -d '{"name": "John Doe", "email": "john@example.com", "password": "password123"}'
-```
+  -d '{"name": "John", "email": "john@example.com", "password": "secret"}'
 
-### Create a project
-
-```bash
+# Create a project
 curl -X POST http://localhost:3000/projects \
   -H "Content-Type: application/json" \
-  -d '{"name": "My Project", "description": "A demo project"}'
+  -d '{"name": "My Project", "description": "Demo"}'
 ```
 
-### Create a task
+## Recommendations
 
-```bash
-curl -X POST http://localhost:3000/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Complete task", "projectId": "project_123", "priority": "high"}'
-```
-
-### Complete a task
-
-```bash
-curl -X POST http://localhost:3000/tasks/task_123/complete
-```
-
-### List tasks for a project
-
-```bash
-curl http://localhost:3000/tasks/project/project_123
-```
-
-## Recommended usage
-
-- Use this app as integration reference only
-- Mirror the layering pattern in your own modules
-- Replace in-memory adapters with production adapters in infrastructure layer
-- Follow the pattern: domain ports → infrastructure adapters → application use cases → controllers
+- Mirror the layering: controller → use case → repository
+- Use example-domain use cases directly; don't duplicate
+- Replace in-memory adapters with production implementations
+- Keep controllers thin; move validation/transformation to use cases
 
 ## License
 

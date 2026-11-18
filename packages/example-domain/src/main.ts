@@ -6,6 +6,7 @@ import {
   CompleteTaskUseCase,
   CreateTaskUseCase
 } from './application/task-management/use-cases';
+import type { ProjectId, UserId } from './domain';
 import {
   InMemoryAuthenticationAdapter,
   InMemoryUserRepository
@@ -37,10 +38,12 @@ async function registerUser() {
 
 async function createTask() {
   const result = await createTaskUseCase.execute({
-    projectId: 'project_123',
+    projectId: 'project_123' as ProjectId,
     title: 'Complete project documentation',
     description: 'Write comprehensive documentation',
-    priority: 'high'
+    priority: 'high',
+    assignedTo: null as UserId | null,
+    dueDate: null
   });
 
   if (result.success) {

@@ -6,14 +6,11 @@ import type {
   LoggingPort,
   MetricsPort
 } from '../application/ports';
-import { UniqueIdentifier } from '../domain/primitives';
+import type { UniqueIdentifier } from '../domain/primitives';
 import { NoOpLoggingAdapter } from '../infrastructure/adapters/logging';
-import {
-  Usecase,
-  UsecaseCancelledError,
-  type UsecaseConfiguration,
-  UsecaseTimeoutError
-} from './index';
+import { UseCaseCancelledError, UseCaseTimeoutError } from './types';
+import type { UseCaseConfiguration } from './use-case';
+import { UseCase } from './use-case';
 
 class MockClock implements ClockPort {
   private fixedTime: number;
@@ -105,11 +102,11 @@ class MockMetrics implements MetricsPort {
   }
 }
 
-class TestUseCase<TInput = void, TOutput = void> extends Usecase<
+class TestUseCase<TInput = void, TOutput = void> extends UseCase<
   TInput,
   TOutput
 > {
-  constructor(config?: UsecaseConfiguration) {
+  constructor(config?: UseCaseConfiguration) {
     super({ logger: NoOpLoggingAdapter, ...config });
   }
 
@@ -123,7 +120,7 @@ class TestUseCase<TInput = void, TOutput = void> extends Usecase<
 }
 
 class SuccessUseCase extends TestUseCase<string, string> {
-  constructor(config?: UsecaseConfiguration) {
+  constructor(config?: UseCaseConfiguration) {
     super({ logger: NoOpLoggingAdapter, ...config });
   }
 
@@ -137,7 +134,7 @@ class SuccessUseCase extends TestUseCase<string, string> {
 }
 
 class FailureUseCase extends TestUseCase<string, string> {
-  constructor(config?: UsecaseConfiguration) {
+  constructor(config?: UseCaseConfiguration) {
     super({ logger: NoOpLoggingAdapter, ...config });
   }
 
@@ -151,7 +148,7 @@ class FailureUseCase extends TestUseCase<string, string> {
 }
 
 class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
-  constructor(config?: UsecaseConfiguration) {
+  constructor(config?: UseCaseConfiguration) {
     super({ logger: NoOpLoggingAdapter, ...config });
   }
 
@@ -298,7 +295,7 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+        expect(result.error).toBeInstanceOf(UseCaseCancelledError);
       }
     });
   });
@@ -315,7 +312,7 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+        expect(result.error).toBeInstanceOf(UseCaseCancelledError);
         expect(result.error?.message).toBe('User requested cancellation');
       }
     });
@@ -368,7 +365,7 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error).toBeInstanceOf(UsecaseTimeoutError);
+        expect(result.error).toBeInstanceOf(UseCaseTimeoutError);
         expect(result.error?.message).toContain('timed out');
       }
       expect(metrics.hasMetric('use_case_timeout')).toBe(true);
@@ -418,7 +415,7 @@ describe('Usecase', () => {
 
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.error).toBeInstanceOf(UsecaseCancelledError);
+        expect(result.error).toBeInstanceOf(UseCaseCancelledError);
         expect(result.error.message).toBe('Cancelled by caller');
       }
     });
@@ -710,7 +707,7 @@ describe('Usecase', () => {
       const logger = new MockLogger();
       const metrics = new MockMetrics();
 
-      const config: UsecaseConfiguration = {
+      const config: UseCaseConfiguration = {
         clock,
         logger,
         metrics,

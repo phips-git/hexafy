@@ -1,28 +1,36 @@
-import { Usecase, type UsecaseConfiguration } from '@hexafy/core/application';
+import type { LoggingPort } from '@hexafy/core/application';
+import { UseCase, type UseCaseConfiguration } from '@hexafy/core/application';
+import type { Brand } from '@hexafy/core/domain';
 
-import type { Task } from '../../domain/task-management/models/task';
-import type { TaskPort } from '../../domain/task-management/ports';
+import type {
+  Task,
+  TaskCreationProperties
+} from '../../../domain/task-management/models/task';
+import type { TaskPort } from '../../ports';
 
-export type CreateTaskUseCaseInput = {
-  title: string;
-  description: string | null;
-  priority: 'low' | 'medium' | 'high';
-  assignedTo: string | null;
-  dueDate: Date | null;
-  projectId: string;
+export type CreateTaskUseCaseInput = Omit<
+  TaskCreationProperties,
+  'projectId' | 'assignedTo'
+> & {
+  projectId: Brand<string, 'ProjectId'>;
+  assignedTo: Brand<string, 'UserId'> | null;
 };
 
-export class CreateTaskUseCase extends Usecase<CreateTaskUseCaseInput, Task> {
+export type CompleteTaskUseCaseInput = {
+  taskId: Brand<string, 'TaskId'>;
+};
+
+export class CreateTaskUseCase extends UseCase<CreateTaskUseCaseInput, Task> {
   constructor(
     private readonly taskPort: TaskPort,
-    config: UsecaseConfiguration = {}
+    config: UseCaseConfiguration = {}
   ) {
     super(config);
   }
 
   protected async executeInternal(
     input: CreateTaskUseCaseInput,
-    logger: LoggerPort
+    logger: LoggingPort
   ): Promise<Task> {
     if (!input.title || input.title.trim().length === 0) {
       throw new Error('Title is required');
@@ -35,13 +43,10 @@ export class CreateTaskUseCase extends Usecase<CreateTaskUseCaseInput, Task> {
     const task = await this.taskPort.create({
       title: input.title,
       description: input.description,
-      priority: input.priority ?? 'medium',
-      projectId: input.projectId,
-      status: 'pending',
+      priority: input.priority,
       assignedTo: input.assignedTo,
       dueDate: input.dueDate,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      projectId: input.projectId
     });
 
     logger.info('Task created', { taskId: task.id });

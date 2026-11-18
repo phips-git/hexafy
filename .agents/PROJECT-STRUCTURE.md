@@ -52,7 +52,7 @@ For companion packages (e.g. `@hexafy/observability`, `@hexafy/nestjs`, `@hexafy
 
 - explicitly state dependency on `@hexafy/core`
 - document default usage path with core first, companion second
-- clearly separate default use (`Usecase`/injected ports) vs opt-in companion behavior
+- clearly separate default use (`UseCase`/injected ports) vs opt-in companion behavior
 - avoid presenting the companion package as standalone architecture guidance
 
 ## Internal Structure
@@ -72,7 +72,7 @@ Do not duplicate long API snippets here. Use these as source of truth:
 
 - `packages/*/README.md` - usage patterns and exported-artifact tables
 - `packages/*/package.json` (`exports`, `publishConfig.exports`) - public entrypoints
-- `packages/core/src/application/*` - application contracts (`Usecase`, ports, results)
+- `packages/core/src/application/*` - application contracts (`UseCase`, ports, results)
 - `packages/core/src/domain/*` - domain primitives, repository/unit-of-work, errors
 - `packages/core/src/infrastructure/*` - default adapters
 

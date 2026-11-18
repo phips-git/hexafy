@@ -1,10 +1,10 @@
 /**
  * Error raised when a use case execution is cancelled via AbortSignal.
  *
- * This is returned by `Usecase.execute()` when the provided `signal` is already
+ * This is returned by `UseCase.execute()` when the provided `signal` is already
  * aborted, or when a timeout fires before the user-provided signal.
  */
-export class UsecaseCancelledError extends Error {
+export class UseCaseCancelledError extends Error {
   override readonly cause?: unknown;
 
   constructor(message: string, cause?: Error | undefined) {
@@ -18,10 +18,10 @@ export class UsecaseCancelledError extends Error {
 /**
  * Error raised when a use case execution exceeds its configured timeout.
  *
- * This is returned by `Usecase.execute()` when `timeoutMs` is configured and
+ * This is returned by `UseCase.execute()` when `timeoutMs` is configured and
  * the execution takes longer than the specified duration.
  */
-export class UsecaseTimeoutError extends Error {
+export class UseCaseTimeoutError extends Error {
   override readonly cause?: unknown;
 
   constructor(message: string, cause?: Error | undefined) {

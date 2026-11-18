@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
 
 import type { Email } from '../../../domain/models';
 import { EmailNoopAdapter } from '../email.noop.adapter';

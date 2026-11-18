@@ -1,9 +1,10 @@
 import type { Brand } from '@hexafy/core/domain';
 
-import type { User } from '../../domain/auth/models';
-import type { AuthenticationPort, UserPort } from '../../domain/auth/ports';
+import type { AuthenticationPort, UserPort } from '../../../application/ports';
+import type { User } from '../../../domain/auth/models';
 
 type BrandedUserId = Brand<string, 'UserId'>;
+type BrandedTenantId = Brand<string, 'TenantId'>;
 
 export class InMemoryAuthenticationAdapter implements AuthenticationPort {
   constructor(private readonly userRepository: UserPort) {}
@@ -25,7 +26,7 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
 
   async register(
     email: string,
-    password: string,
+    _password: string,
     name?: string
   ): Promise<User> {
     const existingUser = await this.userRepository.findByEmail(email);
@@ -34,11 +35,11 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
     }
 
     const userId = `user_${Date.now()}` as BrandedUserId;
-    const tenantId = `tenant_${Date.now()}` as BrandedUserId;
+    const tenantId = `tenant_${Date.now()}` as BrandedTenantId;
 
     const user: User = {
       id: userId,
-      tenantId: tenantId,
+      tenantId,
       email,
       name: name ?? null,
       role: 'member',

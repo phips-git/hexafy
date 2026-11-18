@@ -1,21 +1,21 @@
-export {
-  createDomainModule,
-  createInfrastructureModule,
-  DomainModule,
-  InfrastructureModule
-} from './module';
+export { createDomainModule, createInfrastructureModule } from './module';
+export type { DomainModule, InfrastructureModule } from './module';
 
 export {
   ApplicationError,
+  ConflictError,
   ExternalServiceError,
   HttpForbiddenError,
   HttpUnauthorizedError,
   InfrastructureError,
-  InternalServerError
+  InternalServerError,
+  NotFoundError,
+  ValidationError
 } from './domain/errors';
 
 export {
   DomainExceptionFilter,
   HttpExceptionFilter,
-  InfrastructureExceptionFilter
+  InfrastructureExceptionFilter,
+  UnhandledExceptionFilter
 } from './filters';

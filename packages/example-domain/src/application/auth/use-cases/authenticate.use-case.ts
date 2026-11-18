@@ -1,5 +1,8 @@
-import type { User } from '../../domain/auth/models';
-import type { AuthenticationPort } from '../../domain/auth/ports';
+import { UseCase } from '@hexafy/core/application';
+import { UnauthorizedError } from '@hexafy/core/domain';
+
+import type { User } from '../../../domain/auth/models';
+import type { AuthenticationPort } from '../../ports';
 
 export type AuthenticateUseCaseInput = {
   email: string;
@@ -11,26 +14,28 @@ export type AuthenticateUseCaseOutput = {
   token: string;
 };
 
-export class AuthenticateUseCase {
-  constructor(private readonly authenticationPort: AuthenticationPort) {}
+export class AuthenticateUseCase extends UseCase<
+  AuthenticateUseCaseInput,
+  AuthenticateUseCaseOutput
+> {
+  constructor(private readonly authenticationPort: AuthenticationPort) {
+    super();
+  }
 
-  async execute(
+  protected async executeInternal(
     input: AuthenticateUseCaseInput
-  ): Promise<
-    | { success: true; value: AuthenticateUseCaseOutput }
-    | { success: false; error: Error }
-  > {
-    try {
-      const user = await this.authenticationPort.authenticate(
-        input.email,
-        input.password
-      );
+  ): Promise<AuthenticateUseCaseOutput> {
+    const user = await this.authenticationPort.authenticate(
+      input.email,
+      input.password
+    );
 
-      const token = `mock_token_${user.id}`;
-
-      return { success: true, value: { user, token } };
-    } catch (error) {
-      return { success: false, error: error as Error };
+    if (!user) {
+      throw new UnauthorizedError('Invalid email or password');
     }
+
+    const token = `mock_token_${user.id}`;
+
+    return { user, token };
   }
 }

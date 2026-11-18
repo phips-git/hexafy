@@ -1,16 +1,16 @@
-import { Usecase } from '@hexafy/core/application';
+import type { LoggingPort } from '@hexafy/core/application';
+import { UseCase } from '@hexafy/core/application';
+import type { Brand } from '@hexafy/core/domain';
 import { NotFoundError } from '@hexafy/core/domain';
 
-import type { Task } from '../../domain/task-management/models/task';
-import type { TaskPort } from '../../domain/task-management/ports';
+import type { Task } from '../../../domain/task-management/models';
+import type { TaskPort } from '../../ports';
 
 export type CompleteTaskInput = {
-  taskId: string;
+  taskId: Brand<string, 'TaskId'>;
 };
 
-export type CompleteTaskOutput = {
-  task: Task;
-};
+export type CompleteTaskOutput = Task;
 
 class TaskNotFoundError extends NotFoundError {
   constructor(taskId: string) {
@@ -19,7 +19,7 @@ class TaskNotFoundError extends NotFoundError {
   }
 }
 
-export class CompleteTaskUseCase extends Usecase<
+export class CompleteTaskUseCase extends UseCase<
   CompleteTaskInput,
   CompleteTaskOutput
 > {
@@ -43,6 +43,6 @@ export class CompleteTaskUseCase extends Usecase<
     });
 
     logger.info('Task completed', { taskId: input.taskId });
-    return { task: updatedTask };
+    return updatedTask;
   }
 }

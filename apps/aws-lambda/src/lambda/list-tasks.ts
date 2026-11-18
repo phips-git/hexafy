@@ -4,13 +4,7 @@ import type {
   Context
 } from 'aws-lambda';
 
-type AuthorizationContext = {
-  tenantId: string;
-  projectId: string | null;
-  role: string;
-};
-
-import { buildLambdaErrorResponse, getListTasksUsecase } from './shared';
+import { buildLambdaErrorResponse, getListTasksUseCase } from './shared';
 import { authenticateUser } from './shared/auth';
 
 export const handler = async (
@@ -46,21 +40,14 @@ export const handler = async (
       };
     }
 
-    const authorizationContext: AuthorizationContext = {
-      tenantId: user.tenantId,
-      projectId,
-      role: user.role
-    };
-
-    await getListTasksUsecase().execute({
-      authorizationContext,
+    const tasks = await getListTasksUseCase().execute({
       projectId
     });
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({ success: true, tasks })
     };
   } catch (error) {
     return buildLambdaErrorResponse(error, requestId);

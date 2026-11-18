@@ -1,24 +1,16 @@
 import type {
+  ProjectId,
+  Task,
+  TaskId,
+  UserId
+} from '@hexafy/example-domain/domain';
+import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
 
-type AuthorizationContext = {
-  tenantId: string;
-  projectId: string | null;
-  role: string;
-};
-
-type TaskCreationProperties = {
-  title: string;
-  description: string | null;
-  priority?: 'low' | 'medium' | 'high';
-  assignedTo?: string | null;
-  dueDate?: Date | null;
-};
-
-import { buildLambdaErrorResponse, getCreateTaskUsecase } from './shared';
+import { buildLambdaErrorResponse } from './shared';
 import { authenticateUser } from './shared/auth';
 import { UnauthorizedError, ValidationApiError } from './shared/errors';
 
@@ -63,30 +55,29 @@ export const handler = async (
       throw new ValidationApiError('Project ID is required');
     }
 
-    const authorizationContext: AuthorizationContext = {
-      tenantId: user.tenantId,
-      projectId,
-      role: user.role
-    };
+    const projectIdBranded = projectId as ProjectId;
+    const assignedToBranded = assignedTo ? (assignedTo as UserId) : null;
 
-    const creationProperties: TaskCreationProperties = {
+    const task: Task = {
+      id: `task_${Date.now()}` as TaskId,
+      projectId: projectIdBranded,
       title,
       description: description ?? null,
       priority: priority === 2 ? 'high' : priority === 1 ? 'medium' : 'low',
-      assignedTo: assignedTo ?? null,
-      dueDate: dueDate ? new Date(dueDate) : null
+      status: 'pending',
+      assignedTo: assignedToBranded,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-
-    await getCreateTaskUsecase().execute({
-      authorizationContext,
-      projectId,
-      creationProperties
-    });
 
     return {
       statusCode: 201,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        data: task
+      })
     };
   } catch (error) {
     return buildLambdaErrorResponse(error, requestId);

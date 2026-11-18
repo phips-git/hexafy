@@ -6,12 +6,12 @@ export type {
 } from './ports';
 export { ServiceBase, type ServiceConfiguration } from './service.base';
 export {
-  UsecaseCancelledError,
-  UsecaseTimeoutError,
+  UseCaseCancelledError,
+  UseCaseTimeoutError,
   type UsecaseResult
 } from './types';
 export {
-  UseCase as Usecase,
-  type UseCaseConfiguration as UsecaseConfiguration,
-  type UseCaseExecutionOptions as UsecaseExecutionOptions
+  UseCase,
+  type UseCaseConfiguration,
+  type UseCaseExecutionOptions
 } from './use-case';

@@ -1,22 +1,11 @@
+import { InMemoryProjectRepository } from '@hexafy/example-domain/infrastructure';
 import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
 
-type AuthorizationContext = {
-  tenantId: string;
-  projectId: string | null;
-  role: string;
-};
-
-type ProjectCreationProperties = {
-  name: string;
-  description: string | null;
-  ownerId?: string;
-};
-
-import { buildLambdaErrorResponse, getCreateProjectUsecase } from './shared';
+import { buildLambdaErrorResponse } from './shared';
 import { authenticateUser } from './shared/auth';
 import { UnauthorizedError, ValidationApiError } from './shared/errors';
 
@@ -24,6 +13,8 @@ interface CreateProjectBody {
   name: string;
   description?: string;
 }
+
+const projectRepository = new InMemoryProjectRepository();
 
 export const handler = async (
   event: APIGatewayProxyEvent,
@@ -53,21 +44,10 @@ export const handler = async (
       throw new ValidationApiError('Project name is required');
     }
 
-    const authorizationContext: AuthorizationContext = {
-      tenantId: user.tenantId,
-      projectId: null,
-      role: user.role
-    };
-
-    const creationProperties: ProjectCreationProperties = {
+    await projectRepository.create({
       name,
       description: description ?? null,
       ownerId: user.id
-    };
-
-    await getCreateProjectUsecase().execute({
-      authorizationContext,
-      creationProperties
     });
 
     return {

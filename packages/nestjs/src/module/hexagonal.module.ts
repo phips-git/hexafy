@@ -1,44 +1,62 @@
-/**
- * Hexagonal module configuration
- *
- * Provides a base module for organizing your domain, application, and
- * infrastructure layers
- */
 import { Module, type ModuleMetadata, type Provider } from '@nestjs/common';
 
 /**
- * Domain module - contains domain entities, value objects, and domain services
+ * Decorator for domain modules.
  *
- * Use this module for your domain logic that should be isolated from frameworks
- */
-const DomainModule = Module({});
-
-export { DomainModule };
-
-/**
- * Infrastructure module - contains database, external services, and adapters
- *
- * Use this module for infrastructure-specific implementations
- */
-const InfrastructureModule = Module({});
-
-export { InfrastructureModule };
-
-/**
- * Create a domain module with providers
+ * Use this decorator on your class to mark it as a domain module that contains
+ * domain entities, value objects, and domain services. This keeps your domain
+ * logic isolated from framework concerns.
  *
  * @example
  *   ```typescript
  *   @DomainModule({
- *     providers: [CreateUserUseCase, UserService]
+ *     providers: [User, Project, Tenant]
  *   })
  *   export class DomainModule {}
  *   ```;
  */
+export const DomainModule = Module({});
+
+/**
+ * Decorator for infrastructure modules.
+ *
+ * Use this decorator on your class to mark it as an infrastructure module that
+ * contains database connections, external services, and adapters. This keeps
+ * your infrastructure concerns separated from domain and application logic.
+ *
+ * @example
+ *   ```typescript
+ *   @InfrastructureModule({
+ *     providers: [UserRepository, DatabaseClient]
+ *   })
+ *   export class InfrastructureModule {}
+ *   ```;
+ */
+export const InfrastructureModule = Module({});
+
+/**
+ * Creates a domain module with providers and exports.
+ *
+ * Use this function when you need to programmatically configure a domain module
+ * with specific providers. Domain modules should contain pure domain logic
+ * without framework dependencies.
+ *
+ * @example
+ *   ```typescript
+ *   const domainModule = createDomainModule(
+ *     [User, Project, Tenant],
+ *     []
+ *   );
+ *   ```;
+ *
+ * @param providers - Array of providers to register in the domain module
+ * @param imports - Optional array of imported modules
+ * @returns A configured NestJS module
+ */
 export function createDomainModule(
   providers: Provider[] = [],
   imports: ModuleMetadata['imports'] = []
-) {
+): typeof DomainModule {
   return Module({
     providers,
     imports,
@@ -47,20 +65,28 @@ export function createDomainModule(
 }
 
 /**
- * Create an infrastructure module with providers
+ * Creates an infrastructure module with providers and exports.
+ *
+ * Use this function when you need to programmatically configure an
+ * infrastructure module with specific providers. Infrastructure modules should
+ * contain all external service integrations and persistence logic.
  *
  * @example
  *   ```typescript
- *   @InfrastructureModule({
- *     providers: [UserRepository, DatabaseService]
- *   })
- *   export class InfrastructureModule {}
+ *   const infraModule = createInfrastructureModule(
+ *     [UserRepository, DatabaseClient, EmailService]
+ *   );
  *   ```;
+ *
+ * @param providers - Array of providers to register in the infrastructure
+ *   module
+ * @param imports - Optional array of imported modules
+ * @returns A configured NestJS module
  */
 export function createInfrastructureModule(
   providers: Provider[] = [],
   imports: ModuleMetadata['imports'] = []
-) {
+): typeof InfrastructureModule {
   return Module({
     providers,
     imports,

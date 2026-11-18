@@ -4,7 +4,7 @@
  * This provides a clean way to compose use cases with Lambda-specific concerns
  * (input parsing, error handling, response formatting)
  */
-import type { Usecase } from '@hexafy/core/application';
+import type { UseCase } from '@hexafy/core/application';
 import { getDomainErrorCode, isDomainError } from '@hexafy/core/domain';
 import type { Context as LambdaContext } from 'aws-lambda';
 
@@ -14,7 +14,7 @@ export type Context = LambdaContext;
 /** Configuration for Lambda handler */
 export interface HandlerConfig<Input, Output> {
   /** The use case to execute */
-  useCase: Usecase<Input, Output>;
+  useCase: UseCase<Input, Output>;
 
   /** Transform Lambda event into use case input */
   inputTransformer: (event: APIGatewayEvent, context: Context) => Input;
@@ -64,17 +64,17 @@ export interface APIGatewayErrorResponse {
 }
 
 /**
- * Create a Lambda handler from a use case
+ * Create a Lambda handler from a use case.
  *
- * This is the primary entry point for using @hexafy/aws-lambda
+ * This is the primary entry point for using @hexafy/aws-lambda. It wires
+ * together a use case with event transformation and response formatting.
  *
  * @example
  *   ```typescript
  *   export const handler = createLambdaHandler({
  *     useCase: new CreateUserUseCase(),
- *     inputTransformer: parseApiGatewayBody,
- *     responseFormatter: formatJsonResponse,
- *     errorFormatter: formatErrorResponse
+ *     inputTransformer: parseJsonBody,
+ *     responseFormatter: formatJsonResponse
  *   });
  *   ```;
  */
@@ -151,12 +151,43 @@ export function formatJsonResponse<T>(output: T): APIGatewayResponse {
   };
 }
 
-/** Standard error response formatter */
+/**
+ * Standard error response formatter.
+ *
+ * Automatically detects domain errors and formats them with appropriate status
+ * codes. Falls back to 500 for unexpected errors.
+ *
+ * @example
+ *   ```typescript
+ *   const errorResponse = formatError(new ValidationError('Invalid email'));
+ *   // Returns: { statusCode: 400, body: '{ success: false, code: "VALIDATION_ERROR", ... }' }
+ *   ```;
+ */
 export function formatError(error: Error): APIGatewayErrorResponse {
-  // Handle specific error types
-  if (error.message.includes('400')) {
+  // Handle domain errors
+  if (isDomainError(error)) {
+    const code = getDomainErrorCode(error);
+    const timestamp = readErrorTimestamp(error);
+    const statusCode = getDomainErrorStatusCode(error);
+
     return {
-      statusCode: 400,
+      statusCode,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        success: false,
+        error: error.message,
+        code,
+        ...(timestamp && { timestamp })
+      })
+    };
+  }
+
+  // Handle HTTP 404 errors
+  if (error.message.includes('404') || error.name === 'NotFoundError') {
+    return {
+      statusCode: 404,
       headers: {
         'Content-Type': 'application/json'
       },
@@ -167,9 +198,14 @@ export function formatError(error: Error): APIGatewayErrorResponse {
     };
   }
 
-  if (error.message.includes('404')) {
+  // Handle HTTP 400 errors
+  if (
+    error.message.includes('400') ||
+    error.name === 'ValidationError' ||
+    error.message.includes('required')
+  ) {
     return {
-      statusCode: 404,
+      statusCode: 400,
       headers: {
         'Content-Type': 'application/json'
       },
@@ -191,4 +227,28 @@ export function formatError(error: Error): APIGatewayErrorResponse {
       error: 'Internal server error'
     })
   };
+}
+
+/** Extract status code from domain error or HTTP error messages */
+function getDomainErrorStatusCode(error: Error): number {
+  if (error instanceof Error) {
+    // Check if error name indicates a specific HTTP code
+    if (error.name === 'NotFoundError' || error.message.includes('not found')) {
+      return 404;
+    }
+    if (
+      error.name === 'ValidationError' ||
+      error.message.includes('required')
+    ) {
+      return 400;
+    }
+    if (error.name === 'UnauthorizedError') {
+      return 401;
+    }
+    if (error.name === 'ForbiddenError') {
+      return 403;
+    }
+  }
+
+  return 500;
 }

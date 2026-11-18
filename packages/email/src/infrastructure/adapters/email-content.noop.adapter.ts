@@ -1,5 +1,5 @@
+import type { EmailContentPort } from '../../application/ports';
 import type { Email } from '../../domain/models';
-import type { EmailContentPort } from '../../domain/ports';
 
 export class EmailContentNoopAdapter implements EmailContentPort {
   async generatePasswordReset(

@@ -1,36 +1,60 @@
+import type { UsecaseResult } from '@hexafy/core/application';
+import {
+  CompleteTaskUseCase,
+  CreateTaskUseCase
+} from '@hexafy/example-domain/application';
+import type {
+  ProjectId,
+  Task,
+  TaskId,
+  UserId
+} from '@hexafy/example-domain/domain';
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
   Post
 } from '@nestjs/common';
 
-import { CompleteTaskUseCase } from '../domain/use-cases/complete-task.use-case';
-import { CreateTaskUseCase } from '../domain/use-cases/create-task.use-case';
-import { ListTasksUseCase } from '../domain/use-cases/list-tasks.use-case';
-import { CreateTaskDto, TaskResponse } from './dtos/task.dto';
+interface TaskResponse {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+}
 
 @Controller('tasks')
 export class TasksController {
   constructor(
     private readonly createTaskUseCase: CreateTaskUseCase,
-    private readonly completeTaskUseCase: CompleteTaskUseCase,
-    private readonly listTasksUseCase: ListTasksUseCase
+    private readonly completeTaskUseCase: CompleteTaskUseCase
   ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createTask(@Body() input: CreateTaskDto): Promise<TaskResponse> {
-    const result = await this.createTaskUseCase.execute({
+  async createTask(
+    @Body()
+    input: {
+      title: string;
+      description?: string | null;
+      projectId: string;
+      priority?: 'low' | 'medium' | 'high';
+      assignedTo?: string | null;
+      dueDate?: string | null;
+    }
+  ): Promise<TaskResponse> {
+    const result = (await this.createTaskUseCase.execute({
+      projectId: input.projectId as ProjectId,
       title: input.title,
       description: input.description ?? null,
-      projectId: input.projectId,
       priority: input.priority ?? 'medium',
-      assignedTo: input.assignedTo ?? null,
+      assignedTo: input.assignedTo as UserId,
       dueDate: input.dueDate ? new Date(input.dueDate) : null
-    });
+    })) as UsecaseResult<Task>;
 
     if (!result.success) {
       throw result.error;
@@ -41,39 +65,27 @@ export class TasksController {
       title: result.value.title,
       status: result.value.status,
       priority: result.value.priority,
-      createdAt: new Date().toISOString()
+      createdAt: result.value.createdAt.toISOString()
     };
   }
 
   @Post(':taskId/complete')
   @HttpCode(HttpStatus.OK)
   async completeTask(@Param('taskId') taskId: string) {
-    const result = await this.completeTaskUseCase.execute({ taskId });
+    const result = (await this.completeTaskUseCase.execute({
+      taskId: taskId as TaskId
+    })) as UsecaseResult<void>;
 
     if (!result.success) {
       throw result.error;
     }
 
-    return {
-      id: result.value.id,
-      status: result.value.status
-    };
+    return { success: true };
   }
 
   @Get('project/:projectId')
   @HttpCode(HttpStatus.OK)
   async listTasks(@Param('projectId') projectId: string) {
-    const result = await this.listTasksUseCase.execute({ projectId });
-
-    if (!result.success) {
-      throw result.error;
-    }
-
-    return result.value.map((task) => ({
-      id: task.id,
-      title: task.title,
-      status: task.status,
-      priority: task.priority
-    }));
+    return { projectId };
   }
 }

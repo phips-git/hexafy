@@ -1,9 +1,7 @@
-import type { TenantId as TenantIdFromAuth } from '../../auth/models';
-
-export { TenantIdFromAuth };
+import type { TenantId } from '../../auth';
 
 export interface Tenant {
-  readonly id: TenantIdFromAuth;
+  readonly id: TenantId;
   readonly name: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;

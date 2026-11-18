@@ -1,10 +1,9 @@
 import type { Brand } from '@hexafy/core/domain';
 
-import type { User } from '../../domain/auth/models';
-import type { UserPort } from '../../domain/auth/ports';
+import type { UserPort } from '../../../application/ports';
+import type { User } from '../../../domain';
 
 type BrandedUserId = Brand<string, 'UserId'>;
-type BrandedTenantId = Brand<string, 'TenantId'>;
 
 export class InMemoryUserRepository implements UserPort {
   private readonly users: Map<BrandedUserId, User> = new Map();

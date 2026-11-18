@@ -9,12 +9,17 @@ export function parseJsonBody<Input>(event: Record<string, unknown>): Input {
   }
 
   const eventBody = event['body'];
-  if (!eventBody) {
+
+  if (eventBody === null || eventBody === undefined) {
     throw new Error('Request body is required');
   }
 
   if (typeof eventBody !== 'string') {
     throw new Error('Request body must be a string');
+  }
+
+  if (eventBody.trim() === '') {
+    throw new Error('Invalid JSON in request body');
   }
 
   try {

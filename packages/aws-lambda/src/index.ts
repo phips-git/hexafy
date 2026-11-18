@@ -1,7 +1,8 @@
 export {
   createLambdaHandler,
   formatError,
-  formatJsonResponse
+  formatJsonResponse,
+  parseJsonBody
 } from './handler';
 
 export type {

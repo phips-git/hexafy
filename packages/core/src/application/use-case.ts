@@ -8,9 +8,9 @@ import type {
 } from './ports';
 import { ServiceBase } from './service.base';
 import {
-  UsecaseCancelledError,
+  UseCaseCancelledError,
   type UsecaseResult,
-  UsecaseTimeoutError
+  UseCaseTimeoutError
 } from './types';
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -86,7 +86,7 @@ export abstract class UseCase<
       this.tryRecordMetric(USE_CASE_METRICS.CANCELLED);
       return {
         success: false,
-        error: new UsecaseCancelledError(
+        error: new UseCaseCancelledError(
           this.normalizeAbortReason(signal.reason),
           signal.reason ?? signal
         )
@@ -169,7 +169,7 @@ export abstract class UseCase<
           const onAbort = () => {
             if (signal?.aborted) {
               reject(
-                new UsecaseCancelledError(
+                new UseCaseCancelledError(
                   this.normalizeAbortReason(signal.reason),
                   signal.reason ?? signal
                 )
@@ -178,7 +178,7 @@ export abstract class UseCase<
             }
 
             reject(
-              new UsecaseTimeoutError(
+              new UseCaseTimeoutError(
                 this.normalizeAbortReason(timeoutController.signal.reason) ||
                   `Execution timed out after ${timeoutMs} ms`,
                 timeoutController.signal.reason
