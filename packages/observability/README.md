@@ -38,14 +38,14 @@ Use explicit subpaths only:
 ```ts
 import {
   type LoggingPort,
-  Usecase,
-  type UsecaseConfiguration
+  UseCase,
+  type UseCaseConfiguration
 } from '@hexafy/core/application';
 import { ConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
 import { CorrelationLoggerAdapter } from '@hexafy/observability/infrastructure';
 
-class CreateUserUseCase extends Usecase<{ name: string }, { id: string }> {
-  constructor(config?: UsecaseConfiguration) {
+class CreateUserUseCase extends UseCase<{ name: string }, { id: string }> {
+  constructor(config?: UseCaseConfiguration) {
     super(config);
   }
 
@@ -111,13 +111,13 @@ Use the same layering model as `@hexafy/core`:
 
 - Keep domain/application primitives in `@hexafy/core`
 - Keep observability policy adapters in `@hexafy/observability`
-- Prefer injected `LoggingPort` as the default inside `Usecase.executeInternal`
+- Prefer injected `LoggingPort` as the default inside `UseCase.executeInternal`
 - Use isolated execution observation only when you need a separate execution envelope
 
 ### Default path: injected `LoggingPort` in use cases/services
 
 ```ts
-import { Usecase } from '@hexafy/core/application';
+import { UseCase } from '@hexafy/core/application';
 import { ConsoleLoggingAdapter } from '@hexafy/core/infrastructure';
 import { CorrelationLoggerAdapter } from '@hexafy/observability/infrastructure';
 
@@ -125,7 +125,7 @@ const logging = new CorrelationLoggerAdapter(ConsoleLoggingAdapter, {
   correlationIdFactory: () => crypto.randomUUID()
 });
 
-class CreateUserUseCase extends Usecase<{ name: string }, { id: string }> {
+class CreateUserUseCase extends UseCase<{ name: string }, { id: string }> {
   protected async executeInternal(input, logger) {
     logger.info('Creating user', { name: input.name });
     return { id: 'u_123' };
@@ -143,7 +143,7 @@ Use this when work should have its own execution envelope:
 - fan-out batch units (many parallel items)
 - workflow/job steps that outlive the parent request
 
-Avoid wrapping normal `Usecase.executeInternal` flow with this if plain injected logging is sufficient.
+Avoid wrapping normal `UseCase.executeInternal` flow with this if plain injected logging is sufficient.
 
 ```ts
 import {

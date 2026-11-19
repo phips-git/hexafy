@@ -1,6 +1,7 @@
 export {
   ApplicationError,
   ConflictError,
+  ErrorCodes,
   ForbiddenError,
   getDomainErrorCode,
   InfrastructureError,
@@ -9,7 +10,6 @@ export {
   NotFoundError,
   UnauthorizedError,
   ValidationError,
-  type ApplicationErrorDetails,
   type ApplicationErrorOptions,
   type DomainErrorLike
 } from './errors';

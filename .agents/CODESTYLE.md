@@ -5,13 +5,14 @@ These conventions are mandatory for all code changes by agents and contributors.
 ## Principles
 
 - **Self-explanatory code** - Clear names, no unnecessary comments
-- **Self-explanatory docs** - Package READMEs must follow the mandatory structure in `PROJECT-STRUCTURE.md#readme-standard-mandatory-for-all-packages`
+- **Drift-resistant docs** - Prefer linking to canonical examples over duplicating code; document patterns not implementations
 - **No `any` types** - Full type safety required
 - **No type-assertion shortcuts** - Avoid `as any`, `as unknown as`, and casting to bypass compiler errors; prefer precise types, `unknown` with guards, and `satisfies`
 - **Type-safe boundaries** - Validate untrusted runtime values at boundaries and narrow them with type guards before usage
 - **Direct imports** - No convenience re-exports
 - **Small functions** - Single responsibility
 - **No alias clutter** - Do not keep deprecated compatibility aliases after renames unless migration support is explicitly required
+- **Public-first ordering** - File ordering: imports → types/interfaces → public exports → private/const helpers
 
 ### Type-safety rules
 
@@ -28,6 +29,15 @@ These conventions are mandatory for all code changes by agents and contributors.
 - **Constants**: UPPER_SNAKE_CASE (`MAX_RETRIES`)
 - **Types**: PascalCase (`TaskStatus`)
 
+## Canonical examples (drift-resistant)
+
+Prefer linking to these files over copying snippets into agent docs:
+
+- `packages/core/README.md` - current public usage examples
+- `packages/core/src/domain/errors/application.error.ts` - canonical error classes and codes
+- `packages/core/src/application/use-case.ts` - canonical `UseCase` contract
+- `packages/core/src/application/service.base.ts` - canonical `ServiceBase` contract
+
 ## Error Classes
 
 All errors extend `ApplicationError` with `code` and optional `context`:
@@ -42,31 +52,3 @@ All errors extend `ApplicationError` with `code` and optional `context`:
 | `ForbiddenError`      | `FORBIDDEN_ERROR`      | Permission denied          |
 | `InvariantError`      | `INVARIANT_ERROR`      | Business rule violations   |
 | `InfrastructureError` | `INFRASTRUCTURE_ERROR` | External service failures  |
-
-## Canonical examples (drift-resistant)
-
-Prefer linking to these files over copying snippets into agent docs:
-
-- `packages/core/README.md` - current public usage examples for core
-- `packages/nestjs/README.md` - current NestJS integration examples
-- `packages/aws-lambda/README.md` - current Lambda integration examples
-- `packages/observability/README.md` - current observability integration examples
-- `packages/core/src/domain/errors/application.error.ts` - canonical error classes and codes
-- `packages/core/src/application/use-case.ts` - canonical `UseCase` contract
-- `packages/core/src/application/service.base.ts` - canonical `ServiceBase` contract
-
-### Logging guidance
-
-- **Default**: inside `UseCase.executeInternal` and `ServiceBase` code, use the injected `LoggingPort`.
-- **Isolated execution units only**: use observability execution observers for background/fire-and-forget tasks, fan-out batch items, or workflow/job steps that should have their own execution envelope.
-- Avoid double-wrapping the same execution path with both patterns unless you explicitly need separate parent/child execution traces.
-
-### Errors
-
-- **Domain errors**: In `UseCase.executeInternal`, throw typed domain errors for expected business failures
-- **Infrastructure errors**: Throw (`NotFoundError`, `ValidationError`, etc.) at the boundary when they are not part of the business result contract
-
-### Imports and exports
-
-- Prefer package subpaths that match responsibility (`/application`, `/domain`, `/infrastructure`).
-- Treat package `README.md` export tables and each package `package.json` `exports` field as the source of truth.

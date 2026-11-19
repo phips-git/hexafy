@@ -1,5 +1,14 @@
 import type { LoggingPort } from '../../../application/ports';
 
+const RESERVED_ERROR_KEYS = new Set([
+  'name',
+  'message',
+  'stack',
+  'cause',
+  'logLevel'
+]);
+
+/** Creates a log entry JSON string from log components. */
 function createLogEntry(
   level: 'info' | 'debug' | 'warn' | 'error',
   message: string,
@@ -34,14 +43,7 @@ function createLogEntry(
   }
 }
 
-const RESERVED_ERROR_KEYS = new Set([
-  'name',
-  'message',
-  'stack',
-  'cause',
-  'logLevel'
-]);
-
+/** Normalizes an Error for logging, handling circular references. */
 function normalizeErrorForLog(
   error: Error,
   seen = new WeakSet<object>()
@@ -79,6 +81,10 @@ function normalizeErrorForLog(
   return normalized;
 }
 
+/**
+ * Recursively normalizes values for JSON serialization, detecting circular
+ * references.
+ */
 function normalizeLogValue(value: unknown, seen: WeakSet<object>): unknown {
   if (value instanceof Error) {
     return normalizeErrorForLog(value, seen);
@@ -110,11 +116,17 @@ function normalizeLogValue(value: unknown, seen: WeakSet<object>): unknown {
   return normalized;
 }
 
+/** Type guard for plain JavaScript objects. */
 function isPlainObject(value: object): value is Record<string, unknown> {
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
 
+/**
+ * JSON console logging adapter.
+ *
+ * @param component - Optional component name for log entries
+ */
 export const JSONConsoleLoggingAdapter = (component?: string): LoggingPort => ({
   info: (message, context) =>
     console.info(createLogEntry('info', message, component, context)),

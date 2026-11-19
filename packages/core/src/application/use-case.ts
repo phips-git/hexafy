@@ -124,13 +124,13 @@ export abstract class UseCase<
     if (config.timeoutMs !== undefined) {
       if (!Number.isFinite(config.timeoutMs) || config.timeoutMs <= 0) {
         throw new RangeError(
-          'Usecase timeoutMs must be a finite number greater than 0.'
+          'UseCase timeoutMs must be a finite number greater than 0.'
         );
       }
 
       if (config.timeoutMs > MAX_TIMEOUT_MS) {
         throw new RangeError(
-          `Usecase timeoutMs must be less than or equal to ${MAX_TIMEOUT_MS}.`
+          `UseCase timeoutMs must be less than or equal to ${MAX_TIMEOUT_MS}.`
         );
       }
     }

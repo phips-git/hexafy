@@ -162,7 +162,7 @@ class AsyncDelayUseCase extends TestUseCase<{ delay: number }, string> {
   }
 }
 
-describe('Usecase', () => {
+describe('UseCase', () => {
   describe('execute() - Happy Path', () => {
     it('returns success result when use case completes successfully', async () => {
       const useCase = new SuccessUseCase();
@@ -424,16 +424,16 @@ describe('Usecase', () => {
   describe('Configuration validation', () => {
     it('rejects non-positive timeoutMs values during construction', () => {
       expect(() => new SuccessUseCase({ timeoutMs: 0 })).toThrow(
-        'Usecase timeoutMs must be a finite number greater than 0.'
+        'UseCase timeoutMs must be a finite number greater than 0.'
       );
       expect(() => new SuccessUseCase({ timeoutMs: -1 })).toThrow(
-        'Usecase timeoutMs must be a finite number greater than 0.'
+        'UseCase timeoutMs must be a finite number greater than 0.'
       );
     });
 
     it('rejects timeoutMs values beyond the safe timer range', () => {
       expect(() => new SuccessUseCase({ timeoutMs: 2_147_483_648 })).toThrow(
-        'Usecase timeoutMs must be less than or equal to 2147483647.'
+        'UseCase timeoutMs must be less than or equal to 2147483647.'
       );
     });
   });

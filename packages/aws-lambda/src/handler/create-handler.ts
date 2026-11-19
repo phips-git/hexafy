@@ -129,14 +129,6 @@ export function createLambdaHandler<Input, Output>(
   };
 }
 
-function readErrorTimestamp(error: Error): string | undefined {
-  const maybeTimestamp = (error as { timestamp?: unknown }).timestamp;
-  if (maybeTimestamp instanceof Date) {
-    return maybeTimestamp.toISOString();
-  }
-  return undefined;
-}
-
 /** Standard JSON response formatter */
 export function formatJsonResponse<T>(output: T): APIGatewayResponse {
   return {
@@ -229,7 +221,7 @@ export function formatError(error: Error): APIGatewayErrorResponse {
   };
 }
 
-/** Extract status code from domain error or HTTP error messages */
+/** Extracts status code from domain error or HTTP error messages. */
 function getDomainErrorStatusCode(error: Error): number {
   if (error instanceof Error) {
     // Check if error name indicates a specific HTTP code
@@ -251,4 +243,13 @@ function getDomainErrorStatusCode(error: Error): number {
   }
 
   return 500;
+}
+
+/** Extracts an ISO timestamp from an error's timestamp property if present. */
+function readErrorTimestamp(error: Error): string | undefined {
+  const maybeTimestamp = (error as { timestamp?: unknown }).timestamp;
+  if (maybeTimestamp instanceof Date) {
+    return maybeTimestamp.toISOString();
+  }
+  return undefined;
 }
