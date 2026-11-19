@@ -1,5 +1,11 @@
 # @hexafy/core
 
+## 1.0.0-rc.6
+
+### Patch Changes
+
+- 536ccc9: Clean up code & docs
+
 ## 1.0.0-rc.5
 
 ### Patch Changes
