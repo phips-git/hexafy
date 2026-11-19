@@ -4,13 +4,7 @@ import type {
   Context
 } from 'aws-lambda';
 
-type AuthorizationContext = {
-  tenantId: string;
-  projectId: string | null;
-  role: string;
-};
-
-import { buildLambdaErrorResponse, getDeleteProjectUsecase } from './shared';
+import { buildLambdaErrorResponse, getDeleteProjectUseCase } from './shared';
 import { authenticateUser } from './shared/auth';
 
 export const handler = async (
@@ -46,14 +40,7 @@ export const handler = async (
       };
     }
 
-    const authorizationContext: AuthorizationContext = {
-      tenantId: user.tenantId,
-      projectId,
-      role: user.role
-    };
-
-    await getDeleteProjectUsecase().execute({
-      authorizationContext,
+    await getDeleteProjectUseCase().execute({
       projectId
     });
 

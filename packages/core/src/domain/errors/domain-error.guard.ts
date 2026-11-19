@@ -31,6 +31,20 @@ export function isDomainError(value: unknown): value is DomainErrorLike {
   return code !== undefined;
 }
 
+/**
+ * Extracts the error code from an error, either from its `code` property or
+ * derived from its `name`. Returns `undefined` if no code is found.
+ */
+export function getDomainErrorCode(error: Error): string | undefined {
+  const explicitCode = readCode(error);
+  if (explicitCode) {
+    return explicitCode;
+  }
+
+  const nameAsCode = toCodeFromName(error.name);
+  return nameAsCode ?? undefined;
+}
+
 const KNOWN_DOMAIN_ERROR_NAMES = new Set<string>([
   'ApplicationError',
   'ValidationError',
@@ -38,26 +52,9 @@ const KNOWN_DOMAIN_ERROR_NAMES = new Set<string>([
   'ConflictError',
   'UnauthorizedError',
   'ForbiddenError',
-  'InvariantError'
+  'InvariantError',
+  'InfrastructureError'
 ]);
-
-const DOMAIN_ERROR_CODE_ALIASES: Record<string, string> = {
-  UNAUTHORIZED: 'UNAUTHORIZED_ERROR',
-  FORBIDDEN: 'FORBIDDEN_ERROR',
-  NOT_FOUND: 'NOT_FOUND_ERROR',
-  VALIDATION: 'VALIDATION_ERROR',
-  CONFLICT: 'CONFLICT_ERROR'
-};
-
-export function getDomainErrorCode(error: Error): string | undefined {
-  const explicitCode = readCode(error);
-  if (explicitCode) {
-    return DOMAIN_ERROR_CODE_ALIASES[explicitCode] ?? explicitCode;
-  }
-
-  const nameAsCode = toCodeFromName(error.name);
-  return nameAsCode ?? undefined;
-}
 
 function readCode(error: Error): string | undefined {
   const code = (error as DomainErrorLike).code;

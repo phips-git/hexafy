@@ -1,31 +1,23 @@
-import { createLambdaHandler, parseJsonBody } from '@hexafy/aws-lambda';
-import { consoleLogger } from '@hexafy/core';
+import {
+  type APIGatewayEvent,
+  createLambdaHandler,
+  formatError,
+  formatJsonResponse,
+  parseJsonBody
+} from '@hexafy/aws-lambda';
+import {
+  type SayHelloInput,
+  type SayHelloOutput,
+  SayHelloUseCase
+} from '@hexafy/example-domain/application';
 
-import { SayHelloUseCase } from '../domain/usecases/say-hello.usecase';
+const sayHelloUseCase = new SayHelloUseCase();
 
-const sayHelloUseCase = new SayHelloUseCase({
-  generateId: () => `hello_${Date.now()}`,
-  loggerFactory: (_name) => consoleLogger
-});
-
-export const handler = createLambdaHandler({
+export const handler = createLambdaHandler<SayHelloInput, SayHelloOutput>({
   useCase: sayHelloUseCase,
-  inputTransformer: parseJsonBody,
-  responseFormatter: (output) => ({
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(output)
-  }),
-  errorFormatter: (error) => ({
-    statusCode: error.message.includes('required') ? 400 : 500,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      success: false,
-      error: error.message
-    })
-  })
+  inputTransformer: (event: APIGatewayEvent): SayHelloInput => {
+    return parseJsonBody(event) as SayHelloInput;
+  },
+  responseFormatter: formatJsonResponse,
+  errorFormatter: formatError
 });

@@ -111,6 +111,7 @@ export class HttpUnauthorizedError extends ApplicationError {
   constructor(message = 'Unauthorized', details?: ApplicationErrorDetails) {
     const options = normalizeApplicationErrorDetails(details);
     super(message, { ...options, code: 'HTTP_UNAUTHORIZED_ERROR' });
+    this.name = 'HttpUnauthorizedError';
   }
 }
 
@@ -129,6 +130,56 @@ export class HttpForbiddenError extends ApplicationError {
   constructor(message = 'Forbidden', details?: ApplicationErrorDetails) {
     const options = normalizeApplicationErrorDetails(details);
     super(message, { ...options, code: 'HTTP_FORBIDDEN_ERROR' });
+    this.name = 'HttpForbiddenError';
+  }
+}
+
+export class ValidationError extends ApplicationError {
+  constructor(
+    message = 'Validation failed',
+    details?: ApplicationErrorDetails
+  ) {
+    const options = normalizeApplicationErrorDetails(details);
+    super(message, { ...options, code: 'VALIDATION_ERROR' });
+    this.name = 'ValidationError';
+  }
+}
+
+/**
+ * Conflict error for resource conflicts (e.g., duplicate entries).
+ *
+ * @example
+ *   ```typescript
+ *   throw new ConflictError('Email already registered');
+ *   ```;
+ *
+ * @param message - Optional error message (default: 'Conflict')
+ * @param details - Optional error details
+ */
+export class ConflictError extends ApplicationError {
+  constructor(message = 'Conflict', details?: ApplicationErrorDetails) {
+    const options = normalizeApplicationErrorDetails(details);
+    super(message, { ...options, code: 'CONFLICT_ERROR' });
+    this.name = 'ConflictError';
+  }
+}
+
+/**
+ * Not found error for missing resources.
+ *
+ * @example
+ *   ```typescript
+ *   throw new NotFoundError('User not found');
+ *   ```;
+ *
+ * @param message - Optional error message (default: 'Not found')
+ * @param details - Optional error details
+ */
+export class NotFoundError extends ApplicationError {
+  constructor(message = 'Not found', details?: ApplicationErrorDetails) {
+    const options = normalizeApplicationErrorDetails(details);
+    super(message, { ...options, code: 'NOT_FOUND_ERROR' });
+    this.name = 'NotFoundError';
   }
 }
 

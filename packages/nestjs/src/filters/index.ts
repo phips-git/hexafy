@@ -1,5 +1,6 @@
 export {
   DomainExceptionFilter,
   HttpExceptionFilter,
-  InfrastructureExceptionFilter
+  InfrastructureExceptionFilter,
+  UnhandledExceptionFilter
 } from './domain-exception-filter';

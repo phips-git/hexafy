@@ -23,7 +23,7 @@ export interface AggregatingLoggerAdapterOptions {
 /**
  * Logger adapter that buffers step-level log events and emits one summary log.
  *
- * Useful for use-case level execution reporting where consumers want one final
+ * Useful for use case level execution reporting where consumers want one final
  * structured event that includes all intermediate events.
  */
 export class AggregatingLoggerAdapter implements LoggingPort {

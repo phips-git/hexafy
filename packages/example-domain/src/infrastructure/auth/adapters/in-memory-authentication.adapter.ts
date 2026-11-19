@@ -1,5 +1,10 @@
-import type { User } from '../../domain/auth/models';
-import type { AuthenticationPort, UserPort } from '../../domain/auth/ports';
+import type { Brand } from '@hexafy/core/domain';
+
+import type { AuthenticationPort, UserPort } from '../../../application/ports';
+import type { User } from '../../../domain/auth/models';
+
+type BrandedUserId = Brand<string, 'UserId'>;
+type BrandedTenantId = Brand<string, 'TenantId'>;
 
 export class InMemoryAuthenticationAdapter implements AuthenticationPort {
   constructor(private readonly userRepository: UserPort) {}
@@ -11,6 +16,7 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
       throw new Error('Invalid credentials');
     }
 
+    // In a real implementation, you would verify the password hash
     if (password !== 'password123') {
       throw new Error('Invalid credentials');
     }
@@ -20,7 +26,7 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
 
   async register(
     email: string,
-    password: string,
+    _password: string,
     name?: string
   ): Promise<User> {
     const existingUser = await this.userRepository.findByEmail(email);
@@ -28,22 +34,25 @@ export class InMemoryAuthenticationAdapter implements AuthenticationPort {
       throw new Error('User already exists');
     }
 
-    const user = await this.userRepository.save({
-      id: `user_${Date.now()}`,
-      tenantId: `tenant_${Date.now()}`,
+    const userId = `user_${Date.now()}` as BrandedUserId;
+    const tenantId = `tenant_${Date.now()}` as BrandedTenantId;
+
+    const user: User = {
+      id: userId,
+      tenantId,
       email,
       name: name ?? null,
-      role: 'member' as const,
+      role: 'member',
       createdAt: new Date(),
       updatedAt: new Date()
-    });
+    };
 
-    return user;
+    return this.userRepository.save(user);
   }
 
   async validateToken(token: string): Promise<User | null> {
     if (token.startsWith('mock_token_')) {
-      const userId = token.replace('mock_token_', '');
+      const userId = token.replace('mock_token_', '') as BrandedUserId;
       return this.userRepository.findById(userId);
     }
 

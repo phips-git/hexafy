@@ -5,7 +5,10 @@ export class ProjectPolicy {
     return name.trim().length >= 1 && name.trim().length <= 100;
   }
 
-  static canArchiveProject(project: Project, hasActiveTasks: boolean): boolean {
+  static canArchiveProject(
+    _project: Project,
+    hasActiveTasks: boolean
+  ): boolean {
     if (hasActiveTasks) {
       throw new Error('Cannot archive project with active tasks');
     }

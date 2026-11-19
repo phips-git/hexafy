@@ -5,6 +5,8 @@ import type { ProjectId } from './project';
 import type { TaskPriority } from './task-priority.enum';
 import type { TaskStatus } from './task-status.enum';
 
+export type { UserId };
+
 export type TaskId = Brand<string, 'TaskId'>;
 
 export interface Task {
@@ -30,20 +32,39 @@ export interface TaskListItem {
 
 export type TaskCreationProperties = Pick<
   Task,
-  'title' | 'description' | 'priority' | 'assignedTo' | 'dueDate'
->;
-export type ValidTaskCreationProperties = Brand<
-  TaskCreationProperties,
-  'ValidTaskCreationProperties'
->;
+  'projectId' | 'title' | 'description' | 'priority' | 'assignedTo' | 'dueDate'
+> & {
+  projectId: Brand<string, 'ProjectId'>;
+  assignedTo: Brand<string, 'UserId'> | null;
+};
 
 export type TaskUpdateProperties = Partial<
   Pick<
     Task,
     'title' | 'description' | 'status' | 'priority' | 'assignedTo' | 'dueDate'
   >
->;
-export type ValidTaskUpdateProperties = Brand<
-  TaskUpdateProperties,
-  'ValidTaskUpdateProperties'
->;
+> & {
+  assignedTo?: Brand<string, 'UserId'> | null;
+};
+
+// External input types for HTTP handlers (unbranded)
+export type CreateTaskInput = {
+  projectId: string;
+  title: string;
+  description: string | null;
+  priority: 'low' | 'medium' | 'high';
+  assignedTo: string | null;
+  dueDate: Date | null;
+};
+
+export type CompleteTaskInput = {
+  taskId: string;
+};
+
+export type TaskListItemInput = Pick<
+  TaskListItem,
+  'id' | 'projectId' | 'status' | 'priority' | 'createdAt'
+> & {
+  id: string;
+  projectId: string;
+};

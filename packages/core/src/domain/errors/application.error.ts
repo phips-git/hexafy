@@ -1,16 +1,26 @@
+/** Error codes for application and domain errors. */
+export const ErrorCodes = {
+  APPLICATION_ERROR: 'APPLICATION_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  NOT_FOUND_ERROR: 'NOT_FOUND_ERROR',
+  CONFLICT_ERROR: 'CONFLICT_ERROR',
+  UNAUTHORIZED_ERROR: 'UNAUTHORIZED_ERROR',
+  FORBIDDEN_ERROR: 'FORBIDDEN_ERROR',
+  INVARIANT_ERROR: 'INVARIANT_ERROR',
+  INFRASTRUCTURE_ERROR: 'INFRASTRUCTURE_ERROR'
+} as const;
+
+export type ErrorCodes = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
 /** Error metadata used by application and domain errors. */
 export interface ApplicationErrorOptions {
-  /** Machine-readable error code. */
+  /** Machine-readable error code. Defaults are provided per error type. */
   code?: string;
   /** Structured debugging context. */
   context?: Record<string, unknown>;
   /** Underlying cause. */
   cause?: unknown;
 }
-
-/** Error details accepted by application/domain error factories. */
-export type ApplicationErrorDetails =
-  Omit<ApplicationErrorOptions, 'code'> | unknown;
 
 /** Base error for application and domain boundaries. */
 export class ApplicationError extends Error {
@@ -23,7 +33,7 @@ export class ApplicationError extends Error {
     Object.setPrototypeOf(this, new.target.prototype);
 
     this.name = new.target.name;
-    this.code = options.code ?? 'APPLICATION_ERROR';
+    this.code = options.code ?? ErrorCodes.APPLICATION_ERROR;
     this.context = options.context;
   }
 }
@@ -32,22 +42,25 @@ export class ApplicationError extends Error {
 export class ValidationError extends ApplicationError {
   constructor(
     message = 'Validation failed',
-    details?: ApplicationErrorDetails
+    options?: ApplicationErrorOptions
   ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'VALIDATION_ERROR' });
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.VALIDATION_ERROR
+    });
   }
 }
 
 /** Error raised when a required resource is missing. */
 export class NotFoundError extends ApplicationError {
   constructor(
-    resourceOrMessage = 'Resource',
-    details?: ApplicationErrorDetails
+    message = 'Resource not found',
+    options?: ApplicationErrorOptions
   ) {
-    const options = normalizeApplicationErrorDetails(details);
-    const message = toNotFoundMessage(resourceOrMessage);
-    super(message, { ...options, code: 'NOT_FOUND_ERROR' });
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.NOT_FOUND_ERROR
+    });
   }
 }
 
@@ -55,26 +68,32 @@ export class NotFoundError extends ApplicationError {
 export class ConflictError extends ApplicationError {
   constructor(
     message = 'Conflict detected',
-    details?: ApplicationErrorDetails
+    options?: ApplicationErrorOptions
   ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'CONFLICT_ERROR' });
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.CONFLICT_ERROR
+    });
   }
 }
 
 /** Error raised when authentication is missing or invalid. */
 export class UnauthorizedError extends ApplicationError {
-  constructor(message = 'Unauthorized', details?: ApplicationErrorDetails) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'UNAUTHORIZED_ERROR' });
+  constructor(message = 'Unauthorized', options?: ApplicationErrorOptions) {
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.UNAUTHORIZED_ERROR
+    });
   }
 }
 
 /** Error raised when the caller lacks permission. */
 export class ForbiddenError extends ApplicationError {
-  constructor(message = 'Forbidden', details?: ApplicationErrorDetails) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'FORBIDDEN_ERROR' });
+  constructor(message = 'Forbidden', options?: ApplicationErrorOptions) {
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.FORBIDDEN_ERROR
+    });
   }
 }
 
@@ -82,10 +101,12 @@ export class ForbiddenError extends ApplicationError {
 export class InvariantError extends ApplicationError {
   constructor(
     message = 'Invariant violated',
-    details?: ApplicationErrorDetails
+    options?: ApplicationErrorOptions
   ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'INVARIANT_ERROR' });
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.INVARIANT_ERROR
+    });
   }
 }
 
@@ -93,45 +114,11 @@ export class InvariantError extends ApplicationError {
 export class InfrastructureError extends ApplicationError {
   constructor(
     message = 'Infrastructure failure',
-    details?: ApplicationErrorDetails
+    options?: ApplicationErrorOptions
   ) {
-    const options = normalizeApplicationErrorDetails(details);
-    super(message, { ...options, code: 'INFRASTRUCTURE_ERROR' });
+    super(message, {
+      ...options,
+      code: options?.code ?? ErrorCodes.INFRASTRUCTURE_ERROR
+    });
   }
-}
-
-function normalizeApplicationErrorDetails(
-  details: ApplicationErrorDetails | undefined
-): Omit<ApplicationErrorOptions, 'code'> {
-  if (details === undefined) {
-    return {};
-  }
-
-  if (isErrorOptions(details)) {
-    return details;
-  }
-
-  return { cause: details };
-}
-
-function isErrorOptions(
-  value: unknown
-): value is Omit<ApplicationErrorOptions, 'code'> {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    ('context' in value || 'cause' in value)
-  );
-}
-
-function toNotFoundMessage(resourceOrMessage: string): string {
-  if (resourceOrMessage.trim().length === 0) {
-    return 'Resource not found';
-  }
-
-  if (/not found/i.test(resourceOrMessage)) {
-    return resourceOrMessage;
-  }
-
-  return `${resourceOrMessage} not found`;
 }

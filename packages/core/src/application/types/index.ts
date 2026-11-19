@@ -1,2 +1,2 @@
-export * from './usecase-execution-error.type';
-export * from './usecase-result.type';
+export * from './use-case-execution-error.type';
+export * from './use-case-result.type';

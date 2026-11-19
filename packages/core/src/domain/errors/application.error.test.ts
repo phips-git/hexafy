@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   ApplicationError,
   ConflictError,
+  ErrorCodes,
   ForbiddenError,
   InfrastructureError,
   InvariantError,
@@ -22,40 +23,58 @@ describe('application.error', () => {
   it('keeps custom code/context/cause', () => {
     const cause = new Error('root');
     const error = new ApplicationError('message', {
-      code: 'CUSTOM',
+      code: ErrorCodes.UNAUTHORIZED_ERROR,
       context: { op: 'test' },
       cause
     });
 
-    expect(error.code).toBe('CUSTOM');
+    expect(error.code).toBe(ErrorCodes.UNAUTHORIZED_ERROR);
     expect(error.context).toEqual({ op: 'test' });
     expect(error.cause).toBe(cause);
   });
 
-  it('normalizes ValidationError details object and raw cause', () => {
-    const withContext = new ValidationError('invalid', {
-      context: { field: 'email' }
+  it('accepts structured options', () => {
+    const error = new ValidationError('invalid', {
+      context: { field: 'email' },
+      cause: new Error('validation failed')
     });
-    const withCause = new ValidationError('invalid', 'raw-cause');
 
-    expect(withContext.code).toBe('VALIDATION_ERROR');
-    expect(withContext.context).toEqual({ field: 'email' });
-    expect(withCause.cause).toBe('raw-cause');
+    expect(error.code).toBe(ErrorCodes.VALIDATION_ERROR);
+    expect(error.context).toEqual({ field: 'email' });
+    expect(error.cause).toBeInstanceOf(Error);
   });
 
-  it('formats NotFoundError messages correctly', () => {
-    expect(new NotFoundError('User').message).toBe('User not found');
-    expect(new NotFoundError('already not found').message).toBe(
-      'already not found'
-    );
-    expect(new NotFoundError('   ').message).toBe('Resource not found');
+  it('uses default NotFoundError message', () => {
+    expect(new NotFoundError().message).toBe('Resource not found');
   });
 
   it('assigns dedicated codes for specific error classes', () => {
-    expect(new ConflictError().code).toBe('CONFLICT_ERROR');
-    expect(new UnauthorizedError().code).toBe('UNAUTHORIZED_ERROR');
-    expect(new ForbiddenError().code).toBe('FORBIDDEN_ERROR');
-    expect(new InvariantError().code).toBe('INVARIANT_ERROR');
-    expect(new InfrastructureError().code).toBe('INFRASTRUCTURE_ERROR');
+    expect(new ConflictError().code).toBe(ErrorCodes.CONFLICT_ERROR);
+    expect(new UnauthorizedError().code).toBe(ErrorCodes.UNAUTHORIZED_ERROR);
+    expect(new ForbiddenError().code).toBe(ErrorCodes.FORBIDDEN_ERROR);
+    expect(new InvariantError().code).toBe(ErrorCodes.INVARIANT_ERROR);
+    expect(new InfrastructureError().code).toBe(
+      ErrorCodes.INFRASTRUCTURE_ERROR
+    );
+  });
+
+  it('allows custom error codes on ApplicationError', () => {
+    const error = new ApplicationError('custom', {
+      code: 'CUSTOM_CODE'
+    });
+    expect(error.code).toBe('CUSTOM_CODE');
+  });
+
+  it('allows subclasses to override error codes', () => {
+    const error = new ValidationError('invalid', {
+      code: 'CUSTOM_VALIDATION'
+    });
+    expect(error.code).toBe('CUSTOM_VALIDATION');
+  });
+
+  it('uses default codes when not overridden', () => {
+    expect(new ValidationError().code).toBe(ErrorCodes.VALIDATION_ERROR);
+    expect(new NotFoundError().code).toBe(ErrorCodes.NOT_FOUND_ERROR);
+    expect(new ConflictError().code).toBe(ErrorCodes.CONFLICT_ERROR);
   });
 });

@@ -1,11 +1,15 @@
-import type { User } from '../../domain/auth/models';
-import type { UserPort } from '../../domain/auth/ports';
+import type { Brand } from '@hexafy/core/domain';
+
+import type { UserPort } from '../../../application/ports';
+import type { User } from '../../../domain';
+
+type BrandedUserId = Brand<string, 'UserId'>;
 
 export class InMemoryUserRepository implements UserPort {
-  private readonly users: Map<string, User> = new Map();
+  private readonly users: Map<BrandedUserId, User> = new Map();
 
   async findById(id: string): Promise<User | null> {
-    return this.users.get(id) ?? null;
+    return this.users.get(id as BrandedUserId) ?? null;
   }
 
   async findByEmail(email: string): Promise<User | null> {

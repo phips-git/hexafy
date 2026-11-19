@@ -1,10 +1,10 @@
+import type { UsecaseResult } from '@hexafy/core/application';
+import { SayHelloUseCase } from '@hexafy/example-domain/application';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 
-import {
-  type SayHelloInput,
-  type SayHelloOutput,
-  SayHelloUseCase
-} from '../domain/usecases/say-hello.usecase';
+interface SayHelloOutput {
+  message: string;
+}
 
 @Controller('hello')
 export class HelloController {
@@ -12,8 +12,10 @@ export class HelloController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  async hello(@Body() input: SayHelloInput): Promise<SayHelloOutput> {
-    const result = await this.sayHelloUseCase.execute(input);
+  async hello(@Body() input: { name: string }): Promise<SayHelloOutput> {
+    const result = (await this.sayHelloUseCase.execute(
+      input
+    )) as UsecaseResult<SayHelloOutput>;
 
     if (!result.success) {
       throw result.error;

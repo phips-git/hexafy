@@ -1,5 +1,5 @@
+import type { EmailPort } from '../../application/ports';
 import type { Email } from '../../domain/models';
-import type { EmailPort } from '../../domain/ports';
 
 export class EmailNoopAdapter implements EmailPort {
   private readonly logs: Email[] = [];

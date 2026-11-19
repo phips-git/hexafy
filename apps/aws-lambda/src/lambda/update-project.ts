@@ -1,21 +1,11 @@
+import { InMemoryProjectRepository } from '@hexafy/example-domain/infrastructure';
 import type {
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context
 } from 'aws-lambda';
 
-type AuthorizationContext = {
-  tenantId: string;
-  projectId: string | null;
-  role: string;
-};
-
-type ProjectUpdateProperties = {
-  name?: string;
-  description?: string | null;
-};
-
-import { buildLambdaErrorResponse, getUpdateProjectUsecase } from './shared';
+import { buildLambdaErrorResponse } from './shared';
 import { authenticateUser } from './shared/auth';
 import { UnauthorizedError, ValidationApiError } from './shared/errors';
 
@@ -25,6 +15,8 @@ interface UpdateProjectBody {
     description?: string;
   };
 }
+
+const projectRepository = new InMemoryProjectRepository();
 
 export const handler = async (
   event: APIGatewayProxyEvent,
@@ -59,21 +51,13 @@ export const handler = async (
       throw new ValidationApiError('Project ID is required');
     }
 
-    const authorizationContext: AuthorizationContext = {
-      tenantId: user.tenantId,
-      projectId,
-      role: user.role
-    };
-
-    const updatePropertiesTyped: ProjectUpdateProperties = {
-      name: updateProperties.name,
-      description: updateProperties.description ?? null
-    };
-
-    await getUpdateProjectUsecase().execute({
-      authorizationContext,
-      projectId,
-      updateProperties: updatePropertiesTyped
+    await projectRepository.update(projectId, {
+      ...(updateProperties.name !== undefined && {
+        name: updateProperties.name
+      }),
+      ...(updateProperties.description !== undefined && {
+        description: updateProperties.description ?? null
+      })
     });
 
     return {

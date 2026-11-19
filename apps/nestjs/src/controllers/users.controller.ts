@@ -1,24 +1,28 @@
+import { CreateUseCase } from '@hexafy/example-domain/application';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-
-import {
-  type CreateUserInput,
-  CreateUserUseCase,
-  type UserCreated
-} from '../domain/usecases/create-user.usecase';
 
 interface CreateResponse {
   success: true;
-  data: UserCreated;
+  data: {
+    user: { id: string; email: string; name: string | null };
+    token: string;
+  };
 }
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
+  constructor(private readonly createUserUseCase: CreateUseCase) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createUser(@Body() input: CreateUserInput): Promise<CreateResponse> {
-    const result = await this.createUserUseCase.execute(input);
+  async createUser(
+    @Body() input: { name: string; email: string; password: string }
+  ): Promise<CreateResponse> {
+    const result = await this.createUserUseCase.execute({
+      email: input.email,
+      password: input.password,
+      name: input.name
+    });
 
     if (!result.success) {
       throw result.error;

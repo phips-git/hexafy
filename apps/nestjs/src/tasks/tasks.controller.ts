@@ -1,89 +1,91 @@
+import type { UsecaseResult } from '@hexafy/core/application';
+import {
+  CompleteTaskUseCase,
+  CreateTaskUseCase
+} from '@hexafy/example-domain/application';
+import type {
+  ProjectId,
+  Task,
+  TaskId,
+  UserId
+} from '@hexafy/example-domain/domain';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
-  Post,
-  Put,
-  UseGuards
+  Post
 } from '@nestjs/common';
 
-import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
-import { CreateTaskDto, UpdateTaskDto } from './dtos/create-task.dto';
-import { TasksService } from './tasks.service';
-
-interface AuthenticatedUserLike {
+interface TaskResponse {
   id: string;
-  role: string;
+  title: string;
+  status: string;
+  priority: string;
+  createdAt: string;
 }
 
-@UseGuards(JwtAuthGuard)
-@Controller('projects/:projectId/tasks')
+@Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly createTaskUseCase: CreateTaskUseCase,
+    private readonly completeTaskUseCase: CompleteTaskUseCase
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createTask(
-    @Param('projectId') projectId: string,
-    @Body() createTaskDto: CreateTaskDto
-  ): Promise<{ taskId: string }> {
-    return this.tasksService.createTask(createTaskDto, projectId, {
-      tenantId: 'demo-tenant',
-      projectId,
-      role: 'user'
-    });
-  }
+    @Body()
+    input: {
+      title: string;
+      description?: string | null;
+      projectId: string;
+      priority?: 'low' | 'medium' | 'high';
+      assignedTo?: string | null;
+      dueDate?: string | null;
+    }
+  ): Promise<TaskResponse> {
+    const result = (await this.createTaskUseCase.execute({
+      projectId: input.projectId as ProjectId,
+      title: input.title,
+      description: input.description ?? null,
+      priority: input.priority ?? 'medium',
+      assignedTo: input.assignedTo as UserId,
+      dueDate: input.dueDate ? new Date(input.dueDate) : null
+    })) as UsecaseResult<Task>;
 
-  @Get(':taskId')
-  async getTask(
-    @Param('projectId') projectId: string,
-    @Param('taskId') taskId: string
-  ): Promise<{ task: unknown }> {
-    return { task: await this.tasksService.getTask(projectId, taskId) };
-  }
+    if (!result.success) {
+      throw result.error;
+    }
 
-  @Get()
-  async listTasks(
-    @Param('projectId') projectId: string
-  ): Promise<{ tasks: unknown[] }> {
-    return { tasks: await this.tasksService.getTasksForProject(projectId) };
-  }
-
-  @Put(':taskId')
-  async updateTask(
-    @Param('projectId') projectId: string,
-    @Param('taskId') taskId: string,
-    @Body() updateTaskDto: UpdateTaskDto
-  ): Promise<{ taskId: string }> {
-    return this.tasksService.updateTask(taskId, projectId, updateTaskDto, {
-      tenantId: 'demo-tenant',
-      projectId,
-      role: 'user'
-    });
-  }
-
-  @Delete(':taskId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteTask(
-    @Param('projectId') projectId: string,
-    @Param('taskId') taskId: string
-  ): Promise<void> {
-    await this.tasksService.deleteTask(taskId, projectId, {
-      tenantId: 'demo-tenant',
-      projectId,
-      role: 'user'
-    });
-  }
-
-  private mapUserToAuthContext(user: AuthenticatedUserLike) {
     return {
-      tenantId: user.id,
-      projectId: '',
-      role: user.role
+      id: result.value.id,
+      title: result.value.title,
+      status: result.value.status,
+      priority: result.value.priority,
+      createdAt: result.value.createdAt.toISOString()
     };
+  }
+
+  @Post(':taskId/complete')
+  @HttpCode(HttpStatus.OK)
+  async completeTask(@Param('taskId') taskId: string) {
+    const result = (await this.completeTaskUseCase.execute({
+      taskId: taskId as TaskId
+    })) as UsecaseResult<void>;
+
+    if (!result.success) {
+      throw result.error;
+    }
+
+    return { success: true };
+  }
+
+  @Get('project/:projectId')
+  @HttpCode(HttpStatus.OK)
+  async listTasks(@Param('projectId') projectId: string) {
+    return { projectId };
   }
 }

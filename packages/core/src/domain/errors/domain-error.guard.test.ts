@@ -19,15 +19,21 @@ describe('domain-error.guard', () => {
     expect(isDomainError('not-an-error')).toBe(false);
   });
 
-  it('resolves canonical domain error codes', () => {
-    const withAlias = new Error('x') as Error & { code: string };
-    withAlias.code = ' not_found ';
-    expect(getDomainErrorCode(withAlias)).toBe('NOT_FOUND_ERROR');
+  it('returns explicit codes as-is', () => {
+    const withCode = new Error('x') as Error & { code: string };
+    withCode.code = 'NOT_FOUND_ERROR';
+    expect(getDomainErrorCode(withCode)).toBe('NOT_FOUND_ERROR');
 
     const custom = new Error('x') as Error & { code: string };
-    custom.code = 'custom_code';
+    custom.code = 'CUSTOM_CODE';
     expect(getDomainErrorCode(custom)).toBe('CUSTOM_CODE');
 
+    const trimmed = new Error('x') as Error & { code: string };
+    trimmed.code = ' NOT_FOUND ';
+    expect(getDomainErrorCode(trimmed)).toBe('NOT_FOUND');
+  });
+
+  it('derives codes from error names', () => {
     const byName = new Error('x');
     byName.name = 'ValidationError';
     expect(getDomainErrorCode(byName)).toBe('VALIDATION_ERROR');
@@ -38,7 +44,9 @@ describe('domain-error.guard', () => {
 
     const app = new ApplicationError('x');
     expect(getDomainErrorCode(app)).toBe('APPLICATION_ERROR');
+  });
 
+  it('returns undefined for unknown errors', () => {
     expect(getDomainErrorCode(new Error('plain'))).toBeUndefined();
   });
 });

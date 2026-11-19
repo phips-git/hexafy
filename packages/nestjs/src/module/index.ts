@@ -1,6 +1,5 @@
 export {
   createDomainModule,
-  createInfrastructureModule,
-  DomainModule,
-  InfrastructureModule
+  createInfrastructureModule
 } from './hexagonal.module';
+export type { DomainModule, InfrastructureModule } from './hexagonal.module';

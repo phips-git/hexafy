@@ -63,7 +63,7 @@ export interface IsolatedExecutionObserver {
  * It composes correlation + aggregation adapters and emits one summary event
  * per successful execution, or one failure event on error.
  *
- * Prefer the injected `LoggingPort` directly inside `Usecase.executeInternal`
+ * Prefer the injected `LoggingPort` directly inside `UseCase.executeInternal`
  * and `ServiceBase` methods. Use this adapter when work should be tracked as a
  * separate execution unit.
  */

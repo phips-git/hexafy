@@ -14,7 +14,7 @@ describe('ServiceBase', () => {
   });
 
   it('uses injected logger, clock, and metrics when provided', () => {
-    const logging = {
+    const logger = {
       info: () => {},
       debug: () => {},
       warn: () => {},
@@ -28,12 +28,12 @@ describe('ServiceBase', () => {
     };
 
     const service = new TestService({
-      logging,
+      logger,
       clock,
       metrics
     });
 
-    expect(service['logger']).toBe(logging);
+    expect(service['logger']).toBe(logger);
     expect(service['clock']).toBe(clock);
     expect(service['metrics']).toBe(metrics);
   });

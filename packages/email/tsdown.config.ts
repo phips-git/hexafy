@@ -2,7 +2,8 @@ import { createPackageConfig } from '@hexafy/tsdown-config';
 
 export default createPackageConfig({
   entry: {
-    domain: 'src/domain.export.ts',
-    infrastructure: 'src/infrastructure.export.ts'
+    application: 'src/application/index.ts',
+    domain: 'src/domain/index.ts',
+    infrastructure: 'src/infrastructure/index.ts'
   }
 });

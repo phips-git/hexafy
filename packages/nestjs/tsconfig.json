@@ -1,10 +1,9 @@
 {
   "extends": "@hexafy/typescript-config/publish",
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "bun"],
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["**/*.test.ts"]
+  "include": ["src/**/*.ts", "src/**/*.test.ts"]
 }

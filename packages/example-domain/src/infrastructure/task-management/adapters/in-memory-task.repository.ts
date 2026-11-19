@@ -1,15 +1,19 @@
+import type { Brand } from '@hexafy/core/domain';
+
+import type { TaskPort } from '../../../application/ports';
 import type {
   Task,
   TaskCreationProperties,
   TaskUpdateProperties
-} from '../../domain/task-management/models/task';
-import type { TaskPort } from '../../domain/task-management/ports';
+} from '../../../domain';
+
+type BrandedTaskId = Brand<string, 'TaskId'>;
 
 export class InMemoryTaskRepository implements TaskPort {
-  private readonly tasks: Map<string, Task> = new Map();
+  private readonly tasks: Map<BrandedTaskId, Task> = new Map();
 
   async findById(id: string): Promise<Task | null> {
-    return this.tasks.get(id) ?? null;
+    return this.tasks.get(id as BrandedTaskId) ?? null;
   }
 
   async findByProjectId(projectId: string): Promise<Task[]> {
@@ -25,8 +29,10 @@ export class InMemoryTaskRepository implements TaskPort {
   }
 
   async create(data: TaskCreationProperties): Promise<Task> {
+    const taskId = `task_${Date.now()}` as BrandedTaskId;
+
     const task: Task = {
-      id: `task_${Date.now()}`,
+      id: taskId,
       projectId: data.projectId,
       title: data.title,
       description: data.description,
@@ -43,7 +49,7 @@ export class InMemoryTaskRepository implements TaskPort {
   }
 
   async update(id: string, data: TaskUpdateProperties): Promise<Task> {
-    const existing = this.tasks.get(id);
+    const existing = this.tasks.get(id as BrandedTaskId);
     if (!existing) {
       throw new Error('Task not found');
     }
@@ -54,11 +60,11 @@ export class InMemoryTaskRepository implements TaskPort {
       updatedAt: new Date()
     };
 
-    this.tasks.set(id, updated);
+    this.tasks.set(updated.id, updated);
     return updated;
   }
 
   async delete(id: string): Promise<void> {
-    this.tasks.delete(id);
+    this.tasks.delete(id as BrandedTaskId);
   }
 }

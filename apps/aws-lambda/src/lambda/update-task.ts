@@ -4,22 +4,16 @@ import type {
   Context
 } from 'aws-lambda';
 
-type AuthorizationContext = {
-  tenantId: string;
-  projectId: string | null;
-  role: string;
-};
-
 type TaskUpdateProperties = {
-  title?: string;
-  description?: string | null;
-  priority?: 'low' | 'medium' | 'high';
-  status?: 'pending' | 'in_progress' | 'completed';
-  assignedTo?: string | null;
-  dueDate?: Date | null;
+  title?: string | undefined;
+  description?: string | null | undefined;
+  priority?: 'low' | 'medium' | 'high' | undefined;
+  status?: 'pending' | 'in_progress' | 'completed' | undefined;
+  assignedTo?: string | null | undefined;
+  dueDate?: Date | null | undefined;
 };
 
-import { buildLambdaErrorResponse, getUpdateTaskUsecase } from './shared';
+import { buildLambdaErrorResponse, getUpdateTaskUseCase } from './shared';
 import { authenticateUser } from './shared/auth';
 import { UnauthorizedError, ValidationApiError } from './shared/errors';
 
@@ -72,37 +66,36 @@ export const handler = async (
       throw new ValidationApiError('Task ID is required');
     }
 
-    const authorizationContext: AuthorizationContext = {
-      tenantId: user.tenantId,
-      projectId,
-      role: user.role
-    };
-
     const statusValue = updateProperties.status;
     const updatePropertiesTyped: TaskUpdateProperties = {
-      title: updateProperties.title,
-      description: updateProperties.description ?? null,
-      priority:
-        updateProperties.priority === 2
-          ? 'high'
-          : updateProperties.priority === 1
-            ? 'medium'
-            : 'low',
-      status:
-        statusValue === 'pending' ||
-        statusValue === 'in_progress' ||
-        statusValue === 'completed'
-          ? statusValue
-          : undefined,
-      assignedTo: updateProperties.assignedTo ?? null,
-      dueDate: updateProperties.dueDate
-        ? new Date(updateProperties.dueDate)
-        : null
+      ...(updateProperties.title !== undefined && {
+        title: updateProperties.title
+      }),
+      ...(updateProperties.description !== undefined && {
+        description: updateProperties.description ?? null
+      }),
+      ...(updateProperties.priority !== undefined && {
+        priority:
+          updateProperties.priority === 2
+            ? 'high'
+            : updateProperties.priority === 1
+              ? 'medium'
+              : 'low'
+      }),
+      ...(statusValue === 'pending' ||
+      statusValue === 'in_progress' ||
+      statusValue === 'completed'
+        ? { status: statusValue }
+        : {}),
+      ...(updateProperties.assignedTo !== undefined && {
+        assignedTo: updateProperties.assignedTo ?? null
+      }),
+      ...(updateProperties.dueDate !== undefined && {
+        dueDate: new Date(updateProperties.dueDate)
+      })
     };
 
-    await getUpdateTaskUsecase().execute({
-      authorizationContext,
-      projectId,
+    await getUpdateTaskUseCase().execute({
       taskId,
       updateProperties: updatePropertiesTyped
     });

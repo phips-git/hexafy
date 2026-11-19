@@ -1,2 +1,3 @@
-export * from './auth/usecases';
-export * from './task-management/usecases';
+export * from './auth/use-cases';
+export * from './say-hello/say-hello.use-case';
+export * from './task-management/use-cases';

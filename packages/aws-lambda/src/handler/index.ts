@@ -4,6 +4,8 @@ export {
   formatJsonResponse
 } from './create-handler';
 
+export { parseJsonBody } from './utils';
+
 export type {
   APIGatewayErrorResponse,
   APIGatewayEvent,
