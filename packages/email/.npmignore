@@ -1,0 +1,2 @@
+# Re-includes dist/ folder which is ignored by .gitignore
+!dist/
