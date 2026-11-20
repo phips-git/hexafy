@@ -1,2 +1,5 @@
-# Re-includes dist/ folder which is ignored by .gitignore
+*
+!package.json
+!README.md
+!CHANGELOG.md
 !dist/
