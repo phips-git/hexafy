@@ -11,14 +11,17 @@
     "storage",
     "typescript"
   ],
+  "homepage": "https://github.com/phips-git/hexafy/tree/main/packages/object-storage",
   "license": "MIT",
   "author": "Philipp Teßner-Müller",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phips-git/hexafy.git"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
-  "sideEffects": false,
   "exports": {
     "./domain": "./src/domain.export.ts",
     "./infrastructure": "./src/infrastructure.export.ts"
@@ -50,18 +53,8 @@
     "@hexafy/core": "workspace:*"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.0.0",
-    "@aws-sdk/s3-request-presigner": "^3.0.0",
     "@hexafy/tsdown-config": "workspace:*",
     "@hexafy/typescript-config": "workspace:*",
-    "typescript": "^7.0.2"
-  },
-  "peerDependencies": {
-    "@aws-sdk/client-s3": "^3.0.0",
-    "@aws-sdk/s3-request-presigner": "^3.0.0"
-  },
-  "engines": {
-    "bun": ">=1.4",
-    "node": ">=22"
+    "typescript": "^7"
   }
 }
