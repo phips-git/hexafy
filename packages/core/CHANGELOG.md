@@ -1,5 +1,11 @@
 # @hexafy/core
 
+## 1.0.0-rc.8
+
+### Patch Changes
+
+- 0648cfe: Adjust files to be included in published packages
+
 ## 1.0.0-rc.7
 
 ### Patch Changes
