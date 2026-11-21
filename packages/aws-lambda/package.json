@@ -16,6 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/phips-git/hexafy.git"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",

@@ -18,6 +18,9 @@
     "type": "git",
     "url": "git+https://github.com/phips-git/hexafy.git"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     "./application": "./src/application/index.ts",
