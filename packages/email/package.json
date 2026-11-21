@@ -50,6 +50,7 @@
   },
   "devDependencies": {
     "@hexafy/tsdown-config": "workspace:*",
+    "@hexafy/typescript-config": "workspace:*",
     "typescript": "^7"
   }
 }
