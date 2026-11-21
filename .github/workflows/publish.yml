@@ -147,11 +147,18 @@ jobs:
       - name: 🏗️ Build
         run: bun run build
 
+      # TODO: Re-check Bun pack support for publishConfig.exports rewrite and
+      # remove pnpm from this job once Bun produces equivalent packed metadata.
+      # Tracking: https://github.com/oven-sh/bun/issues/19205
       - name: 🔧 Setup pnpm
         uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
 
+      # changesets/action/pack relies on the active package manager for final
+      # tarball metadata shaping. We use pnpm here because it applies
+      # publishConfig exports rewrite for the packed package.json; Bun pack
+      # currently keeps source exports and does not perform that rewrite.
       - name: 📦 Pack publishable packages
         id: pack
         uses: changesets/action/pack@v2
@@ -190,4 +197,3 @@ jobs:
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
           create-github-releases: ${{ inputs.channel == 'Release' }}
-          script: pnpm exec changeset publish
