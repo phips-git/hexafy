@@ -6,11 +6,11 @@
       "name": "hexagonal-architecture-typescript-template",
       "devDependencies": {
         "@changesets/cli": "3.0.3",
-        "@types/bun": "1.4.4",
+        "@types/bun": "1.4.5",
         "husky": "9.1.7",
         "publint": "0.3.25",
         "tsdown": "0.23.7",
-        "typescript": "7.0.2",
+        "typescript": "^7",
       },
     },
     "apps/aws-lambda": {
@@ -70,16 +70,16 @@
         "@hexafy/typescript-config": "workspace:*",
         "@types/aws-lambda": "8.10.164",
         "@types/node": "^24.2.0",
-        "typescript": "^7.0.2",
+        "typescript": "^7",
       },
     },
     "packages/core": {
       "name": "@hexafy/core",
-      "version": "1.0.0-rc.5",
+      "version": "1.0.0-rc.7",
       "devDependencies": {
         "@hexafy/tsdown-config": "workspace:*",
         "@hexafy/typescript-config": "workspace:*",
-        "typescript": "7.0.2",
+        "typescript": "^7",
       },
     },
     "packages/email": {
@@ -87,8 +87,7 @@
       "version": "0.0.0",
       "devDependencies": {
         "@hexafy/tsdown-config": "workspace:*",
-        "@hexafy/typescript-config": "workspace:*",
-        "typescript": "^7.0.2",
+        "typescript": "^7",
       },
     },
     "packages/example-domain": {
@@ -116,7 +115,7 @@
         "@hexafy/tsdown-config": "workspace:*",
         "@hexafy/typescript-config": "workspace:*",
         "@types/node": "^24.2.0",
-        "typescript": "^7.0.2",
+        "typescript": "^7",
       },
     },
     "packages/object-storage": {
@@ -130,9 +129,8 @@
       "devDependencies": {
         "@aws-sdk/client-s3": "^3.0.0",
         "@aws-sdk/s3-request-presigner": "^3.0.0",
-        "@hexafy/tsdown-config": "workspace:*",
         "@hexafy/typescript-config": "workspace:*",
-        "typescript": "^7.0.2",
+        "typescript": "^7",
       },
       "peerDependencies": {
         "@aws-sdk/client-s3": "^3.0.0",
@@ -146,7 +144,7 @@
         "@hexafy/core": "workspace:*",
         "@hexafy/tsdown-config": "workspace:*",
         "@hexafy/typescript-config": "workspace:*",
-        "typescript": "^7.0.2",
+        "typescript": "^7",
       },
       "peerDependencies": {
         "@hexafy/core": ">=1.0.0-rc.5 <1.0.0",
@@ -635,7 +633,7 @@
 
     "@types/body-parser": ["@types/body-parser@1.19.6", "", { "dependencies": { "@types/connect": "*", "@types/node": "*" } }, "sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g=="],
 
-    "@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@types/connect": ["@types/connect@3.4.38", "", { "dependencies": { "@types/node": "*" } }, "sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug=="],
 
@@ -891,7 +889,7 @@
 
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
 
-    "bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "busboy": ["busboy@1.6.0", "", { "dependencies": { "streamsearch": "^1.1.0" } }, "sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA=="],
 
